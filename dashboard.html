@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>บัญชีร้านกาแฟ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; font-family: -apple-system, "Noto Sans Thai", "Segoe UI", sans-serif;
+    background: #FAF6F0; color: #3C2A21; padding-bottom: 60px;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 4px 0 2px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 18px 0 10px; }
+  .sub { color: #8a7a6e; font-size: 13px; margin: 0 0 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; text-align: center; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    border: 1px solid #E8E0D6; background: #fff; cursor: pointer; color: #3C2A21;
+  }
+  .tab.active { background: #3C2A21; color: #FAF6F0; border-color: #3C2A21; }
+  .row { display: flex; gap: 8px; margin-bottom: 10px; }
+  input, select {
+    width: 100%; border: 1px solid #E8E0D6; border-radius: 8px; padding: 9px 10px;
+    font-size: 14px; background: #fff; color: #3C2A21; font-family: inherit;
+  }
+  .btn-primary {
+    background: #A9744F; color: #FAF6F0; border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-block { width: 100%; padding: 12px; }
+  .btn-income { background: #7D8C5C; }
+  .btn-expense { background: #B5482A; }
+  .chip {
+    border: 1px solid #E8E0D6; border-radius: 999px; padding: 6px 12px; font-size: 13px;
+    background: #fff; cursor: pointer; white-space: nowrap; color: #3C2A21;
+  }
+  .chip.active { background: #3C2A21; color: #FAF6F0; border-color: #3C2A21; }
+  .chiprow { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+  .card {
+    border: 1px solid #E8E0D6; border-radius: 12px; background: #fff;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .label { font-size: 12px; color: #8a7a6e; margin-bottom: 4px; display: block; }
+  .field { margin-bottom: 12px; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #3C2A21; color: #FAF6F0; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2); white-space: nowrap;
+  }
+  .log-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F1EDE6; align-items: center; }
+  .loading-text { color: #8a7a6e; font-size: 14px; text-align: center; padding: 30px 0; }
+  .err-box { background: #FDEAEA; color: #B5482A; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .kpi-card { border-radius: 12px; padding: 14px; background: #fff; border: 1px solid #E8E0D6; }
+  .kpi-card.wide { grid-column: 1 / -1; }
+  .kpi-label { font-size: 12px; color: #8a7a6e; margin: 0 0 4px; }
+  .kpi-value { font-family: monospace; font-size: 22px; font-weight: 700; margin: 0; }
+  .kpi-value.income { color: #7D8C5C; }
+  .kpi-value.expense { color: #B5482A; }
+  .kpi-value.profit-pos { color: #7D8C5C; }
+  .kpi-value.profit-neg { color: #B5482A; }
+  .chart-wrap { position: relative; height: 220px; margin-bottom: 18px; }
+  .del-btn { background: none; border: none; color: #c4a896; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+  .empty { text-align: center; padding: 30px 16px; color: #a89a8d; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <h1>บัญชีร้านกาแฟ</h1>
+  <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
+
+  <div class="tabs">
+    <div class="tab active" id="tabDash" onclick="setView('dash')">Dashboard</div>
+    <div class="tab" id="tabAdd" onclick="setView('add')">บันทึกรายการ</div>
+    <div class="tab" id="tabList" onclick="setView('list')">รายการทั้งหมด</div>
+  </div>
+
+  <div id="errorBox"></div>
+  <div id="content"><div class="loading-text">กำลังโหลดข้อมูล...</div></div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+
+const EXPENSE_CATEGORIES = [
+  { id: "stock", label: "วัตถุดิบ/สต๊อก" },
+  { id: "rent", label: "ค่าเช่า/พนักงาน/สาธารณูปโภค" },
+  { id: "commission", label: "ค่าคอมมิชชั่น delivery" },
+  { id: "other", label: "อื่นๆ" },
+];
+const CHANNELS = [
+  { id: "store", label: "หน้าร้าน" },
+  { id: "delivery", label: "Delivery" },
+];
+
+let state = { income: [], expense: [], view: "dash", period: "week" };
+let chartInstance = null;
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function fmtMoney(n) {
+  return Number(n || 0).toLocaleString("th-TH", { maximumFractionDigits: 0 });
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function apiCall(action, payload) {
+  let res;
+  try {
+    const body = new URLSearchParams({ action });
+    if (payload) body.set("payload", JSON.stringify(payload));
+    res = await fetch(API_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: body.toString(),
+    });
+  } catch (networkErr) {
+    throw new Error("เชื่อมต่อเครือข่ายไม่ได้: " + networkErr.message);
+  }
+  const text = await res.text();
+  if (!res.ok) throw new Error("เซิร์ฟเวอร์ตอบกลับ HTTP " + res.status + " — " + text.slice(0, 200));
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error("รูปแบบข้อมูลที่ได้ไม่ถูกต้อง: " + text.slice(0, 200));
+  }
+}
+
+async function loadAll() {
+  try {
+    const data = await apiCall("getAll");
+    if (data.error) throw new Error(data.error);
+    state.income = (data.income || []).map((r) => ({ ...r, amount: Number(r.amount) || 0 }));
+    state.expense = (data.expense || []).map((r) => ({ ...r, amount: Number(r.amount) || 0 }));
+    document.getElementById("errorBox").innerHTML = "";
+  } catch (e) {
+    document.getElementById("errorBox").innerHTML =
+      '<div class="err-box">เชื่อมต่อข้อมูลไม่สำเร็จ: ' + escapeHtml(e.message) + '</div>';
+  }
+  render();
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function setView(v) {
+  state.view = v;
+  document.getElementById("tabDash").classList.toggle("active", v === "dash");
+  document.getElementById("tabAdd").classList.toggle("active", v === "add");
+  document.getElementById("tabList").classList.toggle("active", v === "list");
+  render();
+}
+
+function showToast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+// ----- period filtering -----
+function getRangeStart(period) {
+  const now = new Date();
+  if (period === "week") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return d;
+  }
+  if (period === "month") {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 30);
+    return d;
+  }
+  return new Date(0); // all
+}
+
+function filterByPeriod(arr, period) {
+  const start = getRangeStart(period);
+  return arr.filter((r) => {
+    const d = new Date(r.date);
+    return !isNaN(d) && d >= start;
+  });
+}
+
+function render() {
+  const lowStock = state.income.length === 0 && state.expense.length === 0;
+  document.getElementById("summaryText").textContent = lowStock
+    ? "ยังไม่มีข้อมูล — เริ่มบันทึกรายการแรก"
+    : "ภาพรวมรายรับ-รายจ่ายของร้าน";
+
+  const content = document.getElementById("content");
+  if (state.view === "dash") content.innerHTML = renderDash();
+  else if (state.view === "add") content.innerHTML = renderAdd();
+  else content.innerHTML = renderList();
+
+  if (state.view === "dash") {
+    setTimeout(() => drawChart(), 0);
+  }
+}
+
+function renderDash() {
+  let html = `
+    <div class="chiprow">
+      <div class="chip ${state.period === "week" ? "active" : ""}" onclick="setPeriod('week')">7 วันล่าสุด</div>
+      <div class="chip ${state.period === "month" ? "active" : ""}" onclick="setPeriod('month')">30 วันล่าสุด</div>
+      <div class="chip ${state.period === "all" ? "active" : ""}" onclick="setPeriod('all')">ทั้งหมด</div>
+    </div>
+  `;
+
+  const incomeF = filterByPeriod(state.income, state.period);
+  const expenseF = filterByPeriod(state.expense, state.period);
+
+  const totalIncome = incomeF.reduce((s, r) => s + r.amount, 0);
+  const totalExpense = expenseF.reduce((s, r) => s + r.amount, 0);
+  const profit = totalIncome - totalExpense;
+
+  const byChannel = {};
+  CHANNELS.forEach((c) => (byChannel[c.id] = 0));
+  incomeF.forEach((r) => { byChannel[r.channel] = (byChannel[r.channel] || 0) + r.amount; });
+
+  html += `
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <p class="kpi-label">รายรับรวม</p>
+        <p class="kpi-value income">${fmtMoney(totalIncome)}</p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">รายจ่ายรวม</p>
+        <p class="kpi-value expense">${fmtMoney(totalExpense)}</p>
+      </div>
+      <div class="kpi-card wide">
+        <p class="kpi-label">กำไร/ขาดทุน</p>
+        <p class="kpi-value ${profit >= 0 ? "profit-pos" : "profit-neg"}">${profit >= 0 ? "+" : ""}${fmtMoney(profit)} บาท</p>
+      </div>
+    </div>
+
+    <h2>รายรับแยกตามช่องทาง</h2>
+    <div class="kpi-grid">
+      ${CHANNELS.map((c) => `
+        <div class="kpi-card">
+          <p class="kpi-label">${c.label}</p>
+          <p class="kpi-value income">${fmtMoney(byChannel[c.id] || 0)}</p>
+        </div>
+      `).join("")}
+    </div>
+
+    <h2>แนวโน้มรายวัน</h2>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+
+    <h2>รายจ่ายแยกตามหมวด</h2>
+    <div class="chart-wrap" style="height:200px;"><canvas id="expenseChart"></canvas></div>
+  `;
+
+  return html;
+}
+
+function buildDailySeries(incomeF, expenseF, period) {
+  const days = period === "week" ? 7 : period === "month" ? 30 : 30;
+  const labels = [];
+  const storeArr = [];
+  const deliveryArr = [];
+  const expenseArr = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    labels.push(d.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit" }));
+    const storeSum = incomeF.filter((r) => r.date === key && r.channel === "store").reduce((s, r) => s + r.amount, 0);
+    const deliverySum = incomeF.filter((r) => r.date === key && r.channel === "delivery").reduce((s, r) => s + r.amount, 0);
+    const expSum = expenseF.filter((r) => r.date === key).reduce((s, r) => s + r.amount, 0);
+    storeArr.push(storeSum);
+    deliveryArr.push(deliverySum);
+    expenseArr.push(expSum);
+  }
+  return { labels, storeArr, deliveryArr, expenseArr };
+}
+
+function drawChart() {
+  const incomeF = filterByPeriod(state.income, state.period);
+  const expenseF = filterByPeriod(state.expense, state.period);
+
+  const trendCanvas = document.getElementById("trendChart");
+  if (trendCanvas) {
+    const { labels, storeArr, deliveryArr, expenseArr } = buildDailySeries(incomeF, expenseF, state.period);
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(trendCanvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "หน้าร้าน", data: storeArr, backgroundColor: "#A9744F", stack: "income" },
+          { label: "Delivery", data: deliveryArr, backgroundColor: "#C9A876", stack: "income" },
+          { label: "รายจ่าย", data: expenseArr, type: "line", borderColor: "#B5482A", backgroundColor: "#B5482A", tension: 0.3, yAxisID: "y" },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+        plugins: { legend: { position: "bottom", labels: { font: { size: 11 } } } },
+      },
+    });
+  }
+
+  const expCanvas = document.getElementById("expenseChart");
+  if (expCanvas) {
+    const byCat = {};
+    EXPENSE_CATEGORIES.forEach((c) => (byCat[c.id] = 0));
+    expenseF.forEach((r) => { byCat[r.category] = (byCat[r.category] || 0) + r.amount; });
+    if (window._expChart) window._expChart.destroy();
+    window._expChart = new Chart(expCanvas, {
+      type: "doughnut",
+      data: {
+        labels: EXPENSE_CATEGORIES.map((c) => c.label),
+        datasets: [{
+          data: EXPENSE_CATEGORIES.map((c) => byCat[c.id]),
+          backgroundColor: ["#B5482A", "#A9744F", "#7D8C5C", "#C9A876"],
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom", labels: { font: { size: 11 } } } },
+      },
+    });
+  }
+}
+
+function setPeriod(p) {
+  state.period = p;
+  render();
+}
+
+// ----- Add form -----
+function renderAdd() {
+  return `
+    <div class="card">
+      <h2 style="margin-top:0;">บันทึกรายรับ</h2>
+      <div class="field">
+        <label class="label">วันที่</label>
+        <input id="incDate" type="date" value="${todayStr()}" />
+      </div>
+      <div class="field">
+        <label class="label">ช่องทาง</label>
+        <select id="incChannel">
+          ${CHANNELS.map((c) => `<option value="${c.id}">${c.label}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">จำนวนเงิน (บาท)</label>
+        <input id="incAmount" type="number" inputmode="decimal" min="0" placeholder="0" />
+      </div>
+      <div class="field">
+        <label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label>
+        <input id="incNote" placeholder="เช่น ยอดขายกะเช้า" />
+      </div>
+      <button class="btn-primary btn-income btn-block" onclick="submitIncome()">บันทึกรายรับ</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">บันทึกรายจ่าย</h2>
+      <div class="field">
+        <label class="label">วันที่</label>
+        <input id="expDate" type="date" value="${todayStr()}" />
+      </div>
+      <div class="field">
+        <label class="label">หมวดรายจ่าย</label>
+        <select id="expCategory">
+          ${EXPENSE_CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">จำนวนเงิน (บาท)</label>
+        <input id="expAmount" type="number" inputmode="decimal" min="0" placeholder="0" />
+      </div>
+      <div class="field">
+        <label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label>
+        <input id="expNote" placeholder="เช่น ซื้อเมล็ดกาแฟ 5 kg" />
+      </div>
+      <button class="btn-primary btn-expense btn-block" onclick="submitExpense()">บันทึกรายจ่าย</button>
+    </div>
+  `;
+}
+
+async function submitIncome() {
+  const date = document.getElementById("incDate").value;
+  const channel = document.getElementById("incChannel").value;
+  const amount = Number(document.getElementById("incAmount").value);
+  const note = document.getElementById("incNote").value;
+  if (!amount || amount <= 0) { showToast("กรุณาใส่จำนวนเงิน"); return; }
+  try {
+    await apiCall("addIncome", { id: uid(), date, channel, amount, note });
+    showToast(`บันทึกรายรับ ${fmtMoney(amount)} บาทแล้ว`);
+    document.getElementById("incAmount").value = "";
+    document.getElementById("incNote").value = "";
+    await loadAll();
+  } catch (e) {
+    showToast("บันทึกไม่สำเร็จ: " + e.message);
+  }
+}
+
+async function submitExpense() {
+  const date = document.getElementById("expDate").value;
+  const category = document.getElementById("expCategory").value;
+  const amount = Number(document.getElementById("expAmount").value);
+  const note = document.getElementById("expNote").value;
+  if (!amount || amount <= 0) { showToast("กรุณาใส่จำนวนเงิน"); return; }
+  try {
+    await apiCall("addExpense", { id: uid(), date, category, amount, note });
+    showToast(`บันทึกรายจ่าย ${fmtMoney(amount)} บาทแล้ว`);
+    document.getElementById("expAmount").value = "";
+    document.getElementById("expNote").value = "";
+    await loadAll();
+  } catch (e) {
+    showToast("บันทึกไม่สำเร็จ: " + e.message);
+  }
+}
+
+// ----- List view -----
+function renderList() {
+  const all = [
+    ...state.income.map((r) => ({ ...r, type: "income", label: CHANNELS.find((c) => c.id === r.channel)?.label || r.channel })),
+    ...state.expense.map((r) => ({ ...r, type: "expense", label: EXPENSE_CATEGORIES.find((c) => c.id === r.category)?.label || r.category })),
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (all.length === 0) return `<div class="empty">ยังไม่มีรายการ — ไปที่แท็บ "บันทึกรายการ" เพื่อเริ่มบันทึก</div>`;
+
+  return all.map((r) => `
+    <div class="log-row">
+      <div>
+        <p style="margin:0; font-size:14px;">${escapeHtml(r.label)} ${r.type === "income" ? "(รายรับ)" : "(รายจ่าย)"}</p>
+        <p style="margin:0; font-size:12px; color:#8a7a6e;">${escapeHtml(r.note || "")} · ${escapeHtml(r.date || "")}</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-family:monospace; font-weight:700; color:${r.type === "income" ? "#7D8C5C" : "#B5482A"};">
+          ${r.type === "income" ? "+" : "-"}${fmtMoney(r.amount)}
+        </span>
+        <button class="del-btn" onclick="deleteRecord('${r.type}', '${r.id}')">✕</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function deleteRecord(type, id) {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: new URLSearchParams({ action: type === "income" ? "deleteIncome" : "deleteExpense", id }).toString(),
+    });
+    showToast("ลบรายการแล้ว");
+    await loadAll();
+  } catch (e) {
+    showToast("ลบไม่สำเร็จ: " + e.message);
+  }
+}
+
+loadAll();
+setInterval(loadAll, 15000);
+</script>
+</body>
+</html>
