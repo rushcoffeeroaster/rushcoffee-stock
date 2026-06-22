@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>สต็อกวัตถุดิบ</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #FAF6F0;
+  --surface: #fff;
+  --border:  #EDE7DD;
+  --t1:  #2C1810;
+  --t2:  #7A6B62;
+  --t3:  #B5A99E;
+  --good: #4E7A30;
+  --warn: #C08010;
+  --bad:  #B5482A;
+  --brand: #A9744F;
+  --r: 12px;
+}
+
+body {
+  font-family: -apple-system, "Noto Sans Thai", "Segoe UI", sans-serif;
+  background: var(--bg); color: var(--t1);
+  min-height: 100vh; padding-bottom: 96px;
+}
+
+/* ── Header ── */
+.header {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 18px 16px 0;
+}
+.hdr-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.app-name { font-size: 22px; font-weight: 800; color: var(--brand); letter-spacing: -0.5px; }
+.app-sub  { font-size: 12px; color: var(--t3); margin-top: 2px; }
+
+.alert-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: #FDEAEA; color: var(--bad);
+  font-size: 12px; font-weight: 700;
+  padding: 5px 10px; border-radius: 999px;
+}
+.alert-badge.hidden { display: none; }
+
+.search-wrap { position: relative; margin-bottom: 12px; }
+.search-ico  { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--t3); font-size: 14px; pointer-events: none; }
+.search-input {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 9px 14px 9px 36px; font-size: 14px; background: var(--surface);
+  color: var(--t1); font-family: inherit; outline: none; transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--brand); }
+
+/* Tabs */
+.tab-row { display: flex; gap: 0; border-bottom: none; margin-bottom: 0; }
+.tab-btn {
+  flex: 1; text-align: center; padding: 10px; font-size: 14px; font-weight: 600;
+  border: none; background: transparent; color: var(--t3); cursor: pointer;
+  border-bottom: 2px solid transparent; font-family: inherit; transition: all .15s;
+}
+.tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+/* Category chips */
+.chiprow {
+  display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px;
+  scrollbar-width: none; margin: 0 -16px;
+}
+.chiprow::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--surface); color: var(--t2);
+  cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* ── Content ── */
+.content { padding: 14px 16px; }
+
+/* ── Stock Card ── */
+.stock-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px;
+}
+.stock-card.is-low { border-color: #F5C6BB; }
+
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.card-left  { flex: 1; min-width: 0; }
+.card-name  { font-size: 16px; font-weight: 700; }
+.card-cat   { font-size: 12px; color: var(--t3); margin-top: 2px; }
+.card-qty   { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; margin-left: 12px; white-space: nowrap; }
+
+/* Gauge */
+.gauge-wrap { margin-bottom: 10px; }
+.gauge-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+.gauge-fill  { height: 100%; border-radius: 3px; transition: width .5s ease; }
+.gauge-label { font-size: 11px; color: var(--t3); }
+
+/* Card footer */
+.card-footer { display: flex; justify-content: space-between; align-items: center; }
+.cat-pill    { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--bg); color: var(--t3); border: 1px solid var(--border); }
+.card-actions { display: flex; gap: 6px; }
+.act-btn {
+  padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--t2); cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.act-btn:hover { background: var(--bg); }
+.act-btn.icon-only { padding: 6px 10px; }
+
+/* ── History list ── */
+.log-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+}
+.log-row:last-child { border-bottom: none; }
+.log-name  { font-size: 14px; font-weight: 600; }
+.log-note  { font-size: 12px; color: var(--t3); margin-top: 1px; }
+.log-delta { font-size: 15px; font-weight: 700; font-family: monospace; }
+.log-time  { font-size: 11px; color: var(--t3); margin-top: 2px; text-align: right; }
+
+/* ── Empty ── */
+.empty { text-align: center; padding: 60px 20px; }
+.empty-ico   { font-size: 44px; margin-bottom: 12px; }
+.empty-title { font-size: 15px; font-weight: 600; color: var(--t2); margin-bottom: 6px; }
+.empty-sub   { font-size: 13px; color: var(--t3); }
+
+/* ── Loading ── */
+.loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; color: var(--t3); font-size: 14px; }
+.spinner { width: 24px; height: 24px; border: 2.5px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Error ── */
+.err-box { margin: 10px 16px 0; background: #FDEAEA; color: var(--bad); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 24px; right: 16px; z-index: 30;
+  width: 56px; height: 56px; border-radius: 16px;
+  background: var(--brand); color: #fff; border: none;
+  font-size: 26px; cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0,0,0,.22);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.fab:active { transform: scale(.93); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
+  background: var(--t1); color: #fff; padding: 10px 20px; border-radius: 999px;
+  font-size: 13px; z-index: 200; white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25); animation: toastIn .2s ease;
+}
+@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(6px); } }
+
+/* ── Sheet ── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.42); z-index: 50;
+  display: flex; align-items: flex-end; animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } }
+.sheet {
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: 10px 20px 36px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp .25s cubic-bezier(.22,1,.36,1);
+}
+@keyframes slideUp { from { transform: translateY(24px); opacity: 0; } }
+.sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 6px auto 18px; }
+.sheet-title  { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+.sheet-sub    { font-size: 13px; color: var(--t2); margin-top: -12px; margin-bottom: 16px; }
+.divider      { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ── Form ── */
+.field { margin-bottom: 12px; }
+.field-lbl {
+  font-size: 11px; font-weight: 700; color: var(--t3);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; display: block;
+}
+.field-input, .field-select {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; font-size: 15px; background: var(--surface);
+  color: var(--t1); font-family: inherit; outline: none;
+  transition: border-color .15s; -webkit-appearance: none;
+}
+.field-input:focus, .field-select:focus { border-color: var(--brand); }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Buttons ── */
+.btn-primary {
+  width: 100%; background: var(--brand); color: #fff; border: none;
+  border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: inherit; margin-bottom: 8px; transition: opacity .15s;
+}
+.btn-primary:active   { opacity: .85; }
+.btn-primary:disabled { opacity: .55; cursor: default; }
+.btn-secondary {
+  width: 100%; background: transparent; color: var(--t2);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-danger-text {
+  width: 100%; background: transparent; color: var(--bad);
+  border: none; padding: 12px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit; margin-top: 4px;
+}
+
+/* Amount display in move sheet */
+.current-qty-box {
+  background: var(--bg); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cq-label { font-size: 12px; color: var(--t3); }
+.cq-value { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="hdr-top">
+    <div>
+      <div class="app-name">สต็อกวัตถุดิบ</div>
+      <div class="app-sub" id="appSub">กำลังโหลด...</div>
+    </div>
+    <div class="alert-badge hidden" id="alertBadge">⚠️ <span id="alertCount">0</span> รายการใกล้หมด</div>
+  </div>
+  <div class="search-wrap" id="searchWrap">
+    <span class="search-ico">⌕</span>
+    <input class="search-input" id="searchInput" placeholder="ค้นหาวัตถุดิบ..." oninput="onSearch(this.value)" />
+  </div>
+  <div class="tab-row">
+    <button class="tab-btn active" id="tabList"    onclick="setView('list')">รายการสต็อก</button>
+    <button class="tab-btn"        id="tabHistory" onclick="setView('history')">ประวัติ</button>
+  </div>
+  <div class="chiprow" id="catChips"></div>
+</div>
+
+<div id="errorBox"></div>
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล</div>
+</div>
+
+<button class="fab" id="fabBtn" onclick="openAddSheet()" title="เพิ่มวัตถุดิบ">+</button>
+<div id="sheetRoot"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzRGIVn3Vz6doKwYY6ltuEQIhrs9YYtvyiqXJBnckQh9705ZePIYZcOgFwQ5j5LtMoo/exec";
+
+const UNITS = ["g","kg","ml","l","ชิ้น","ถุง","ขวด","กล่อง"];
+const CATS  = [
+  {id:"all",    label:"ทั้งหมด"},
+  {id:"coffee", label:"กาแฟ"},
+  {id:"drink",  label:"เครื่องดื่ม"},
+  {id:"dairy",  label:"นม/ครีม"},
+  {id:"bakery", label:"เบเกอรี่"},
+  {id:"other",  label:"อื่นๆ"},
+];
+
+// ─── State ───────────────────────────────────────────────
+let state = { items:[], logs:[], view:"list", cat:"all", search:"" };
+
+// ─── Helpers ─────────────────────────────────────────────
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+
+function catLabel(id) { return CATS.find(c=>c.id===id)?.label ?? "อื่นๆ"; }
+
+function levelColor(ratio) {
+  if (ratio <= 0)  return "var(--bad)";
+  if (ratio < 1)   return "var(--warn)";
+  return "var(--good)";
+}
+
+// ─── API ─────────────────────────────────────────────────
+async function apiCall(action, payload) {
+  const body = new URLSearchParams({action});
+  if (payload) body.set("payload", JSON.stringify(payload));
+  const res  = await fetch(API_URL, {
+    method:"POST", redirect:"follow",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: body.toString(),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error("HTTP "+res.status);
+  return JSON.parse(text);
+}
+
+async function loadAll() {
+  try {
+    const data = await apiCall("getAll");
+    if (data.error) throw new Error(data.error);
+    state.items = (data.items||[]).map(it=>({...it, qty:Number(it.qty)||0, min:Number(it.min)||0}));
+    state.logs  = (data.logs||[]).sort((a,b)=>new Date(b.time)-new Date(a.time));
+    document.getElementById("errorBox").innerHTML = "";
+  } catch(e) {
+    document.getElementById("errorBox").innerHTML =
+      `<div class="err-box">เชื่อมต่อไม่ได้: ${esc(e.message)}</div>`;
+  }
+  renderHeader();
+  renderContent();
+}
+
+// ─── Header update ────────────────────────────────────────
+function renderHeader() {
+  const low = state.items.filter(it=>it.min>0 && it.qty<it.min);
+  const badge = document.getElementById("alertBadge");
+  badge.classList.toggle("hidden", low.length===0);
+  document.getElementById("alertCount").textContent = low.length;
+
+  // category chips
+  document.getElementById("catChips").innerHTML = CATS.map(c=>`
+    <div class="chip ${state.cat===c.id?"active":""}" onclick="setCat('${c.id}')">${c.label}</div>
+  `).join("");
+}
+
+// ─── View / Filter ────────────────────────────────────────
+function setView(v) {
+  state.view = v;
+  document.getElementById("tabList").classList.toggle("active",    v==="list");
+  document.getElementById("tabHistory").classList.toggle("active", v==="history");
+  document.getElementById("searchWrap").style.display = v==="list" ? "" : "none";
+  document.getElementById("catChips").style.display   = v==="list" ? "" : "none";
+  document.getElementById("fabBtn").style.display     = v==="list" ? "" : "none";
+  renderContent();
+}
+
+function setCat(c)   { state.cat=c; renderHeader(); renderContent(); }
+function onSearch(v) { state.search=v; renderContent(); }
+
+// ─── Render ───────────────────────────────────────────────
+function renderContent() {
+  if (state.view==="list") renderList();
+  else renderHistory();
+}
+
+function renderList() {
+  let items = state.items
+    .filter(it => state.cat==="all" || it.category===state.cat)
+    .filter(it => it.name.toLowerCase().includes(state.search.toLowerCase()))
+    .sort((a,b)=>{
+      const aLow = a.min>0 && a.qty<a.min;
+      const bLow = b.min>0 && b.qty<b.min;
+      if (aLow!==bLow) return aLow?-1:1;
+      return a.name.localeCompare(b.name,"th");
+    });
+
+  const ct = document.getElementById("content");
+
+  const total = state.items.filter(it=>state.cat==="all"||it.category===state.cat).length;
+  document.getElementById("appSub").textContent =
+    `${total} รายการ${state.search?" (ค้นหา)":""}`;
+
+  if (items.length===0) {
+    ct.innerHTML = `<div class="empty">
+      <div class="empty-ico">📦</div>
+      <div class="empty-title">${state.search?"ไม่พบรายการที่ค้นหา":"ยังไม่มีวัตถุดิบ"}</div>
+      <div class="empty-sub">${state.search?"ลองคำค้นอื่น":"กดปุ่ม + เพื่อเพิ่มรายการแรก"}</div>
+    </div>`;
+    return;
+  }
+
+  ct.innerHTML = items.map(it=>{
+    const ratio  = it.min>0 ? it.qty/it.min : 1.5;
+    const isLow  = it.min>0 && it.qty<it.min;
+    const pct    = it.min>0 ? Math.min(100, Math.round((it.qty/(it.min*2))*100)) : 100;
+    const color  = levelColor(ratio);
+    return `
+      <div class="stock-card${isLow?" is-low":""}">
+        <div class="card-header">
+          <div class="card-left">
+            <div class="card-name">${esc(it.name)}</div>
+          </div>
+          <div class="card-qty" style="color:${color}">${it.qty} ${esc(it.unit)}</div>
+        </div>
+        <div class="gauge-wrap">
+          <div class="gauge-track">
+            <div class="gauge-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <div class="gauge-label">ขั้นต่ำ ${it.min} ${esc(it.unit)}</div>
+        </div>
+        <div class="card-footer">
+          <span class="cat-pill">${catLabel(it.category)}</span>
+          <div class="card-actions">
+            <button class="act-btn" onclick='openMoveSheet(${JSON.stringify(it.id)},"out")'>ใช้ออก</button>
+            <button class="act-btn" onclick='openMoveSheet(${JSON.stringify(it.id)},"in")'>รับเข้า</button>
+            <button class="act-btn icon-only" onclick='openEditSheet(${JSON.stringify(it.id)})'>⋯</button>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function renderHistory() {
+  document.getElementById("appSub").textContent = `ประวัติ ${state.logs.length} รายการ`;
+  const ct = document.getElementById("content");
+  if (state.logs.length===0) {
+    ct.innerHTML = `<div class="empty">
+      <div class="empty-ico">🕐</div>
+      <div class="empty-title">ยังไม่มีประวัติ</div>
+    </div>`;
+    return;
+  }
+  ct.innerHTML = `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:0 16px;">
+    ${state.logs.map(l=>{
+      const sign  = l.type==="in"?"+": l.type==="out"?"-":"";
+      const color = l.type==="in"?"var(--good)": l.type==="out"?"var(--bad)":"var(--t3)";
+      const d     = new Date(l.time);
+      const dt    = isNaN(d)?"": d.toLocaleString("th-TH",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+      return `<div class="log-row">
+        <div>
+          <div class="log-name">${esc(l.itemName||"")}</div>
+          <div class="log-note">${esc(l.note||"")}</div>
+        </div>
+        <div>
+          <div class="log-delta" style="color:${color}">${sign}${l.delta||""}</div>
+          <div class="log-time">${dt}</div>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ─── Sheets ───────────────────────────────────────────────
+function closeSheet() { document.getElementById("sheetRoot").innerHTML=""; }
+
+// Move (in / out)
+function openMoveSheet(itemId, type) {
+  const it = state.items.find(i=>i.id===itemId);
+  if (!it) return;
+  const isIn  = type==="in";
+  const color = levelColor(it.min>0?it.qty/it.min:1.5);
+  document.getElementById("sheetRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this)closeSheet()">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">${isIn?"📥 รับเข้า":"📤 ใช้ออก"} — ${esc(it.name)}</div>
+        <div class="current-qty-box">
+          <div class="cq-label">คงเหลือปัจจุบัน</div>
+          <div class="cq-value" style="color:${color}">${it.qty} ${esc(it.unit)}</div>
+        </div>
+        <div class="field">
+          <label class="field-lbl">จำนวน (${esc(it.unit)})</label>
+          <input id="moveAmt" class="field-input" type="number" inputmode="decimal" min="0" autofocus placeholder="0" />
+        </div>
+        <div class="field">
+          <label class="field-lbl">บันทึกเพิ่มเติม</label>
+          <input id="moveNote" class="field-input" placeholder="${isIn?"เช่น ซื้อจากซัพพลายเออร์ A":"เช่น ใช้ทำเมนูประจำวัน"}" />
+        </div>
+        <button class="btn-primary" onclick="submitMove('${itemId}','${type}')">ยืนยัน</button>
+        <button class="btn-secondary" onclick="closeSheet()">ยกเลิก</button>
+      </div>
+    </div>`;
+}
+
+async function submitMove(itemId, type) {
+  const amount = Number(document.getElementById("moveAmt").value);
+  const note   = document.getElementById("moveNote").value;
+  if (!amount || amount<=0) { showToast("กรุณาระบุจำนวน"); return; }
+  const it = state.items.find(i=>i.id===itemId);
+  closeSheet();
+  try {
+    await apiCall("moveStock",{itemId, itemName:it.name, type, amount, note});
+    showToast(`${type==="in"?"รับเข้า":"ใช้ออก"} ${it.name} ${type==="in"?"+":"-"}${amount} ${it.unit}`);
+    await loadAll();
+  } catch(e) { showToast("บันทึกไม่สำเร็จ"); }
+}
+
+// Add item
+function openAddSheet() {
+  document.getElementById("sheetRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this)closeSheet()">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">📦 เพิ่มวัตถุดิบใหม่</div>
+        <div class="field">
+          <label class="field-lbl">ชื่อวัตถุดิบ</label>
+          <input id="fName" class="field-input" placeholder="เช่น เมล็ดกาแฟ" autofocus />
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label class="field-lbl">หน่วย</label>
+            <select id="fUnit" class="field-select">
+              ${UNITS.map(u=>`<option value="${u}">${u}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-lbl">หมวดหมู่</label>
+            <select id="fCat" class="field-select">
+              ${CATS.filter(c=>c.id!=="all").map(c=>`<option value="${c.id}">${c.label}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label class="field-lbl">จำนวนเริ่มต้น</label>
+            <input id="fQty" class="field-input" type="number" inputmode="decimal" min="0" value="0" placeholder="0" />
+          </div>
+          <div class="field">
+            <label class="field-lbl">ขั้นต่ำ (เตือน)</label>
+            <input id="fMin" class="field-input" type="number" inputmode="decimal" min="0" value="0" placeholder="0" />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="submitAdd()">เพิ่มวัตถุดิบ</button>
+        <button class="btn-secondary" onclick="closeSheet()">ยกเลิก</button>
+      </div>
+    </div>`;
+}
+
+async function submitAdd() {
+  const name = document.getElementById("fName").value.trim();
+  if (!name) { showToast("กรุณาใส่ชื่อวัตถุดิบ"); return; }
+  const unit = document.getElementById("fUnit").value;
+  const cat  = document.getElementById("fCat").value;
+  const qty  = Number(document.getElementById("fQty").value)||0;
+  const min  = Number(document.getElementById("fMin").value)||0;
+  const id   = uid();
+  closeSheet();
+  try {
+    await apiCall("saveItem",{id, name, unit, category:cat, qty, min});
+    await apiCall("logOnly",{itemName:name, type:"add", amount:qty, note:"เพิ่มวัตถุดิบใหม่"});
+    showToast(`เพิ่ม "${name}" แล้ว`);
+    await loadAll();
+  } catch(e) { showToast("บันทึกไม่สำเร็จ"); }
+}
+
+// Edit item
+function openEditSheet(itemId) {
+  const it = state.items.find(i=>i.id===itemId);
+  if (!it) return;
+  document.getElementById("sheetRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this)closeSheet()">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">✏️ แก้ไขวัตถุดิบ</div>
+        <div class="field">
+          <label class="field-lbl">ชื่อวัตถุดิบ</label>
+          <input id="fName" class="field-input" value="${esc(it.name)}" autofocus />
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label class="field-lbl">หน่วย</label>
+            <select id="fUnit" class="field-select">
+              ${UNITS.map(u=>`<option value="${u}" ${it.unit===u?"selected":""}>${u}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-lbl">หมวดหมู่</label>
+            <select id="fCat" class="field-select">
+              ${CATS.filter(c=>c.id!=="all").map(c=>`<option value="${c.id}" ${it.category===c.id?"selected":""}>${c.label}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-lbl">ขั้นต่ำ (เตือน)</label>
+          <input id="fMin" class="field-input" type="number" inputmode="decimal" min="0" value="${it.min}" />
+        </div>
+        <button class="btn-primary" onclick="submitEdit('${it.id}')">บันทึก</button>
+        <button class="btn-secondary" onclick="closeSheet()">ยกเลิก</button>
+        <button class="btn-danger-text" onclick="submitDelete('${it.id}')">ลบรายการนี้</button>
+      </div>
+    </div>`;
+}
+
+async function submitEdit(itemId) {
+  const it   = state.items.find(i=>i.id===itemId);
+  const name = document.getElementById("fName").value.trim();
+  if (!name) { showToast("กรุณาใส่ชื่อ"); return; }
+  const unit = document.getElementById("fUnit").value;
+  const cat  = document.getElementById("fCat").value;
+  const min  = Number(document.getElementById("fMin").value)||0;
+  closeSheet();
+  try {
+    await apiCall("saveItem",{id:itemId, name, unit, category:cat, qty:it.qty, min});
+    showToast(`บันทึก "${name}" แล้ว`);
+    await loadAll();
+  } catch(e) { showToast("บันทึกไม่สำเร็จ"); }
+}
+
+async function submitDelete(itemId) {
+  const it = state.items.find(i=>i.id===itemId);
+  closeSheet();
+  try {
+    await fetch(API_URL+"?"+new URLSearchParams({action:"deleteItem",id:itemId}));
+    showToast(`ลบ "${it.name}" แล้ว`);
+    await loadAll();
+  } catch(e) { showToast("ลบไม่สำเร็จ"); }
+}
+
+// ─── Toast ────────────────────────────────────────────────
+function showToast(msg) {
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2400);
+}
+
+// ─── Init ─────────────────────────────────────────────────
+loadAll();
+setInterval(loadAll, 10000);
+</script>
+</body>
+</html>
