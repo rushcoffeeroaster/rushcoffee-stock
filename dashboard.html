@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>บัญชีร้านกาแฟ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+:root {
+  --bg:#FAF6F0; --surface:#fff; --border:#EDE7DD;
+  --t1:#2C1810; --t2:#7A6B62; --t3:#B5A99E;
+  --good:#4E7A30; --warn:#C08010; --bad:#B5482A; --branch:#C1502E; --r:12px;
+}
+body { font-family:-apple-system,"Noto Sans Thai","Segoe UI",sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; padding-bottom:96px; }
+body.rush     { --branch:#C1502E; }
+body.rushhour { --branch:#C49000; }
+body.all      { --branch:#A9744F; }
+
+/* ── Header ── */
+.header { position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--border); padding:18px 16px 12px; }
+.hdr-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.app-name { font-size:22px; font-weight:800; color:var(--branch); letter-spacing:-0.5px; }
+.app-sub  { font-size:12px; color:var(--t3); margin-top:2px; }
+.branch-toggle { display:flex; gap:6px; }
+.branch-pill { padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; border:1.5px solid var(--border); background:var(--surface); color:var(--t3); cursor:pointer; white-space:nowrap; transition:all .15s; }
+.branch-pill.active { background:var(--branch); color:#fff; border-color:var(--branch); }
+.period-row { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+.period-row::-webkit-scrollbar { display:none; }
+.period-chip { flex-shrink:0; padding:6px 14px; border-radius:999px; font-size:13px; font-weight:600; border:1.5px solid var(--border); background:var(--surface); color:var(--t2); cursor:pointer; transition:all .15s; }
+.period-chip.active { background:var(--branch); color:#fff; border-color:var(--branch); }
+
+/* ── Content ── */
+.content { padding:14px 16px; }
+
+/* ── KPI Grid ── */
+.kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.kpi-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); padding:14px 16px; }
+.kpi-card.wide { grid-column:1/-1; }
+.kpi-label { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.kpi-value { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.5px; }
+.kpi-sub   { font-size:11px; color:var(--t3); margin-top:3px; }
+
+/* ── Chart ── */
+.chart-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:10px; }
+.chart-title { font-size:14px; font-weight:700; margin-bottom:12px; }
+.chart-wrap  { position:relative; height:180px; }
+
+/* ── Section title ── */
+.section-title { font-size:13px; font-weight:700; color:var(--t2); margin:16px 0 8px; }
+
+/* ── Log list ── */
+.log-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); overflow:hidden; margin-bottom:10px; }
+.log-row  { display:flex; justify-content:space-between; align-items:center; padding:11px 14px; border-bottom:1px solid var(--border); }
+.log-row:last-child { border-bottom:none; }
+.log-name  { font-size:14px; font-weight:600; }
+.log-note  { font-size:12px; color:var(--t3); margin-top:1px; }
+.log-amount{ text-align:right; }
+.log-val   { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+.log-time  { font-size:11px; color:var(--t3); margin-top:2px; }
+.branch-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+.del-btn { background:none; border:none; color:var(--t3); cursor:pointer; padding:4px 6px; font-size:16px; line-height:1; }
+.del-btn:hover { color:var(--bad); }
+
+/* ── Empty / Loading ── */
+.loading { display:flex; flex-direction:column; align-items:center; padding:60px 20px; gap:12px; color:var(--t3); font-size:14px; }
+.spinner { width:24px; height:24px; border:2.5px solid var(--border); border-top-color:var(--branch); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.err-box { margin:10px 16px 0; background:#FDEAEA; color:var(--bad); border-radius:8px; padding:10px 14px; font-size:13px; }
+.empty { text-align:center; padding:40px 20px; color:var(--t3); font-size:14px; }
+
+/* ── FAB group ── */
+.fab-group { position:fixed; bottom:24px; right:16px; z-index:30; display:flex; flex-direction:column; gap:10px; align-items:center; }
+.fab-wrap { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.fab { width:48px; height:48px; border-radius:14px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,.2); transition:transform .15s; color:#fff; }
+.fab:active { transform:scale(.93); }
+.fab-income  { background:var(--good); }
+.fab-expense { background:var(--bad); }
+.fab-lbl { font-size:9px; font-weight:700; color:var(--t2); }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:92px; left:50%; transform:translateX(-50%); background:var(--t1); color:#fff; padding:10px 20px; border-radius:999px; font-size:13px; z-index:200; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.25); animation:toastIn .2s ease; }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(6px)} }
+
+/* ── Sheet ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.42); z-index:50; display:flex; align-items:flex-end; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} }
+.sheet { background:var(--surface); border-radius:20px 20px 0 0; padding:10px 20px 36px; width:100%; max-height:90vh; overflow-y:auto; animation:slideUp .25s cubic-bezier(.22,1,.36,1); }
+@keyframes slideUp { from{transform:translateY(24px);opacity:0} }
+.sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:6px auto 18px; }
+.sheet-title  { font-size:18px; font-weight:700; margin-bottom:18px; }
+.sheet-type-pill { display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; margin-bottom:14px; }
+.pill-income  { background:#EBF4E3; color:var(--good); }
+.pill-expense { background:#FDEAEA; color:var(--bad); }
+
+/* ── Form ── */
+.field { margin-bottom:12px; }
+.field-lbl { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
+.field-input,.field-select { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:15px; background:var(--surface); color:var(--t1); font-family:inherit; outline:none; transition:border-color .15s; -webkit-appearance:none; }
+.field-input:focus,.field-select:focus { border-color:var(--branch); }
+.row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.btn-income  { width:100%; background:var(--good); color:#fff; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+.btn-expense { width:100%; background:var(--bad);  color:#fff; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+.btn-secondary { width:100%; background:transparent; color:var(--t2); border:1.5px solid var(--border); border-radius:10px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+.stock-fields { margin-bottom:4px; }
+</style>
+</head>
+<body class="rush">
+
+<div class="header">
+  <div class="hdr-top">
+    <div>
+      <div class="app-name" id="appName">บัญชี Rush</div>
+      <div class="app-sub" id="appSub">กำลังโหลด...</div>
+    </div>
+    <div class="branch-toggle">
+      <div class="branch-pill active" id="pillRush"     onclick="setBranch('rush')">Rush</div>
+      <div class="branch-pill"        id="pillRushhour" onclick="setBranch('rushhour')">Rush Hour</div>
+      <div class="branch-pill"        id="pillAll"      onclick="setBranch('all')">รวม</div>
+    </div>
+  </div>
+  <div class="period-row">
+    <div class="period-chip active" id="pd-day"   onclick="setPeriod('day')">วันนี้</div>
+    <div class="period-chip"        id="pd-week"  onclick="setPeriod('week')">7 วัน</div>
+    <div class="period-chip"        id="pd-month" onclick="setPeriod('month')">30 วัน</div>
+    <div class="period-chip"        id="pd-all"   onclick="setPeriod('all')">ทั้งหมด</div>
+  </div>
+</div>
+
+<div id="errorBox"></div>
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล</div>
+</div>
+
+<div class="fab-group">
+  <div class="fab-wrap">
+    <button class="fab fab-income"  onclick="openAddSheet('income')"  title="บันทึกรายรับ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
+    <span class="fab-lbl">รายรับ</span>
+  </div>
+  <div class="fab-wrap">
+    <button class="fab fab-expense" onclick="openAddSheet('expense')" title="บันทึกรายจ่าย">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
+    <span class="fab-lbl">รายจ่าย</span>
+  </div>
+</div>
+<div id="sheetRoot"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+
+const EXPENSE_CATS = [
+  {id:"stock",      label:"วัตถุดิบ/สต๊อก"},
+  {id:"rent",       label:"ค่าเช่า/พนักงาน/สาธารณูปโภค"},
+  {id:"commission", label:"ค่าคอมมิชชั่น Delivery"},
+  {id:"other",      label:"อื่นๆ"},
+];
+const CHANNELS = [
+  {id:"store",    label:"หน้าร้าน"},
+  {id:"delivery", label:"Delivery"},
+];
+const STOCK_UNITS = ["g","kg","ml","l","ชิ้น","ถุง","ขวด","กล่อง"];
+const BRANCH_COLOR = {rush:"#C1502E", rushhour:"#C49000", all:"#A9744F"};
+
+let state = { income:[], expense:[], branch:"rush", period:"day" };
+let trendChart=null, donutChart=null;
+
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+function fmt(n){ return Number(n).toLocaleString("th-TH",{maximumFractionDigits:0}); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function todayStr(){ return toLocalDateStr(new Date()); }
+function toLocalDateStr(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function normalizeDate(v){
+  if(!v) return "";
+  const s=String(v);
+  const m=s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return m[0];
+  const d=new Date(s); if(!isNaN(d)) return toLocalDateStr(d);
+  return s;
+}
+
+// ─── API ───
+async function apiCall(action, payload) {
+  const body=new URLSearchParams({action});
+  if(payload) body.set("payload", JSON.stringify(payload));
+  const res=await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:body.toString()});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const text=await res.text();
+  try{ return JSON.parse(text); } catch(e){ return {}; }
+}
+
+async function loadAll() {
+  try {
+    const data=await apiCall("getAll");
+    if(data.error) throw new Error(data.error);
+    state.income =(data.income ||[]).map(r=>({...r, amount:Number(r.amount)||0, date:normalizeDate(r.date)}));
+    state.expense=(data.expense||[]).map(r=>({...r, amount:Number(r.amount)||0, date:normalizeDate(r.date)}));
+    document.getElementById("errorBox").innerHTML="";
+  } catch(e) {
+    document.getElementById("errorBox").innerHTML=`<div class="err-box">เชื่อมต่อไม่ได้: ${esc(e.message)}</div>`;
+  }
+  renderAll();
+}
+
+// ─── Branch / Period ───
+function setBranch(b) {
+  state.branch=b;
+  document.body.className=b;
+  ["rush","rushhour","all"].forEach(id=>{
+    const el=document.getElementById("pill"+id.charAt(0).toUpperCase()+id.slice(1));
+    if(el) el.classList.toggle("active",id===b);
+  });
+  document.getElementById("appName").textContent = b==="rush"?"บัญชี Rush":b==="rushhour"?"บัญชี Rush Hour":"บัญชีภาพรวม";
+  renderAll();
+}
+function setPeriod(p) {
+  state.period=p;
+  ["day","week","month","all"].forEach(id=>document.getElementById("pd-"+id).classList.toggle("active",id===p));
+  renderAll();
+}
+
+// ─── Filter ───
+function getRangeStart(period) {
+  const now=new Date();
+  if(period==="day"){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+  if(period==="week"){ const d=new Date(); d.setDate(now.getDate()-7); return d; }
+  if(period==="month"){ const d=new Date(); d.setDate(now.getDate()-30); return d; }
+  return new Date(0);
+}
+function filterArr(arr) {
+  const b=state.branch;
+  let f = b==="all" ? arr : arr.filter(r=>r.branch===b);
+  const cut=getRangeStart(state.period);
+  return f.filter(r=>{ const d=new Date(r.date); return !isNaN(d)&&d>=cut; });
+}
+
+// ─── Render ───
+function renderAll() {
+  // Destroy charts first — before replacing DOM
+  if(trendChart){ trendChart.destroy(); trendChart=null; }
+  if(donutChart){ donutChart.destroy(); donutChart=null; }
+
+  const incF = filterArr(state.income);
+  const expF = filterArr(state.expense);
+  const totalInc = incF.reduce((s,r)=>s+r.amount,0);
+  const totalExp = expF.reduce((s,r)=>s+r.amount,0);
+  const profit   = totalInc-totalExp;
+
+  const periodLabel={"day":"วันนี้","week":"7 วันล่าสุด","month":"30 วันล่าสุด","all":"ทั้งหมด"}[state.period];
+  document.getElementById("appSub").textContent=`${periodLabel} · ${incF.length+expF.length} รายการ`;
+
+  const profitCls = profit>=0?"profit-positive":"profit-negative";
+
+  // Merge + sort for log list
+  const allTxs = [
+    ...incF.map(r=>({...r,type:"income"})),
+    ...expF.map(r=>({...r,type:"expense"})),
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  // Build channel breakdown (income)
+  const byCh={};
+  CHANNELS.forEach(c=>byCh[c.id]=0);
+  incF.forEach(r=>{ byCh[r.channel]=(byCh[r.channel]||0)+r.amount; });
+
+  // Build branch breakdown (when viewing "all")
+  const byBranch={rush:0,rushhour:0};
+  incF.forEach(r=>{ if(byBranch[r.branch]!==undefined) byBranch[r.branch]+=r.amount; });
+
+  const ct=document.getElementById("content");
+  ct.innerHTML=`
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">รายรับ</div>
+        <div class="kpi-value" style="color:var(--good)">฿${fmt(totalInc)}</div>
+        <div class="kpi-sub">${incF.length} รายการ</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">รายจ่าย</div>
+        <div class="kpi-value" style="color:var(--bad)">฿${fmt(totalExp)}</div>
+        <div class="kpi-sub">${expF.length} รายการ</div>
+      </div>
+      <div class="kpi-card wide">
+        <div class="kpi-label">กำไรสุทธิ</div>
+        <div class="kpi-value" style="color:${profit>=0?"var(--good)":"var(--bad)"}">${profit>=0?"+":""}฿${fmt(profit)}</div>
+        <div class="kpi-sub">Margin ${totalInc>0?(profit/totalInc*100).toFixed(1):0}%</div>
+      </div>
+    </div>
+
+    ${state.branch==="all"?`
+    <div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi-card"><div class="kpi-label">Rush</div><div class="kpi-value" style="color:var(--good);font-size:18px">฿${fmt(byBranch.rush)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Rush Hour</div><div class="kpi-value" style="color:var(--good);font-size:18px">฿${fmt(byBranch.rushhour)}</div></div>
+    </div>`:""}
+
+    <div class="kpi-grid" style="margin-bottom:14px;">
+      ${CHANNELS.map(c=>`<div class="kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value" style="color:var(--good);font-size:18px">฿${fmt(byCh[c.id]||0)}</div></div>`).join("")}
+    </div>
+
+    <div class="chart-card"><div class="chart-title">แนวโน้ม 7 วัน</div><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">สัดส่วนรายจ่าย</div><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
+
+    <div class="section-title">รายการล่าสุด</div>
+    ${allTxs.length?`<div class="log-card">${allTxs.slice(0,40).map(r=>{
+      const isInc=r.type==="income";
+      const color=isInc?"var(--good)":"var(--bad)";
+      const bcolor=BRANCH_COLOR[r.branch]||"var(--t3)";
+      const label=isInc?(CHANNELS.find(c=>c.id===r.channel)?.label||r.channel||"รายรับ"):(EXPENSE_CATS.find(c=>c.id===r.category)?.label||r.category||"รายจ่าย");
+      return `<div class="log-row">
+        <div>
+          <div class="log-name"><span class="branch-dot" style="background:${bcolor}"></span>${esc(label)}</div>
+          <div class="log-note">${esc(r.note||"")} ${r.note?" · ":""}${esc(r.date||"")}</div>
+        </div>
+        <div class="log-amount">
+          <div class="log-val" style="color:${color}">${isInc?"+":"-"}฿${fmt(r.amount)}</div>
+          <button class="del-btn" onclick="deleteRecord('${r.type}','${esc(r.id||"")}')">✕</button>
+        </div>
+      </div>`;
+    }).join("")}</div>`:`<div class="empty">ไม่มีข้อมูลในช่วงเวลานี้</div>`}
+  `;
+
+  renderCharts(incF, expF);
+}
+
+function renderCharts(incF, expF) {
+  // Trend — 7 days
+  const labels=[], incData=[], expData=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=toLocalDateStr(d);
+    labels.push(d.toLocaleDateString("th-TH",{day:"numeric",month:"short"}));
+    incData.push(incF.filter(r=>r.date===key).reduce((s,r)=>s+r.amount,0));
+    expData.push(expF.filter(r=>r.date===key).reduce((s,r)=>s+r.amount,0));
+  }
+  const trendEl=document.getElementById("trendChart");
+  if(trendEl) trendChart=new Chart(trendEl,{
+    type:"bar",
+    data:{labels,datasets:[
+      {label:"รายรับ", data:incData, backgroundColor:"rgba(78,122,48,.75)", borderRadius:4},
+      {label:"รายจ่าย",data:expData, backgroundColor:"rgba(181,72,42,.75)", borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"bottom",labels:{font:{size:11},padding:8}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:"rgba(0,0,0,.04)"},ticks:{font:{size:10},callback:v=>"฿"+v.toLocaleString()}}}}
+  });
+
+  // Donut — expense by category
+  const byCat={};
+  expF.forEach(r=>{ const c=EXPENSE_CATS.find(x=>x.id===r.category)?.label||r.category||"อื่นๆ"; byCat[c]=(byCat[c]||0)+r.amount; });
+  const catKeys=Object.keys(byCat);
+  const donutEl=document.getElementById("donutChart");
+  if(donutEl&&catKeys.length){
+    donutChart=new Chart(donutEl,{
+      type:"doughnut",
+      data:{labels:catKeys,datasets:[{data:Object.values(byCat),backgroundColor:["#C1502E","#C49000","#7A6B62","#4E7A30"],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{font:{size:11},padding:8}}},cutout:"65%"}
+    });
+  }
+}
+
+// ─── Sheets ───
+function closeSheet(){ document.getElementById("sheetRoot").innerHTML=""; }
+
+function openAddSheet(type) {
+  const isInc=type==="income";
+  const branchOptions=state.branch==="all"?["rush","rushhour"]:[state.branch];
+  document.getElementById("sheetRoot").innerHTML=`
+    <div class="overlay" onclick="if(event.target===this)closeSheet()"><div class="sheet">
+      <div class="sheet-handle"></div>
+      <span class="sheet-type-pill ${isInc?"pill-income":"pill-expense"}">${isInc?"รายรับ":"รายจ่าย"}</span>
+      <div class="sheet-title">${isInc?"บันทึกรายรับ":"บันทึกรายจ่าย"}</div>
+
+      <div class="field"><label class="field-lbl">จำนวนเงิน (฿)</label><input id="fAmt" class="field-input" type="number" inputmode="decimal" placeholder="0" autofocus /></div>
+
+      ${isInc?`
+        <div class="field"><label class="field-lbl">ช่องทาง</label><select id="fChannel" class="field-select">${CHANNELS.map(c=>`<option value="${c.id}">${c.label}</option>`).join("")}</select></div>
+      `:`
+        <div class="field"><label class="field-lbl">หมวดหมู่</label><select id="fCat" class="field-select" onchange="toggleStockFields()">${EXPENSE_CATS.map(c=>`<option value="${c.id}">${c.label}</option>`).join("")}</select></div>
+        <div class="stock-fields" id="stockFields" style="display:block">
+          <div class="field"><label class="field-lbl">ชื่อวัตถุดิบ</label><input id="fItemName" class="field-input" placeholder="เช่น เมล็ดกาแฟ" /></div>
+          <div class="row-2">
+            <div class="field"><label class="field-lbl">จำนวน</label><input id="fItemQty" class="field-input" type="number" inputmode="decimal" placeholder="0" /></div>
+            <div class="field"><label class="field-lbl">หน่วย</label><select id="fItemUnit" class="field-select">${STOCK_UNITS.map(u=>`<option>${u}</option>`).join("")}</select></div>
+          </div>
+        </div>
+      `}
+
+      ${branchOptions.length>1?`<div class="field"><label class="field-lbl">สาขา</label><select id="fBranch" class="field-select">${branchOptions.map(b=>`<option value="${b}">${b==="rush"?"Rush":"Rush Hour"}</option>`).join("")}</select></div>`:""}
+      <div class="field"><label class="field-lbl">วันที่</label><input id="fDate" class="field-input" type="date" value="${todayStr()}" /></div>
+      <div class="field"><label class="field-lbl">บันทึกเพิ่มเติม</label><input id="fNote" class="field-input" placeholder="รายละเอียด (ไม่บังคับ)" /></div>
+
+      <button class="${isInc?"btn-income":"btn-expense"}" onclick="submitTx('${type}')">บันทึก</button>
+      <button class="btn-secondary" onclick="closeSheet()">ยกเลิก</button>
+    </div></div>`;
+}
+
+function toggleStockFields() {
+  const sel=document.getElementById("fCat"), box=document.getElementById("stockFields");
+  if(sel&&box) box.style.display=sel.value==="stock"?"":"none";
+}
+
+async function submitTx(type) {
+  // อ่านค่าทั้งหมดก่อน — ต้องทำก่อน closeSheet() เพราะ sheet จะถูกลบออกจาก DOM
+  const amount = Number(document.getElementById("fAmt").value);
+  if(!amount||amount<=0){ showToast("กรุณาระบุจำนวนเงิน"); return; }
+  const date     = document.getElementById("fDate").value;
+  const note     = document.getElementById("fNote").value;
+  const branchEl = document.getElementById("fBranch");
+  const branch   = branchEl ? branchEl.value : state.branch;
+  const channel  = document.getElementById("fChannel")?.value || "store";
+  const category = document.getElementById("fCat")?.value || "other";
+  const itemName = document.getElementById("fItemName")?.value || "";
+  const itemQty  = document.getElementById("fItemQty")?.value  || "";
+  const itemUnit = document.getElementById("fItemUnit")?.value || "";
+
+  closeSheet(); // ปิด sheet หลังจากอ่านค่าครบแล้ว
+
+  try {
+    if(type==="income") {
+      await apiCall("addIncome",{id:uid(), date, channel, amount, note, branch});
+    } else {
+      await apiCall("addExpense",{id:uid(), date, category, amount, note, branch,
+        itemName: category==="stock"?itemName:"",
+        itemQty:  category==="stock"?itemQty:"",
+        itemUnit: category==="stock"?itemUnit:"",
+      });
+    }
+    showToast(`บันทึก${type==="income"?"รายรับ":"รายจ่าย"} ฿${fmt(amount)} แล้ว`);
+    await loadAll();
+  } catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+}
+
+async function deleteRecord(type, id) {
+  if(!id){ showToast("ไม่มี ID"); return; }
+  try {
+    await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:new URLSearchParams({action:type==="income"?"deleteIncome":"deleteExpense", id}).toString()});
+    showToast("ลบรายการแล้ว"); await loadAll();
+  } catch(e){ showToast("ลบไม่สำเร็จ"); }
+}
+
+function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2400); }
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>
