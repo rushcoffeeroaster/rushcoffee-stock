@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>บัญชีรายรับรายจ่าย</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+:root {
+  --bg:#FAF6F0; --surface:#fff; --border:#EDE7DD;
+  --t1:#2C1810; --t2:#7A6B62; --t3:#B5A99E;
+  --good:#4E7A30; --warn:#C08010; --bad:#B5482A; --branch:#C1502E; --r:12px;
+}
+body { font-family:-apple-system,"Noto Sans Thai","Segoe UI",sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; padding-bottom:96px; }
+body.rush     { --branch:#C1502E; }
+body.rushhour { --branch:#C49000; }
+body.all      { --branch:#A9744F; }
+
+/* ── Header ── */
+.header { position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--border); padding:18px 16px 12px; }
+.hdr-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.app-name { font-size:22px; font-weight:800; color:var(--branch); letter-spacing:-0.5px; }
+.app-sub  { font-size:12px; color:var(--t3); margin-top:2px; }
+.branch-toggle { display:flex; gap:6px; }
+.branch-pill { padding:5px 12px; border-radius:999px; font-size:12px; font-weight:700; border:1.5px solid var(--border); background:var(--surface); color:var(--t3); cursor:pointer; white-space:nowrap; transition:all .15s; }
+.branch-pill.active { background:var(--branch); color:#fff; border-color:var(--branch); }
+.period-row { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+.period-row::-webkit-scrollbar { display:none; }
+.period-chip { flex-shrink:0; padding:6px 14px; border-radius:999px; font-size:13px; font-weight:600; border:1.5px solid var(--border); background:var(--surface); color:var(--t2); cursor:pointer; transition:all .15s; }
+.period-chip.active { background:var(--branch); color:#fff; border-color:var(--branch); }
+
+/* ── Content ── */
+.content { padding:14px 16px; }
+
+/* ── KPI Grid ── */
+.kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.kpi-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); padding:14px 16px; }
+.kpi-card.wide { grid-column:1/-1; }
+.kpi-label { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.kpi-value { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.5px; }
+.kpi-sub   { font-size:11px; color:var(--t3); margin-top:3px; }
+.kpi-income  .kpi-value { color:var(--good); }
+.kpi-expense .kpi-value { color:var(--bad); }
+.kpi-profit  .kpi-value { }
+.profit-positive { color:var(--good); }
+.profit-negative { color:var(--bad); }
+
+/* ── Chart ── */
+.chart-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:10px; }
+.chart-title { font-size:14px; font-weight:700; margin-bottom:12px; }
+.chart-wrap  { position:relative; height:180px; }
+
+/* ── Log list ── */
+.section-title { font-size:13px; font-weight:700; color:var(--t2); margin:16px 0 8px; }
+.log-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); overflow:hidden; }
+.log-row  { display:flex; justify-content:space-between; align-items:center; padding:11px 14px; border-bottom:1px solid var(--border); }
+.log-row:last-child { border-bottom:none; }
+.log-meta { }
+.log-name  { font-size:14px; font-weight:600; }
+.log-note  { font-size:12px; color:var(--t3); margin-top:1px; }
+.log-amount { text-align:right; }
+.log-val   { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+.log-time  { font-size:11px; color:var(--t3); margin-top:2px; }
+.branch-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+
+/* ── Empty / Loading ── */
+.loading { display:flex; flex-direction:column; align-items:center; padding:60px 20px; gap:12px; color:var(--t3); font-size:14px; }
+.spinner { width:24px; height:24px; border:2.5px solid var(--border); border-top-color:var(--branch); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.err-box { margin:10px 16px 0; background:#FDEAEA; color:var(--bad); border-radius:8px; padding:10px 14px; font-size:13px; }
+.empty { text-align:center; padding:40px 20px; color:var(--t3); font-size:14px; }
+
+/* ── FAB group ── */
+.fab-group { position:fixed; bottom:24px; right:16px; z-index:30; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+.fab { width:48px; height:48px; border-radius:14px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(0,0,0,.2); transition:transform .15s; color:#fff; }
+.fab:active { transform:scale(.93); }
+.fab-income  { background:var(--good); }
+.fab-expense { background:var(--bad); }
+.fab-label   { font-size:11px; font-weight:700; margin-top:2px; }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:92px; left:50%; transform:translateX(-50%); background:var(--t1); color:#fff; padding:10px 20px; border-radius:999px; font-size:13px; z-index:200; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.25); animation:toastIn .2s ease; }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(6px)} }
+
+/* ── Sheet ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.42); z-index:50; display:flex; align-items:flex-end; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} }
+.sheet { background:var(--surface); border-radius:20px 20px 0 0; padding:10px 20px 36px; width:100%; max-height:90vh; overflow-y:auto; animation:slideUp .25s cubic-bezier(.22,1,.36,1); }
+@keyframes slideUp { from{transform:translateY(24px);opacity:0} }
+.sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:6px auto 18px; }
+.sheet-title  { font-size:18px; font-weight:700; margin-bottom:18px; }
+
+/* ── Form ── */
+.field { margin-bottom:12px; }
+.field-lbl { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
+.field-input,.field-select { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:15px; background:var(--surface); color:var(--t1); font-family:inherit; outline:none; transition:border-color .15s; -webkit-appearance:none; }
+.field-input:focus,.field-select:focus { border-color:var(--branch); }
+.btn-income  { width:100%; background:var(--good); color:#fff; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+.btn-expense { width:100%; background:var(--bad);  color:#fff; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+.btn-secondary { width:100%; background:transparent; color:var(--t2); border:1.5px solid var(--border); border-radius:10px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+
+/* Sheet type indicator */
+.sheet-type-pill { display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; margin-bottom:14px; }
+.pill-income  { background:#EBF4E3; color:var(--good); }
+.pill-expense { background:#FDEAEA; color:var(--bad); }
+</style>
+</head>
+<body class="rush">
+
+<div class="header">
+  <div class="hdr-top">
+    <div>
+      <div class="app-name" id="appName">บัญชี</div>
+      <div class="app-sub" id="appSub">กำลังโหลด...</div>
+    </div>
+    <div class="branch-toggle">
+      <div class="branch-pill active" id="pillRush"     onclick="setBranch('rush')">Rush</div>
+      <div class="branch-pill"        id="pillRushhour" onclick="setBranch('rushhour')">Rush Hour</div>
+      <div class="branch-pill"        id="pillAll"      onclick="setBranch('all')">ทั้งหมด</div>
+    </div>
+  </div>
+  <div class="period-row">
+    <div class="period-chip active" id="pd-day"   onclick="setPeriod('day')">รายวัน</div>
+    <div class="period-chip"        id="pd-week"  onclick="setPeriod('week')">7 วัน</div>
+    <div class="period-chip"        id="pd-month" onclick="setPeriod('month')">30 วัน</div>
+    <div class="period-chip"        id="pd-all"   onclick="setPeriod('all')">ทั้งหมด</div>
+  </div>
+</div>
+
+<div id="errorBox"></div>
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล</div>
+</div>
+
+<div class="fab-group">
+  <button class="fab fab-income"  onclick="openAddSheet('income')"  title="บันทึกรายรับ">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
+  <button class="fab fab-expense" onclick="openAddSheet('expense')" title="บันทึกรายจ่าย">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
+</div>
+<div id="sheetRoot"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+const EXPENSE_CATS = ["วัตถุดิบ","แรงงาน","ค่าเช่า","ค่าน้ำ/ไฟ","การตลาด","อื่นๆ"];
+const INCOME_CATS  = ["ขายเครื่องดื่ม","เบเกอรี่","อื่นๆ"];
+const BRANCH_COLOR = { rush:"#C1502E", rushhour:"#C49000", all:"#A9744F" };
+
+let state = { txs:[], branch:"rush", period:"day" };
+let trendChart=null, donutChart=null;
+
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+function fmt(n){ return Number(n).toLocaleString("th-TH",{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function parseDate(v){
+  if(!v) return new Date("invalid");
+  // Try ISO first, then slash-separated (DD/MM/YYYY or MM/DD/YYYY H:M:S)
+  let d=new Date(v);
+  if(!isNaN(d)) return d;
+  // GAS sometimes returns "15/1/2024 10:30:00"
+  const m=String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(m) return new Date(m[3],m[2]-1,m[1],m[4],m[5],m[6]||0);
+  return new Date("invalid");
+}
+
+async function apiCall(action, data={}) {
+  const params=new URLSearchParams({action,...data});
+  const res=await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:params.toString()});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const text=await res.text();
+  try{ return JSON.parse(text); } catch(e){ return {}; }
+}
+
+async function loadAll() {
+  try {
+    const data=await apiCall("getTransactions");
+    if(data.error) throw new Error(data.error);
+    state.txs=(data.transactions||[]).map(t=>({...t,amount:Number(t.amount)||0,date:parseDate(t.date||t.timestamp||t.time)}));
+    document.getElementById("errorBox").innerHTML="";
+  } catch(e) {
+    document.getElementById("errorBox").innerHTML=`<div class="err-box">เชื่อมต่อไม่ได้: ${esc(e.message)}</div>`;
+  }
+  renderAll();
+}
+
+function setBranch(b) {
+  state.branch=b;
+  document.body.className=b;
+  ["rush","rushhour","all"].forEach(id=>document.getElementById("pill"+id.charAt(0).toUpperCase()+id.slice(1))?.classList.toggle("active",id===b));
+  document.getElementById("appName").textContent=b==="rush"?"Rush":b==="rushhour"?"Rush Hour":"ภาพรวม";
+  renderAll();
+}
+function setPeriod(p) {
+  state.period=p;
+  ["day","week","month","all"].forEach(id=>document.getElementById("pd-"+id).classList.toggle("active",id===p));
+  renderAll();
+}
+
+function filterTxs(txs) {
+  const now=new Date(), b=state.branch;
+  let filtered=b==="all"?txs:txs.filter(t=>t.branch===b);
+  const cutoff=new Date();
+  if(state.period==="day") { cutoff.setHours(0,0,0,0); filtered=filtered.filter(t=>t.date>=cutoff); }
+  else if(state.period==="week")  { cutoff.setDate(now.getDate()-7);  filtered=filtered.filter(t=>t.date>=cutoff); }
+  else if(state.period==="month") { cutoff.setDate(now.getDate()-30); filtered=filtered.filter(t=>t.date>=cutoff); }
+  return filtered.sort((a,b)=>b.date-a.date);
+}
+
+function renderAll() {
+  // Destroy charts before replacing DOM — prevents stale canvas references
+  if(trendChart){ trendChart.destroy(); trendChart=null; }
+  if(donutChart){ donutChart.destroy(); donutChart=null; }
+
+  const filtered=filterTxs(state.txs);
+  const income =filtered.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const expense=filtered.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const profit =income-expense;
+  const profitClass=profit>=0?"profit-positive":"profit-negative";
+
+  const periodLabel={"day":"วันนี้","week":"7 วันล่าสุด","month":"30 วันล่าสุด","all":"ทั้งหมด"}[state.period];
+  document.getElementById("appSub").textContent=`${periodLabel} · ${filtered.length} รายการ`;
+
+  const ct=document.getElementById("content");
+  ct.innerHTML=`
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-income">
+        <div class="kpi-label">รายรับ</div>
+        <div class="kpi-value">฿${fmt(income)}</div>
+        <div class="kpi-sub">${filtered.filter(t=>t.type==="income").length} รายการ</div>
+      </div>
+      <div class="kpi-card kpi-expense">
+        <div class="kpi-label">รายจ่าย</div>
+        <div class="kpi-value">฿${fmt(expense)}</div>
+        <div class="kpi-sub">${filtered.filter(t=>t.type==="expense").length} รายการ</div>
+      </div>
+      <div class="kpi-card wide kpi-profit">
+        <div class="kpi-label">กำไรสุทธิ</div>
+        <div class="kpi-value ${profitClass}">${profit>=0?"+":""}฿${fmt(profit)}</div>
+        <div class="kpi-sub">Margin ${income>0?(profit/income*100).toFixed(1):0}%</div>
+      </div>
+    </div>
+    <div class="chart-card"><div class="chart-title">แนวโน้มรายรับ-รายจ่าย</div><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">สัดส่วนรายจ่าย</div><div class="chart-wrap"><canvas id="donutChart"></canvas></div></div>
+    <div class="section-title">รายการล่าสุด</div>
+    ${filtered.length?`<div class="log-card">${filtered.slice(0,30).map(t=>{
+      const isInc=t.type==="income"; const color=isInc?"var(--good)":"var(--bad)";
+      const bcolor=BRANCH_COLOR[t.branch]||"var(--t3)";
+      const dt=isNaN(t.date)?"":(t.date.toLocaleString("th-TH",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}));
+      return `<div class="log-row">
+        <div class="log-meta">
+          <div class="log-name"><span class="branch-dot" style="background:${bcolor}"></span>${esc(t.category||t.note||"")}</div>
+          <div class="log-note">${esc(t.note||"")}${t.note&&t.category?" · ":""}${esc(t.branch||"")}</div>
+        </div>
+        <div class="log-amount">
+          <div class="log-val" style="color:${color}">${isInc?"+":"-"}฿${fmt(t.amount)}</div>
+          <div class="log-time">${dt}</div>
+        </div>
+      </div>`;
+    }).join("")}</div>`:`<div class="empty">ไม่มีข้อมูลในช่วงเวลานี้</div>`}
+  `;
+
+  renderCharts(filtered);
+}
+
+function renderCharts(filtered) {
+  // valid dates only
+  const validFiltered=filtered.filter(t=>t.date instanceof Date&&!isNaN(t.date));
+
+  // Trend chart — group by day for last 7 days
+  const days=7;
+  const labels=[], incData=[], expData=[];
+  for(let i=days-1;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    const next=new Date(d); next.setDate(d.getDate()+1);
+    const dayTxs=validFiltered.filter(t=>t.date>=d&&t.date<next);
+    labels.push(d.toLocaleDateString("th-TH",{day:"numeric",month:"short"}));
+    incData.push(dayTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0));
+    expData.push(dayTxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0));
+  }
+  const trendEl=document.getElementById("trendChart");
+  if(trendEl) trendChart=new Chart(trendEl,{
+    type:"bar",
+    data:{labels,datasets:[
+      {label:"รายรับ", data:incData, backgroundColor:"rgba(78,122,48,.75)", borderRadius:4},
+      {label:"รายจ่าย",data:expData, backgroundColor:"rgba(181,72,42,.75)", borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"bottom",labels:{font:{size:11},padding:8}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:"rgba(0,0,0,.04)"},ticks:{font:{size:10},callback:v=>"฿"+v.toLocaleString()}}}}
+  });
+
+  // Donut — expense by category
+  const expByCat={};
+  validFiltered.filter(t=>t.type==="expense").forEach(t=>{const c=t.category||"อื่นๆ"; expByCat[c]=(expByCat[c]||0)+t.amount;});
+  const catKeys=Object.keys(expByCat);
+  const colors=["#C1502E","#C49000","#7A6B62","#4E7A30","#B5482A","#A9744F"];
+  const donutEl=document.getElementById("donutChart");
+  if(donutEl&&catKeys.length){
+    donutChart=new Chart(donutEl,{
+      type:"doughnut",
+      data:{labels:catKeys,datasets:[{data:Object.values(expByCat),backgroundColor:colors.slice(0,catKeys.length),borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{font:{size:11},padding:8}}},cutout:"65%"}
+    });
+  } else if(donutEl){
+    // No expense data — show empty state message inside chart area
+    donutEl.getContext("2d"); // activate context
+    const ctx=donutEl.getContext("2d");
+    ctx.clearRect(0,0,donutEl.width,donutEl.height);
+    ctx.fillStyle="#B5A99E";
+    ctx.font="13px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("ไม่มีข้อมูลรายจ่าย",donutEl.width/2,donutEl.height/2);
+  }
+}
+
+// ─── Sheets ───
+function closeSheet(){ document.getElementById("sheetRoot").innerHTML=""; }
+
+function openAddSheet(type) {
+  const isInc=type==="income";
+  const cats=isInc?INCOME_CATS:EXPENSE_CATS;
+  const branchOptions=state.branch==="all"?["rush","rushhour"]:[state.branch];
+  document.getElementById("sheetRoot").innerHTML=`
+    <div class="overlay" onclick="if(event.target===this)closeSheet()"><div class="sheet">
+      <div class="sheet-handle"></div>
+      <span class="sheet-type-pill ${isInc?"pill-income":"pill-expense"}">${isInc?"รายรับ":"รายจ่าย"}</span>
+      <div class="sheet-title">${isInc?"บันทึกรายรับ":"บันทึกรายจ่าย"}</div>
+      <div class="field"><label class="field-lbl">จำนวนเงิน (฿)</label><input id="fAmt" class="field-input" type="number" inputmode="decimal" placeholder="0.00" autofocus /></div>
+      <div class="field"><label class="field-lbl">หมวดหมู่</label><select id="fCat" class="field-select">${cats.map(c=>`<option>${c}</option>`).join("")}</select></div>
+      ${branchOptions.length>1?`<div class="field"><label class="field-lbl">สาขา</label><select id="fBranch" class="field-select">${branchOptions.map(b=>`<option value="${b}">${b==="rush"?"Rush":"Rush Hour"}</option>`).join("")}</select></div>`:""}
+      <div class="field"><label class="field-lbl">หมายเหตุ</label><input id="fNote" class="field-input" placeholder="รายละเอียดเพิ่มเติม" /></div>
+      <button class="${isInc?"btn-income":"btn-expense"}" onclick="submitTx('${type}')">บันทึก</button>
+      <button class="btn-secondary" onclick="closeSheet()">ยกเลิก</button>
+    </div></div>`;
+}
+
+async function submitTx(type) {
+  const amount=Number(document.getElementById("fAmt").value);
+  if(!amount||amount<=0){ showToast("กรุณาระบุจำนวนเงิน"); return; }
+  const category=document.getElementById("fCat").value;
+  const note=document.getElementById("fNote").value;
+  const branchEl=document.getElementById("fBranch");
+  const branch=branchEl?branchEl.value:state.branch;
+  closeSheet();
+  try {
+    await apiCall("addTransaction",{type,amount:String(amount),category,note,branch,date:new Date().toISOString()});
+    showToast(`บันทึก${type==="income"?"รายรับ":"รายจ่าย"} ฿${fmt(amount)} แล้ว`);
+    await loadAll();
+  } catch(e){ showToast("บันทึกไม่สำเร็จ"); }
+}
+
+function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2400); }
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>
