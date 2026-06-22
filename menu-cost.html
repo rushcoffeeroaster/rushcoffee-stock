@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>คำนวณต้นทุนเมนู</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; font-family: -apple-system, "Noto Sans Thai", "Segoe UI", sans-serif;
+    background: #FAF6F0; color: #3C2A21; padding-bottom: 60px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 4px 0 2px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 18px 0 10px; }
+  .sub { color: #8a7a6e; font-size: 13px; margin: 0 0 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; text-align: center; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    border: 1px solid #E8E0D6; background: #fff; cursor: pointer; color: #3C2A21;
+  }
+  .tab.active { background: #3C2A21; color: #FAF6F0; border-color: #3C2A21; }
+  .branch-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .branch-btn {
+    flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px; font-size: 13px; font-weight: 700;
+    border: 1.5px solid #E8E0D6; background: #fff; cursor: pointer; color: #3C2A21;
+  }
+  .branch-btn.active { background: #3C2A21; color: #FAF6F0; border-color: #3C2A21; }
+  .row { display: flex; gap: 8px; margin-bottom: 10px; }
+  input, select {
+    width: 100%; border: 1px solid #E8E0D6; border-radius: 8px; padding: 9px 10px;
+    font-size: 14px; background: #fff; color: #3C2A21; font-family: inherit;
+  }
+  .btn-primary {
+    background: #A9744F; color: #FAF6F0; border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-block { width: 100%; padding: 12px; }
+  .btn-ghost {
+    background: #fff; color: #3C2A21; border: 1px solid #E8E0D6; border-radius: 8px;
+    padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn-danger { color: #B5482A; border-color: #E0BBAA; }
+  .card {
+    border: 1px solid #E8E0D6; border-radius: 12px; background: #fff;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .label { font-size: 12px; color: #8a7a6e; margin-bottom: 4px; display: block; }
+  .field { margin-bottom: 12px; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #3C2A21; color: #FAF6F0; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2); white-space: nowrap;
+  }
+  .loading-text { color: #8a7a6e; font-size: 14px; text-align: center; padding: 30px 0; }
+  .err-box { background: #FDEAEA; color: #B5482A; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+  .empty { text-align: center; padding: 30px 16px; color: #a89a8d; font-size: 14px; }
+
+  /* ธีมสาขา rush: ส้มอิฐ */
+  body.theme-rush .branch-btn.active { background: #C1502E; border-color: #C1502E; }
+  body.theme-rush .tab.active { background: #C1502E; border-color: #C1502E; }
+  body.theme-rush .btn-primary { background: #C1502E; }
+  body.theme-rush h1 { color: #C1502E; }
+
+  /* ธีมสาขา rushhour: เหลือง-ขาว */
+  body.theme-rushhour { background: #FFFEF7; color: #3A3420; }
+  body.theme-rushhour .branch-btn { background: #FFFFFF; border-color: #F0DD8A; color: #3A3420; }
+  body.theme-rushhour .branch-btn.active { background: #F2C744; color: #3A3420; border-color: #F2C744; }
+  body.theme-rushhour .tab { background: #FFFFFF; border-color: #F0DD8A; color: #8a7a1f; }
+  body.theme-rushhour .tab.active { background: #F2C744; color: #3A3420; border-color: #F2C744; }
+  body.theme-rushhour .card, body.theme-rushhour .menu-card { background: #FFFFFF; border-color: #F0DD8A; }
+  body.theme-rushhour .label, body.theme-rushhour .sub { color: #a89233; }
+  body.theme-rushhour input, body.theme-rushhour select { background: #FFFFFF; border-color: #F0DD8A; color: #3A3420; }
+  body.theme-rushhour .btn-primary { background: #F2C744; color: #3A3420; }
+  body.theme-rushhour .btn-ghost { background: #FFFFFF; border-color: #F0DD8A; color: #3A3420; }
+  body.theme-rushhour h1, body.theme-rushhour h2 { color: #3A3420; }
+
+  .menu-card { border: 1px solid #E8E0D6; border-radius: 12px; background: #fff; padding: 14px; margin-bottom: 10px; }
+  .menu-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .menu-name { margin: 0; font-weight: 700; font-size: 16px; }
+  .menu-price { font-family: monospace; font-size: 15px; color: #8a7a6e; }
+  .gp-bar-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+  .gp-bar-bg { flex: 1; height: 8px; border-radius: 4px; background: #E8E0D6; overflow: hidden; }
+  .gp-bar-fg { height: 100%; border-radius: 4px; }
+  .gp-label { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .ingredient-list { font-size: 12px; color: #8a7a6e; margin: 6px 0; }
+  .menu-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .cost-summary { display: flex; gap: 16px; font-size: 13px; }
+  .cost-summary b { font-family: monospace; }
+
+  .ingredient-row { display: flex; gap: 6px; align-items: flex-end; margin-bottom: 8px; }
+  .ingredient-row .field { margin-bottom: 0; flex: 1; }
+  .ingredient-row .field.small { flex: 0 0 70px; }
+  .ingredient-row .field.unit { flex: 0 0 70px; }
+  .del-ing-btn { background: none; border: none; color: #c4a896; font-size: 20px; cursor: pointer; padding: 0 6px; line-height: 1; height: 38px; }
+</style>
+</head>
+<body id="bodyEl">
+<div class="wrap" id="app">
+  <h1>คำนวณต้นทุนเมนู</h1>
+  <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
+
+  <div class="branch-row" id="branchRow">
+    <div class="branch-btn" id="branchRush" onclick="setBranch('rush')">สาขา Rush</div>
+    <div class="branch-btn" id="branchRushhour" onclick="setBranch('rushhour')">สาขา Rush Hour</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabList">รายการเมนู</div>
+    <div class="tab" id="tabAdd">เพิ่มเมนูใหม่</div>
+  </div>
+
+  <div id="errorBox"></div>
+  <div id="content"><div class="loading-text">กำลังโหลดข้อมูล...</div></div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+
+const UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ฟอง", "ถุง", "ขวด"];
+
+let state = { recipes: [], view: "list", branch: "rush", form: { menuName: "", sellingPrice: "", ingredients: [newIngredientRow()] } };
+
+function newIngredientRow() {
+  return { name: "", qty: "", unit: "g", buyPrice: "", packSize: "" };
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function fmtMoney(n) {
+  return Number(n || 0).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s == null ? "" : s;
+  return div.innerHTML;
+}
+
+async function apiCall(action, payload) {
+  let res;
+  try {
+    const body = new URLSearchParams({ action });
+    if (payload) body.set("payload", JSON.stringify(payload));
+    res = await fetch(API_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: body.toString(),
+    });
+  } catch (networkErr) {
+    throw new Error("เชื่อมต่อเครือข่ายไม่ได้: " + networkErr.message);
+  }
+  const text = await res.text();
+  if (!res.ok) throw new Error("เซิร์ฟเวอร์ตอบกลับ HTTP " + res.status + " — " + text.slice(0, 200));
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error("รูปแบบข้อมูลที่ได้ไม่ถูกต้อง: " + text.slice(0, 200));
+  }
+}
+
+async function loadAll() {
+  try {
+    const data = await apiCall("getAll");
+    if (data.error) throw new Error(data.error);
+    state.recipes = (data.recipes || []).map((r) => ({
+      ...r,
+      sellingPrice: Number(r.sellingPrice) || 0,
+      ingredientQty: Number(r.ingredientQty) || 0,
+      buyPrice: Number(r.buyPrice) || 0,
+      packSize: Number(r.packSize) || 0,
+    }));
+    document.getElementById("errorBox").innerHTML = "";
+  } catch (e) {
+    document.getElementById("errorBox").innerHTML =
+      '<div class="err-box">เชื่อมต่อข้อมูลไม่สำเร็จ: ' + escapeHtml(e.message) + '</div>';
+  }
+  if (state.view !== "add") render();
+}
+
+function setBranch(b) {
+  state.branch = b;
+  render();
+}
+
+function setView(v) {
+  state.view = v;
+  document.getElementById("tabList").classList.toggle("active", v === "list");
+  document.getElementById("tabAdd").classList.toggle("active", v === "add");
+  if (v === "add") {
+    state.form = { menuName: "", sellingPrice: "", ingredients: [newIngredientRow()] };
+  }
+  render();
+}
+document.getElementById("tabList").onclick = () => setView("list");
+document.getElementById("tabAdd").onclick = () => setView("add");
+
+function showToast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+function getMenusForBranch() {
+  const rows = state.recipes.filter((r) => r.branch === state.branch);
+  const byMenu = {};
+  rows.forEach((r) => {
+    if (!byMenu[r.menuName]) byMenu[r.menuName] = { menuName: r.menuName, sellingPrice: r.sellingPrice, ingredients: [] };
+    byMenu[r.menuName].ingredients.push(r);
+  });
+  return Object.values(byMenu);
+}
+
+function computeCost(menu) {
+  let totalCost = 0;
+  menu.ingredients.forEach((ing) => {
+    const unitPrice = ing.packSize > 0 ? ing.buyPrice / ing.packSize : 0;
+    totalCost += unitPrice * ing.ingredientQty;
+  });
+  const gpAmount = menu.sellingPrice - totalCost;
+  const gpPercent = menu.sellingPrice > 0 ? (gpAmount / menu.sellingPrice) * 100 : 0;
+  return { totalCost, gpAmount, gpPercent };
+}
+
+function gpColor(pct) {
+  if (pct < 30) return "#B5482A";
+  if (pct < 60) return "#C98A2C";
+  return "#7D8C5C";
+}
+
+function render() {
+  document.getElementById("branchRush").classList.toggle("active", state.branch === "rush");
+  document.getElementById("branchRushhour").classList.toggle("active", state.branch === "rushhour");
+  document.getElementById("bodyEl").className = state.branch === "rushhour" ? "theme-rushhour" : "theme-rush";
+
+  const menus = getMenusForBranch();
+  document.getElementById("summaryText").textContent =
+    menus.length === 0 ? "ยังไม่มีเมนู — เริ่มเพิ่มเมนูแรก" : `มี ${menus.length} เมนูในสาขานี้`;
+
+  const content = document.getElementById("content");
+  content.innerHTML = state.view === "list" ? renderList(menus) : renderAddForm();
+}
+
+function renderList(menus) {
+  if (menus.length === 0) {
+    return `<div class="empty">ยังไม่มีเมนูในสาขานี้ — ไปที่แท็บ "เพิ่มเมนูใหม่" เพื่อเริ่มกรอกสูตร</div>`;
+  }
+  return menus.map((menu) => {
+    const { totalCost, gpAmount, gpPercent } = computeCost(menu);
+    const color = gpColor(gpPercent);
+    const ingredientText = menu.ingredients.map((i) => `${escapeHtml(i.ingredientName)} ${i.ingredientQty}${escapeHtml(i.ingredientUnit)}`).join(" · ");
+    return `
+      <div class="menu-card">
+        <div class="menu-top">
+          <p class="menu-name">${escapeHtml(menu.menuName)}</p>
+          <span class="menu-price">ขาย ${fmtMoney(menu.sellingPrice)} บาท</span>
+        </div>
+        <p class="ingredient-list">${ingredientText}</p>
+        <div class="gp-bar-row">
+          <div class="gp-bar-bg"><div class="gp-bar-fg" style="width:${Math.max(0, Math.min(100, gpPercent))}%; background:${color}"></div></div>
+          <span class="gp-label" style="color:${color}">GP ${gpPercent.toFixed(0)}%</span>
+        </div>
+        <div class="menu-bottom">
+          <div class="cost-summary">
+            <span>ต้นทุน <b>${fmtMoney(totalCost)}</b></span>
+            <span>กำไร <b style="color:${gpAmount >= 0 ? '#7D8C5C' : '#B5482A'}">${fmtMoney(gpAmount)}</b></span>
+          </div>
+          <button class="btn-ghost btn-danger" onclick="deleteMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">ลบเมนู</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function deleteMenu(menuName) {
+  if (!confirm(`ลบเมนู "${menuName}" ทั้งหมด (ทุกวัตถุดิบในเมนูนี้) ใช่ไหม?`)) return;
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: new URLSearchParams({ action: "deleteRecipeMenu", menuName, branch: state.branch }).toString(),
+    });
+    showToast(`ลบเมนู "${menuName}" แล้ว`);
+    await loadAll();
+    render();
+  } catch (e) {
+    showToast("ลบไม่สำเร็จ: " + e.message);
+  }
+}
+
+// ----- Add form -----
+function renderAddForm() {
+  return `
+    <div class="card">
+      <div class="field">
+        <label class="label">ชื่อเมนู</label>
+        <input id="formMenuName" value="${escapeHtml(state.form.menuName)}" oninput="state.form.menuName=this.value" placeholder="เช่น ลาเต้ร้อน" />
+      </div>
+      <div class="field">
+        <label class="label">ราคาขาย (บาท)</label>
+        <input id="formSellingPrice" type="number" inputmode="decimal" min="0" value="${state.form.sellingPrice}" oninput="state.form.sellingPrice=this.value; updateLivePreview()" placeholder="0" />
+      </div>
+
+      <h2 style="margin-top:8px;">วัตถุดิบที่ใช้</h2>
+      <div id="ingredientRows">${renderIngredientRows()}</div>
+      <button class="btn-ghost" style="width:100%; margin-bottom:14px;" onclick="addIngredientRow()">+ เพิ่มวัตถุดิบ</button>
+
+      <div class="card" style="background:#FAF6F0; margin-bottom:14px;">
+        <p style="margin:0 0 4px; font-size:13px; color:#8a7a6e;">ตัวอย่างผลคำนวณ</p>
+        <p id="livePreview" style="margin:0; font-weight:700;"></p>
+      </div>
+
+      <button class="btn-primary btn-block" onclick="submitMenu()">บันทึกเมนูนี้</button>
+    </div>
+  `;
+}
+
+function renderIngredientRows() {
+  return state.form.ingredients.map((ing, idx) => `
+    <div class="ingredient-row">
+      <div class="field">
+        <label class="label">${idx === 0 ? "วัตถุดิบ" : ""}</label>
+        <input value="${escapeHtml(ing.name)}" oninput="updateIngredient(${idx}, 'name', this.value)" placeholder="ชื่อวัตถุดิบ" />
+      </div>
+      <div class="field small">
+        <label class="label">${idx === 0 ? "ใช้กี่หน่วย" : ""}</label>
+        <input type="number" inputmode="decimal" min="0" value="${ing.qty}" oninput="updateIngredient(${idx}, 'qty', this.value)" placeholder="0" />
+      </div>
+      <div class="field unit">
+        <label class="label">${idx === 0 ? "หน่วย" : ""}</label>
+        <select onchange="updateIngredient(${idx}, 'unit', this.value)">
+          ${UNITS.map((u) => `<option value="${u}" ${ing.unit === u ? "selected" : ""}>${u}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field small">
+        <label class="label">${idx === 0 ? "ราคาซื้อ" : ""}</label>
+        <input type="number" inputmode="decimal" min="0" value="${ing.buyPrice}" oninput="updateIngredient(${idx}, 'buyPrice', this.value)" placeholder="0" />
+      </div>
+      <div class="field small">
+        <label class="label">${idx === 0 ? "ขนาดที่ซื้อ" : ""}</label>
+        <input type="number" inputmode="decimal" min="0" value="${ing.packSize}" oninput="updateIngredient(${idx}, 'packSize', this.value)" placeholder="0" />
+      </div>
+      ${state.form.ingredients.length > 1 ? `<button class="del-ing-btn" onclick="removeIngredientRow(${idx})">✕</button>` : ""}
+    </div>
+  `).join("");
+}
+
+function updateIngredient(idx, field, value) {
+  state.form.ingredients[idx][field] = value;
+  updateLivePreview();
+}
+
+function addIngredientRow() {
+  state.form.ingredients.push(newIngredientRow());
+  document.getElementById("ingredientRows").innerHTML = renderIngredientRows();
+  updateLivePreview();
+}
+
+function removeIngredientRow(idx) {
+  state.form.ingredients.splice(idx, 1);
+  document.getElementById("ingredientRows").innerHTML = renderIngredientRows();
+  updateLivePreview();
+}
+
+function updateLivePreview() {
+  const sellingPrice = Number(state.form.sellingPrice) || 0;
+  let totalCost = 0;
+  state.form.ingredients.forEach((ing) => {
+    const qty = Number(ing.qty) || 0;
+    const buyPrice = Number(ing.buyPrice) || 0;
+    const packSize = Number(ing.packSize) || 0;
+    const unitPrice = packSize > 0 ? buyPrice / packSize : 0;
+    totalCost += unitPrice * qty;
+  });
+  const gpAmount = sellingPrice - totalCost;
+  const gpPercent = sellingPrice > 0 ? (gpAmount / sellingPrice) * 100 : 0;
+  const color = gpColor(gpPercent);
+  const el = document.getElementById("livePreview");
+  if (el) {
+    el.innerHTML = sellingPrice > 0 || totalCost > 0
+      ? `ต้นทุน ${fmtMoney(totalCost)} บาท &nbsp;·&nbsp; กำไร ${fmtMoney(gpAmount)} บาท &nbsp;·&nbsp; <span style="color:${color}">GP ${gpPercent.toFixed(1)}%</span>`
+      : "กรอกราคาขายและวัตถุดิบเพื่อดูตัวอย่าง";
+  }
+}
+
+async function submitMenu() {
+  const menuName = state.form.menuName.trim();
+  const sellingPrice = Number(state.form.sellingPrice) || 0;
+  if (!menuName) { showToast("กรุณาใส่ชื่อเมนู"); return; }
+  const validIngredients = state.form.ingredients.filter((i) => i.name.trim());
+  if (validIngredients.length === 0) { showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ"); return; }
+
+  try {
+    for (const ing of validIngredients) {
+      await apiCall("addRecipeRow", {
+        id: uid(),
+        menuName,
+        sellingPrice,
+        ingredientName: ing.name.trim(),
+        ingredientQty: Number(ing.qty) || 0,
+        ingredientUnit: ing.unit,
+        buyPrice: Number(ing.buyPrice) || 0,
+        packSize: Number(ing.packSize) || 0,
+        branch: state.branch,
+      });
+    }
+    showToast(`บันทึกเมนู "${menuName}" แล้ว`);
+    await loadAll();
+    setView("list");
+  } catch (e) {
+    showToast("บันทึกไม่สำเร็จ: " + e.message);
+  }
+}
+
+loadAll();
+setInterval(loadAll, 15000);
+</script>
+</body>
+</html>
