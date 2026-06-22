@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>สูตรต้นทุน</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+:root {
+  --bg:#FAF6F0; --surface:#fff; --border:#EDE7DD;
+  --t1:#2C1810; --t2:#7A6B62; --t3:#B5A99E;
+  --good:#4E7A30; --warn:#C08010; --bad:#B5482A; --branch:#C1502E; --r:12px;
+}
+body { font-family:-apple-system,"Noto Sans Thai","Segoe UI",sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; padding-bottom:96px; }
+body.rushhour { --branch:#C49000; }
+
+/* ── Header ── */
+.header { position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--border); padding:18px 16px 0; }
+.hdr-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.app-name { font-size:22px; font-weight:800; color:var(--branch); letter-spacing:-0.5px; }
+.app-sub  { font-size:12px; color:var(--t3); margin-top:2px; }
+.branch-toggle { display:flex; gap:6px; }
+.branch-pill { padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; border:1.5px solid var(--border); background:var(--surface); color:var(--t3); cursor:pointer; white-space:nowrap; transition:all .15s; }
+.branch-pill.active { background:var(--branch); color:#fff; border-color:var(--branch); }
+
+/* ── Search ── */
+.search-wrap { position:relative; margin-bottom:14px; }
+.search-ico { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--t3); display:flex; pointer-events:none; }
+.search-input { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:9px 40px 9px 36px; font-size:14px; background:var(--surface); color:var(--t1); font-family:inherit; outline:none; transition:border-color .15s; }
+.search-input:focus { border-color:var(--branch); }
+.mic-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:28px; height:28px; border-radius:6px; border:none; background:transparent; color:var(--t3); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:color .15s; }
+.mic-btn:hover { color:var(--branch); }
+.mic-btn.listening { color:var(--bad); animation:micPulse 1s ease infinite; }
+@keyframes micPulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* ── Content ── */
+.content { padding:14px 16px; }
+
+/* ── Menu Card ── */
+.menu-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r); margin-bottom:10px; overflow:hidden; }
+.card-hdr  { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; }
+.card-name { font-size:16px; font-weight:700; }
+.card-right { display:flex; align-items:center; gap:8px; }
+.gp-badge   { font-size:12px; font-weight:700; padding:3px 9px; border-radius:999px; }
+.gp-good  { background:#EBF4E3; color:var(--good); }
+.gp-warn  { background:#FDF4E3; color:var(--warn); }
+.gp-bad   { background:#FDEAEA; color:var(--bad); }
+.icon-btn { width:32px; height:32px; border-radius:7px; border:1.5px solid var(--border); background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--t3); transition:all .15s; }
+.icon-btn:hover { color:var(--t2); background:var(--bg); }
+.icon-btn.danger:hover { color:var(--bad); border-color:#F5C6BB; background:#FDEAEA; }
+.card-detail { border-top:1px solid var(--border); padding:12px 16px 14px; }
+.detail-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+.detail-row:last-child { margin-bottom:0; }
+.detail-lbl { color:var(--t3); }
+.detail-val { font-weight:600; font-variant-numeric:tabular-nums; }
+.ing-table  { width:100%; border-collapse:collapse; margin:8px 0 12px; }
+.ing-table th { font-size:10px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; text-align:left; padding:4px 0; border-bottom:1px solid var(--border); }
+.ing-table td { font-size:13px; padding:6px 0; border-bottom:1px solid var(--bg); }
+.ing-table td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+
+/* ── Empty ── */
+.empty { text-align:center; padding:60px 20px; }
+.empty-icon  { margin:0 auto 14px; color:var(--t3); }
+.empty-title { font-size:15px; font-weight:600; color:var(--t2); margin-bottom:6px; }
+.empty-sub   { font-size:13px; color:var(--t3); }
+
+/* ── Loading / Error ── */
+.loading { display:flex; flex-direction:column; align-items:center; padding:60px 20px; gap:12px; color:var(--t3); font-size:14px; }
+.spinner { width:24px; height:24px; border:2.5px solid var(--border); border-top-color:var(--branch); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.err-box { margin:10px 16px 0; background:#FDEAEA; color:var(--bad); border-radius:8px; padding:10px 14px; font-size:13px; }
+
+/* ── FAB ── */
+.fab { position:fixed; bottom:24px; right:16px; z-index:30; width:56px; height:56px; border-radius:16px; background:var(--branch); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 18px rgba(0,0,0,.22); transition:transform .15s; }
+.fab:active { transform:scale(.93); }
+
+/* ── Toast ── */
+.toast { position:fixed; bottom:92px; left:50%; transform:translateX(-50%); background:var(--t1); color:#fff; padding:10px 20px; border-radius:999px; font-size:13px; z-index:200; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.25); animation:toastIn .2s ease; }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(6px)} }
+
+/* ── Sheet ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.42); z-index:50; display:flex; align-items:flex-end; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} }
+.sheet { background:var(--surface); border-radius:20px 20px 0 0; padding:10px 20px 36px; width:100%; max-height:92vh; overflow-y:auto; animation:slideUp .25s cubic-bezier(.22,1,.36,1); }
+@keyframes slideUp { from{transform:translateY(24px);opacity:0} }
+.sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:6px auto 18px; }
+.sheet-title  { font-size:18px; font-weight:700; margin-bottom:18px; }
+.divider      { height:1px; background:var(--border); margin:14px 0; }
+
+/* ── Form ── */
+.field { margin-bottom:12px; }
+.field-lbl { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
+.field-input,.field-select { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:15px; background:var(--surface); color:var(--t1); font-family:inherit; outline:none; transition:border-color .15s; -webkit-appearance:none; }
+.field-input:focus,.field-select:focus { border-color:var(--branch); }
+.row-3 { display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; }
+
+/* GP Preview */
+.gp-preview { background:var(--bg); border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; }
+.gp-preview-lbl { font-size:12px; color:var(--t3); }
+.gp-preview-val { font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+
+/* Ingredient rows */
+.ing-row { background:var(--bg); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+.ing-row-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.ing-row-lbl  { font-size:12px; font-weight:700; color:var(--t2); }
+.ing-del-btn  { background:none; border:none; color:var(--t3); cursor:pointer; padding:2px; line-height:1; display:flex; }
+.ing-del-btn:hover { color:var(--bad); }
+.section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.section-lbl  { font-size:13px; font-weight:700; color:var(--t2); }
+.add-ing-btn  { padding:6px 12px; border-radius:7px; font-size:12px; font-weight:700; border:1.5px dashed var(--border); background:transparent; color:var(--branch); cursor:pointer; font-family:inherit; }
+.add-ing-btn:hover { background:var(--bg); }
+
+/* Buttons */
+.btn-primary { width:100%; background:var(--branch); color:#fff; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:8px; transition:opacity .15s; }
+.btn-primary:active { opacity:.85; }
+.btn-secondary { width:100%; background:transparent; color:var(--t2); border:1.5px solid var(--border); border-radius:10px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-danger-text { width:100%; background:transparent; color:var(--bad); border:none; padding:12px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hdr-top">
+    <div>
+      <div class="app-name" id="appName">Rush</div>
+      <div class="app-sub" id="appSub">กำลังโหลด...</div>
+    </div>
+    <div class="branch-toggle">
+      <div class="branch-pill active" id="pillRush"     onclick="setBranch('rush')">Rush</div>
+      <div class="branch-pill"        id="pillRushhour" onclick="setBranch('rushhour')">Rush Hour</div>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-ico">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </span>
+    <input class="search-input" id="searchInput" placeholder="ค้นหาเมนู..." oninput="onSearch(this.value)" />
+    <button class="mic-btn" id="micBtn" onclick="startVoice()" title="ค้นหาด้วยเสียง">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div id="errorBox"></div>
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>กำลังโหลดข้อมูล</div>
+</div>
+
+<button class="fab" onclick="openAddSheet()">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+<div id="sheetRoot"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+const UNITS = ["g","ml","ชิ้น","ถ้วย","ช้อนชา","ช้อนโต๊ะ","oz"];
+
+const IC = {
+  edit:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>`,
+  trash: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  x:     `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  coffee:`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`,
+};
+
+let state = { recipes:[], branch:"rush", search:"" };
+let form  = { mode:"add", origName:null, menuName:"", sellingPrice:"", ingredients:[] };
+
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+
+async function apiCall(action, payload) {
+  const body=new URLSearchParams({action});
+  if(payload) body.set("payload", JSON.stringify(payload));
+  const res=await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:body.toString()});
+  const text=await res.text();
+  if(!res.ok) throw new Error("HTTP "+res.status+" — "+text.slice(0,300));
+  try{ return JSON.parse(text); }
+  catch(e){ throw new Error("GAS ตอบ (ไม่ใช่ JSON): "+text.slice(0,300)); }
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+// GAS อาจใช้ชื่อ action ต่างกัน — ลองเรียงลำดับจนได้
+const GET_ACTIONS = ["getAll","getRecipes","getAllMenus","getAllRecipes","getData","getMenuCost","getMenus","getStock"];
+
+async function loadRecipes() {
+  let data=null, lastErr="", usedAction="", rawLog=[];
+  for(const action of GET_ACTIONS) {
+    try {
+      const d = await apiCall(action);
+      const keys = d ? Object.keys(d).join(", ") : "(null)";
+      rawLog.push(`✓ ${action} → keys: [${keys}]`);
+      if(!d || d.error) {
+        lastErr = (d && d.error) || "no data";
+        rawLog.push(`  └ error: ${lastErr}`);
+        continue;
+      }
+      // ต้องมี recipes หรือ menus key ถึงจะใช้ได้
+      if(d.recipes !== undefined || d.menus !== undefined) {
+        data=d; usedAction=action; break;
+      }
+      rawLog.push(`  └ ไม่มี recipes/menus key — ข้าม`);
+      lastErr = `${action} ตอบแต่ไม่มี recipes key (มี: ${keys})`;
+    } catch(e) {
+      lastErr=e.message;
+      rawLog.push(`✗ ${action} → ${e.message.slice(0,120)}`);
+      break;
+    }
+  }
+  if(!data) {
+    document.getElementById("errorBox").innerHTML=`
+      <div class="err-box" style="font-size:12px">
+        <b>หา action ที่มี recipes ไม่เจอ</b><br>
+        <pre style="margin:6px 0;white-space:pre-wrap;font-size:11px;opacity:.85">${esc(rawLog.join("\n"))}</pre>
+        <button onclick="loadRecipes()" style="margin-top:4px;padding:4px 12px;font-size:12px;border:1px solid #B5482A;border-radius:6px;background:none;color:#B5482A;cursor:pointer;">ลองอีกครั้ง</button>
+      </div>`;
+    renderAll();
+    return;
+  }
+  const recipeCount = (data.recipes||data.menus||[]).length;
+  document.getElementById("errorBox").innerHTML=
+    `<div style="background:#EBF4E3;color:#4E7A30;border-radius:8px;padding:6px 12px;font-size:11px;margin:8px 16px 0">
+      ✓ GAS action: <b>${usedAction}</b> · recipes: ${recipeCount} รายการ<br>
+      <span style="opacity:.7;font-size:10px">keys: ${Object.keys(data).join(", ")}</span>
+    </div>`;
+  setTimeout(()=>{ const el=document.getElementById("errorBox"); if(el) el.innerHTML=""; }, 8000);
+  // รองรับทั้ง data.recipes และ data.menus
+  state.recipes = (data.recipes || data.menus || []).map(r=>({
+    ...r,
+    sellingPrice:  Number(r.sellingPrice)  || 0,
+    ingredientQty: Number(r.ingredientQty) || 0,
+    buyPrice:      Number(r.buyPrice)      || 0,
+    packSize:      Number(r.packSize)      || 1,
+  }));
+  renderAll();
+}
+
+function computeCost(ingredients) {
+  return ingredients.reduce((s,ing)=>{
+    const qty   = Number(ing.ingredientQty ?? ing.qty ?? 0);
+    const price = Number(ing.buyPrice ?? 0);
+    const pack  = Number(ing.packSize ?? 1) || 1;
+    return s + (qty * price / pack);
+  }, 0);
+}
+function gpPct(cost, selling) {
+  if(!selling||selling<=0) return null;
+  return ((selling - cost) / selling * 100);
+}
+function gpClass(pct) { if(pct===null)return"gp-warn"; if(pct>=60)return"gp-good"; if(pct>=40)return"gp-warn"; return"gp-bad"; }
+
+function setBranch(b) {
+  state.branch = b;
+  document.body.className = b==="rushhour"?"rushhour":"";
+  document.getElementById("pillRush").classList.toggle("active",b==="rush");
+  document.getElementById("pillRushhour").classList.toggle("active",b==="rushhour");
+  document.getElementById("appName").textContent = b==="rushhour"?"Rush Hour":"Rush";
+  renderAll();
+}
+function onSearch(v) { state.search=v; renderAll(); }
+
+function renderAll() {
+  const menus = {};
+  state.recipes
+    .filter(r=>r.branch===state.branch)
+    .filter(r=>!state.search||(r.menuName||"").toLowerCase().includes(state.search.toLowerCase()))
+    .forEach(r=>{
+      if(!menus[r.menuName]) menus[r.menuName]={name:r.menuName,rows:[],selling:Number(r.sellingPrice||0)};
+      menus[r.menuName].rows.push(r);
+    });
+
+  const allTotal = [...new Set(state.recipes.filter(r=>r.branch===state.branch).map(r=>r.menuName))].length;
+  document.getElementById("appSub").textContent=`${allTotal} เมนู${state.search?" (ค้นหา)":""}`;
+
+  const names=Object.keys(menus);
+  const ct=document.getElementById("content");
+  if(!names.length){
+    ct.innerHTML=`<div class="empty"><div class="empty-icon">${IC.coffee}</div><div class="empty-title">${state.search?"ไม่พบเมนูที่ค้นหา":"ยังไม่มีเมนู"}</div><div class="empty-sub">${state.search?"ลองคำค้นอื่น":"กดปุ่ม + เพื่อเพิ่มเมนูแรก"}</div></div>`;
+    return;
+  }
+
+  ct.innerHTML=names.map(name=>{
+    const m=menus[name];
+    const cost=computeCost(m.rows);
+    const gp=gpPct(cost,m.selling);
+    const gpTxt=gp!==null?gp.toFixed(1)+"%":"–";
+    const cls=gpClass(gp);
+    const profitColor=cls==="gp-good"?"var(--good)":cls==="gp-warn"?"var(--warn)":"var(--bad)";
+    return `<div class="menu-card">
+      <div class="card-hdr">
+        <div class="card-name">${esc(name)}</div>
+        <div class="card-right">
+          <span class="gp-badge ${cls}">GP ${gpTxt}</span>
+          <button class="icon-btn" onclick='openEditSheet(${JSON.stringify(name)})'>${IC.edit}</button>
+          <button class="icon-btn danger" onclick='confirmDelete(${JSON.stringify(name)})'>${IC.trash}</button>
+        </div>
+      </div>
+      <div class="card-detail">
+        <table class="ing-table">
+          <thead><tr><th>วัตถุดิบ</th><th>ปริมาณ</th><th style="text-align:right">ต้นทุน</th></tr></thead>
+          <tbody>${m.rows.map(r=>`<tr><td>${esc(r.ingredientName)}</td><td>${r.ingredientQty} ${r.ingredientUnit||""}</td><td>${computeCost([r]).toFixed(2)} ฿</td></tr>`).join("")}</tbody>
+        </table>
+        <div class="detail-row"><span class="detail-lbl">ต้นทุนรวม</span><span class="detail-val">${cost.toFixed(2)} ฿</span></div>
+        <div class="detail-row"><span class="detail-lbl">ราคาขาย</span><span class="detail-val">${m.selling>0?m.selling+" ฿":"–"}</span></div>
+        <div class="detail-row"><span class="detail-lbl">กำไรขั้นต้น</span><span class="detail-val" style="color:${profitColor}">${gp!==null?(m.selling-cost).toFixed(2)+" ฿":"–"}</span></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function confirmDelete(menuName) {
+  if(!confirm(`ลบเมนู "${menuName}" ออกจาก${state.branch==="rushhour"?"Rush Hour":"Rush"}?`)) return;
+  try {
+    await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:new URLSearchParams({action:"deleteRecipeMenu",menuName,branch:state.branch}).toString()});
+    showToast(`ลบ "${menuName}" แล้ว`); await loadRecipes();
+  } catch(e){ showToast("ลบไม่สำเร็จ"); }
+}
+
+function openAddSheet() {
+  form={mode:"add",origName:null,menuName:"",sellingPrice:"",ingredients:[{id:1,name:"",qty:"",unit:"g",buyPrice:"",packSize:""}]};
+  renderSheet();
+}
+function openEditSheet(menuName) {
+  const rows=state.recipes.filter(r=>r.branch===state.branch&&r.menuName===menuName);
+  if(!rows.length) return;
+  form={mode:"edit",origName:menuName,menuName,sellingPrice:String(rows[0].sellingPrice||""),ingredients:rows.map((r,i)=>({id:i+1,name:r.ingredientName,qty:String(r.ingredientQty),unit:r.ingredientUnit||"g",buyPrice:String(r.buyPrice),packSize:String(r.packSize)}))};
+  renderSheet();
+}
+
+function renderSheet() {
+  const isEdit=form.mode==="edit";
+  document.getElementById("sheetRoot").innerHTML=`
+    <div class="overlay" onclick="if(event.target===this)closeSheet()"><div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">${isEdit?"แก้ไขเมนู":"เพิ่มเมนูใหม่"}</div>
+      <div class="field"><label class="field-lbl">ชื่อเมนู</label><input id="fMenuName" class="field-input" placeholder="เช่น Latte" value="${esc(form.menuName)}" oninput="form.menuName=this.value;updateGP()" /></div>
+      <div class="field"><label class="field-lbl">ราคาขาย (฿)</label><input id="fSellPrice" class="field-input" type="number" inputmode="decimal" placeholder="0" value="${esc(form.sellingPrice)}" oninput="form.sellingPrice=this.value;updateGP()" /></div>
+      <div class="gp-preview"><div class="gp-preview-lbl">GP ประมาณ</div><div class="gp-preview-val" id="gpPreviewVal">–</div></div>
+      <div class="divider"></div>
+      <div class="section-head"><div class="section-lbl">วัตถุดิบ</div><button class="add-ing-btn" onclick="addIngRow()">+ เพิ่มวัตถุดิบ</button></div>
+      <div id="ingRows"></div>
+      <div class="divider"></div>
+      <button class="btn-primary" onclick="submitForm()">${isEdit?"บันทึกการแก้ไข":"เพิ่มเมนู"}</button>
+      <button class="btn-secondary" onclick="closeSheet()">ยกเลิก</button>
+      ${isEdit?`<button class="btn-danger-text" onclick='confirmDelete(${JSON.stringify(form.origName)})'>ลบเมนูนี้</button>`:""}
+    </div></div>`;
+  renderIngRows(); updateGP();
+}
+
+function renderIngRows(){
+  document.getElementById("ingRows").innerHTML=form.ingredients.map((ing,i)=>`
+    <div class="ing-row">
+      <div class="ing-row-head"><span class="ing-row-lbl">วัตถุดิบ ${i+1}</span><button class="ing-del-btn" onclick="removeIngRow(${ing.id})">${IC.x}</button></div>
+      <div class="field"><input class="field-input" placeholder="ชื่อวัตถุดิบ" value="${esc(ing.name)}" oninput="updateIng(${ing.id},'name',this.value)" /></div>
+      <div class="row-3">
+        <div class="field"><label class="field-lbl">ปริมาณ</label><input class="field-input" type="number" inputmode="decimal" placeholder="0" value="${esc(ing.qty)}" oninput="updateIng(${ing.id},'qty',this.value)" /></div>
+        <div class="field"><label class="field-lbl">หน่วย</label><select class="field-select" onchange="updateIng(${ing.id},'unit',this.value)">${UNITS.map(u=>`<option ${ing.unit===u?"selected":""}>${u}</option>`).join("")}</select></div>
+        <div class="field"><label class="field-lbl">ราคา/แพ็ค</label><input class="field-input" type="number" inputmode="decimal" placeholder="0" value="${esc(ing.buyPrice)}" oninput="updateIng(${ing.id},'buyPrice',this.value)" /></div>
+      </div>
+      <div class="field"><label class="field-lbl">ขนาดแพ็ค (หน่วย)</label><input class="field-input" type="number" inputmode="decimal" placeholder="เช่น 1000" value="${esc(ing.packSize)}" oninput="updateIng(${ing.id},'packSize',this.value)" /></div>
+    </div>`).join("");
+}
+
+let _ingId=100;
+function addIngRow(){ form.ingredients.push({id:++_ingId,name:"",qty:"",unit:"g",buyPrice:"",packSize:""}); renderIngRows(); }
+function removeIngRow(id){ form.ingredients=form.ingredients.filter(i=>i.id!==id); renderIngRows(); updateGP(); }
+function updateIng(id,key,val){ const i=form.ingredients.find(i=>i.id===id); if(i){i[key]=val;updateGP();} }
+
+function updateGP(){
+  const cost=computeCost(form.ingredients.map(i=>({ingredientQty:i.qty,buyPrice:i.buyPrice,packSize:i.packSize})));
+  const gp=gpPct(cost,Number(form.sellingPrice));
+  const el=document.getElementById("gpPreviewVal"); if(!el) return;
+  if(gp===null){el.textContent="–";el.style.color="var(--t3)";return;}
+  el.textContent=gp.toFixed(1)+"% (กำไร "+(Number(form.sellingPrice)-cost).toFixed(2)+" ฿)";
+  el.style.color=gp>=60?"var(--good)":gp>=40?"var(--warn)":"var(--bad)";
+}
+
+const ADD_ACTIONS = ["addRecipeRow","addRecipe","addMenu","saveRecipeRow","addMenuRow","saveRecipe","addMenuCost","addStock"];
+
+async function submitForm(){
+  const menuName=(document.getElementById("fMenuName")?.value||form.menuName).trim();
+  if(!menuName){showToast("กรุณาใส่ชื่อเมนู");return;}
+  const sellingPrice=Number(document.getElementById("fSellPrice")?.value||form.sellingPrice)||0;
+  const validIngs=form.ingredients.filter(i=>i.name&&i.qty);
+  if(!validIngs.length){showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ");return;}
+  closeSheet();
+
+  // Optimistic update — แสดงทันทีก่อน GAS ตอบ
+  if(form.mode==="edit"&&form.origName){
+    state.recipes=state.recipes.filter(r=>!(r.branch===state.branch&&r.menuName===form.origName));
+  }
+  validIngs.forEach(ing=>{
+    state.recipes.push({branch:state.branch,menuName,sellingPrice,ingredientName:ing.name.trim(),ingredientQty:Number(ing.qty)||0,ingredientUnit:ing.unit,buyPrice:Number(ing.buyPrice)||0,packSize:Number(ing.packSize)||1});
+  });
+  renderAll();
+
+  try {
+    if(form.mode==="edit"&&form.origName){
+      await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:new URLSearchParams({action:"deleteRecipeMenu",menuName:form.origName,branch:state.branch}).toString()});
+    }
+    let addOk=false, lastAddErr="", addLog=[];
+    for(const action of ADD_ACTIONS){
+      try{
+        let lastRes;
+        for(const ing of validIngs){
+          lastRes = await apiCall(action,{id:uid(),menuName,sellingPrice,ingredientName:ing.name.trim(),ingredientQty:Number(ing.qty)||0,ingredientUnit:ing.unit,buyPrice:Number(ing.buyPrice)||0,packSize:Number(ing.packSize)||0,branch:state.branch});
+        }
+        // ตรวจ GAS-level error ด้วย
+        if(lastRes && lastRes.error) throw new Error("GAS: "+lastRes.error);
+        const resKeys = lastRes ? Object.keys(lastRes).join(",") : "null";
+        addLog.push(`✓ ${action} → keys:[${resKeys}]`);
+        addOk=true; break;
+      } catch(e){ lastAddErr=e.message; addLog.push(`✗ ${action} → ${e.message.slice(0,80)}`); continue; }
+    }
+    if(!addOk){
+      showToast("บันทึก GAS ไม่สำเร็จ");
+      document.getElementById("errorBox").innerHTML=`
+        <div class="err-box" style="font-size:11px">
+          <b>ADD ล้มเหลวทุก action</b><br>
+          <pre style="margin:4px 0;white-space:pre-wrap;opacity:.85">${esc(addLog.join("\n"))}</pre>
+        </div>`;
+    } else {
+      showToast(form.mode==="edit"?`บันทึก "${menuName}" แล้ว`:`เพิ่ม "${menuName}" แล้ว`);
+    }
+    // โหลดจาก GAS จริง — แต่ถ้า GAS คืน empty ให้คงข้อมูล optimistic ไว้
+    const beforeSync = [...state.recipes];
+    await loadRecipes();
+    if(state.recipes.length === 0 && beforeSync.length > 0) {
+      state.recipes = beforeSync;
+      renderAll();
+    }
+  } catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+}
+
+// ─── Voice ───
+let _rec=null;
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const btn=document.getElementById("micBtn");
+  if(!SR){showToast("เบราว์เซอร์ไม่รองรับการค้นหาด้วยเสียง");return;}
+  if(_rec){_rec.abort();_rec=null;btn?.classList.remove("listening");return;}
+  _rec=new SR(); _rec.lang="th-TH"; _rec.continuous=false; _rec.interimResults=false;
+  btn?.classList.add("listening");
+  let done=false;
+  _rec.onresult=e=>{ if(done)return; done=true; const t=e.results[0][0].transcript; const inp=document.getElementById("searchInput"); if(inp){inp.value=t;onSearch(t);} btn?.classList.remove("listening"); _rec=null; };
+  _rec.onerror=()=>{ if(!done){ showToast("ไม่ได้ยินเสียง ลองอีกครั้ง"); } btn?.classList.remove("listening"); _rec=null; done=true; };
+  _rec.onend=()=>{ btn?.classList.remove("listening"); _rec=null; };
+  _rec.start();
+}
+
+function closeSheet(){ document.getElementById("sheetRoot").innerHTML=""; }
+function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2400); }
+
+loadRecipes();
+</script>
+</body>
+</html>
