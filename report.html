@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>รายงานการทำงาน · Rush Coffee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F3EF; --bg-grad: radial-gradient(135% 110% at 50% -10%, #FCFBF9 0%, #F4F3EF 55%, #ECEAE3 100%);
+    --surface:#FFFFFF; --surface-2:#FBFAF7; --line:#EAE7DF; --line-strong:#DDD9CF;
+    --ink:#1E232A; --ink-2:#5D646E; --ink-3:#9A9FA8;
+    --green:#2F8F5B; --green-bg:#E9F4EE; --red:#C7553B; --red-bg:#FBEDE9; --amber:#CF9A2B; --amber-bg:#FAF2DD;
+    --shadow-sm:0 1px 2px rgba(28,28,36,.04), 0 2px 8px rgba(28,28,36,.05); --shadow-md:0 6px 22px rgba(28,28,36,.09);
+    --radius:16px; --radius-sm:11px;
+    --accent:#3C4450; --accent-deep:#262C35; --accent-soft:#ECEEF1;
+    --accent-grad:linear-gradient(135deg,#4A5360 0%,#2E343D 100%);
+    --metal-grad:linear-gradient(120deg,#4A5360 0%,#8A93A0 48%,#3A424D 100%); --on-accent:#FFFFFF;
+  }
+  body.theme-rush{ --accent:#6E7884; --accent-deep:#3A424D; --accent-soft:#EDF0F3; --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%); --metal-grad:linear-gradient(120deg,#737C88 0%,#CBD1D8 48%,#6A7280 100%); --on-accent:#FFFFFF; }
+  body.theme-rushhour{ --accent:#B5870F; --accent-deep:#8A6608; --accent-soft:#FAF3DC; --accent-grad:linear-gradient(135deg,#E3BE4A 0%,#C2941A 100%); --metal-grad:linear-gradient(120deg,#A6800E 0%,#EBC955 48%,#9A7110 100%); --on-accent:#3A2C04; }
+  body.theme-all{ --accent:#3C4450; --accent-deep:#262C35; --accent-soft:#ECEEF1; --accent-grad:linear-gradient(135deg,#4A5360 0%,#2E343D 100%); --metal-grad:linear-gradient(120deg,#4A5360 0%,#8A93A0 48%,#3A424D 100%); --on-accent:#FFFFFF; }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; }
+  body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif; background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed; color:var(--ink); padding-bottom:84px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:600px; margin:0 auto; padding:14px 16px 8px; }
+
+  .appbar{ position:sticky; top:0; z-index:40; background:rgba(244,243,239,.82); backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line); }
+  .appbar-inner{ max-width:600px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .logo{ width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--accent-grad); box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.35); flex-shrink:0; }
+  .logo svg{ width:21px; height:21px; }
+  .wordmark{ font-weight:800; font-size:15px; letter-spacing:.4px; line-height:1; background:var(--metal-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .brand-tag{ font-size:11px; color:var(--ink-3); margin-top:2px; }
+
+  h1{ font-size:20px; font-weight:800; margin:6px 0 2px; }
+  .sub{ color:var(--ink-2); font-size:12.5px; margin:0 0 14px; }
+
+  .branch-row{ display:flex; gap:7px; margin:0 0 12px; }
+  .branch-btn{ flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:10px 6px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); transition:.18s; box-shadow:var(--shadow-sm); }
+  .branch-btn .sw{ width:11px; height:11px; border-radius:50%; }
+  .sw.silver{ background:linear-gradient(135deg,#C7CDD5,#7C8794); } .sw.gold{ background:linear-gradient(135deg,#EBC955,#B5870F); } .sw.all{ background:linear-gradient(135deg,#8A93A0,#2E343D); }
+  .branch-btn.active{ color:var(--on-accent); border-color:transparent; background:var(--accent-grad); box-shadow:var(--shadow-md); }
+
+  .chiprow{ display:flex; gap:7px; overflow-x:auto; padding-bottom:11px; scrollbar-width:none; }
+  .chiprow::-webkit-scrollbar{ display:none; }
+  .chip{ border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:13px; background:var(--surface); cursor:pointer; white-space:nowrap; color:var(--ink-2); font-weight:600; }
+  .chip.active{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; box-shadow:var(--shadow-sm); }
+
+  input{ width:100%; border:1px solid var(--line-strong); border-radius:10px; padding:11px 12px; font-size:14px; background:var(--surface); color:var(--ink); font-family:inherit; }
+  input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .label{ font-size:12px; color:var(--ink-2); margin-bottom:5px; display:block; font-weight:600; }
+  .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
+  .btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:12px; padding:13px 16px; font-size:15px; font-weight:800; cursor:pointer; width:100%; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); }
+  .btn-primary:active{ transform:scale(.98); }
+
+  .kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:6px; }
+  .kpi-card{ border-radius:var(--radius-sm); padding:13px 14px; background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+  .kpi-card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent-grad); }
+  .kpi-label{ font-size:11.5px; color:var(--ink-3); margin:0 0 4px; font-weight:600; }
+  .kpi-value{ font-variant-numeric:tabular-nums; font-size:22px; font-weight:800; margin:0; line-height:1.1; }
+  .kpi-sub{ font-size:11px; color:var(--ink-3); margin:3px 0 0; }
+
+  .emp-card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow-sm); margin-bottom:10px; overflow:hidden; }
+  .emp-head{ display:flex; align-items:center; gap:12px; padding:14px; cursor:pointer; }
+  .emp-avatar{ width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent-deep); font-weight:800; font-size:16px; flex-shrink:0; }
+  .emp-name{ font-weight:800; font-size:15px; margin:0; }
+  .emp-meta{ font-size:11.5px; color:var(--ink-3); margin:2px 0 0; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .emp-hours{ text-align:right; flex-shrink:0; }
+  .emp-hours .n{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1; }
+  .emp-hours .u{ font-size:10.5px; color:var(--ink-3); }
+  .badge{ font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px; }
+  .b-late{ background:var(--amber-bg); color:#8a6a14; } .b-miss{ background:var(--red-bg); color:var(--red); } .b-leave{ background:var(--accent-soft); color:var(--accent-deep); } .b-ok{ background:var(--green-bg); color:#27764a; }
+  .chev{ width:18px; height:18px; color:var(--ink-3); transition:.2s; flex-shrink:0; }
+  .emp-card.open .chev{ transform:rotate(180deg); }
+  .emp-detail{ border-top:1px solid var(--line); padding:4px 14px 8px; display:none; }
+  .emp-card.open .emp-detail{ display:block; }
+  .day-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .day-row:last-child{ border-bottom:none; }
+  .day-date{ font-size:13px; font-weight:700; }
+  .day-times{ font-size:12px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+  .day-h{ font-variant-numeric:tabular-nums; font-weight:800; font-size:14px; white-space:nowrap; }
+
+  .empty{ text-align:center; padding:42px 16px; color:var(--ink-3); font-size:14px; }
+  .err-box{ background:var(--red-bg); color:var(--red); border:1px solid #EED2C8; border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:13px; font-weight:600; }
+  .note{ font-size:11.5px; color:var(--ink-3); margin:8px 2px 0; line-height:1.5; }
+  .loading-text{ color:var(--ink-3); font-size:14px; text-align:center; padding:36px 0; }
+
+  /* PIN gate */
+  .gate{ max-width:340px; margin:8vh auto 0; text-align:center; }
+  .gate .lock{ width:64px; height:64px; border-radius:18px; margin:0 auto 14px; display:grid; place-items:center; color:#fff; background:var(--accent-grad); box-shadow:var(--shadow-md); }
+  .gate .lock svg{ width:30px; height:30px; }
+  .pin-wrap{ display:flex; gap:9px; justify-content:center; margin:16px 0; }
+  .pin-dot{ width:46px; height:54px; border:1.5px solid var(--line-strong); border-radius:12px; display:grid; place-items:center; font-size:24px; font-weight:800; background:var(--surface); }
+  .pin-dot.filled{ border-color:var(--accent); color:var(--accent-deep); }
+  .pin-input{ position:absolute; opacity:0; pointer-events:none; }
+
+  .bottom-nav{ position:fixed; left:0; right:0; bottom:0; z-index:60; background:rgba(255,255,255,.86); backdrop-filter:saturate(160%) blur(14px); border-top:1px solid var(--line); padding:7px 6px calc(7px + env(safe-area-inset-bottom)); }
+  .nav-inner{ display:flex; max-width:600px; margin:0 auto; gap:2px; }
+  .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border-radius:13px; color:var(--ink-3); font-size:10px; font-weight:700; text-decoration:none; white-space:nowrap; }
+  .nav-item svg{ width:21px; height:21px; }
+  .nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
+</style>
+</head>
+<body class="theme-all" id="bodyEl">
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.4c-.5.7-.5 1.5 0 2.2M11 3.4c-.5.7-.5 1.5 0 2.2"/></svg></div>
+      <div><div class="wordmark">RUSH COFFEE</div><div class="brand-tag">รายงานการทำงาน (ผู้จัดการ)</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+  <div id="content"><div class="loading-text">กำลังโหลด...</div></div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21 3 16.5v-9Z"/><path d="m3 7.5 9 4.5 9-4.5"/><path d="M12 12v9"/></svg>สต๊อก</a>
+    <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="13.5" width="3" height="4.5" rx="1"/></svg>บัญชี</a>
+    <a class="nav-item" href="menu-cost.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.2-1.3-2 1.3-2-1.3-2 1.3L6 21V3Z"/><path d="M9 8h6M9 12h6"/></svg>ต้นทุน</a>
+    <a class="nav-item" href="attendance.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>ตอกบัตร</a>
+    <a class="nav-item active" href="report.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1Z"/><path d="m9.5 13 1.8 1.8L15 11"/></svg>รายงาน</a>
+  </div>
+</nav>
+
+<script>
+// ใช้ Apps Script ตัวเดียวกับ attendance.html — วาง URL เดียวกัน
+const API_URL = "PASTE_YOUR_ATTENDANCE_APPS_SCRIPT_URL_HERE";
+
+const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"ทุกสาขา" };
+let state = {
+  authed:false, managerPin:"",
+  branch:"all", period:"month", from:monthStart(), to:todayStr(),
+  data:null, loading:false, error:"", pinError:"", expanded:{},
+};
+
+function apiReady(){ return /^https:\/\/script\.google\.com/.test(API_URL); }
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+function todayStr(){ return toLocal(new Date()); }
+function toLocal(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${dd}`; }
+function monthStart(){ const d=new Date(); return toLocal(new Date(d.getFullYear(), d.getMonth(), 1)); }
+function weekStart(){ const d=new Date(); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); return toLocal(d); }
+
+async function apiCall(action, payload){
+  let res;
+  try{
+    const body=new URLSearchParams({ action });
+    if (payload) body.set("payload", JSON.stringify(payload));
+    res=await fetch(API_URL,{ method:"POST", redirect:"follow", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:body.toString() });
+  }catch(e){ throw new Error("เชื่อมต่อเครือข่ายไม่ได้: "+e.message); }
+  const text=await res.text();
+  if (!res.ok) throw new Error("HTTP "+res.status+" — "+text.slice(0,200));
+  try{ return JSON.parse(text); }catch(e){ throw new Error("ข้อมูลไม่ถูกต้อง: "+text.slice(0,200)); }
+}
+
+async function fetchReport(){
+  if (!apiReady()){ render(); return; }
+  state.loading=true; state.error=""; render();
+  try{
+    const data=await apiCall("getReport",{ from:state.from, to:state.to, branch:state.branch, managerPin:state.managerPin });
+    if (data.error){
+      if (/pin/i.test(data.error)){ state.authed=false; state.pinError="รหัสผู้จัดการไม่ถูกต้อง"; state.managerPin=""; }
+      else state.error=data.error;
+    }else{
+      state.data=data; state.authed=true; state.pinError="";
+    }
+  }catch(e){ state.error=e.message; }
+  state.loading=false; render();
+}
+
+function setBranch(b){ state.branch=b; applyTheme(); if (state.authed) fetchReport(); else render(); }
+function setPeriod(p){
+  state.period=p;
+  if (p==="week"){ state.from=weekStart(); state.to=todayStr(); }
+  else if (p==="month"){ state.from=monthStart(); state.to=todayStr(); }
+  if (state.authed && p!=="custom") fetchReport(); else render();
+}
+function setFrom(v){ state.from=v; if (state.authed) fetchReport(); }
+function setTo(v){ state.to=v; if (state.authed) fetchReport(); }
+function applyTheme(){ document.getElementById("bodyEl").className = state.branch==="rush"?"theme-rush":state.branch==="rushhour"?"theme-rushhour":"theme-all"; }
+function toggleEmp(id){ state.expanded[id]=!state.expanded[id]; render(); }
+
+// ---------- PIN ----------
+function onPinInput(v){ state.managerPin=(v||"").replace(/\D/g,"").slice(0,4); syncPinDots(); if (state.managerPin.length===4) setTimeout(fetchReport,150); }
+function syncPinDots(){ for(let i=0;i<4;i++){ const d=document.getElementById("pd"+i); if(!d)continue; if(i<state.managerPin.length){ d.textContent="•"; d.classList.add("filled"); }else{ d.textContent=""; d.classList.remove("filled"); } } }
+function focusPin(){ const el=document.getElementById("pinInput"); if(el) el.focus(); }
+
+// ---------- compute ----------
+function shiftFor(branch){ const s=state.data&&state.data.shiftByBranch&&state.data.shiftByBranch[branch]; return s || (state.data&&state.data.shift) || { start:"08:00", graceMin:10 }; }
+function lateThreshold(dateStr, branch){
+  const sh=shiftFor(branch); const parts=(sh.start||"08:00").split(":");
+  const d=new Date(dateStr+"T00:00:00"); d.setHours(Number(parts[0])||0, (Number(parts[1])||0)+(Number(sh.graceMin)||0), 0, 0); return d;
+}
+function daysBetween(from, to){
+  const a=new Date(from+"T00:00:00"), b=new Date(to+"T00:00:00"); if (isNaN(a)||isNaN(b)) return 0;
+  return Math.max(0, Math.round((b-a)/86400000)+1);
+}
+function fmtH(min){ return (min/60).toFixed(1); }
+function fmtClock(ts){ const d=new Date(ts); return isNaN(d)?"–":d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"}); }
+function fmtDay(ds){ const d=new Date(ds+"T00:00:00"); return isNaN(d)?ds:d.toLocaleDateString("th-TH",{weekday:"short",day:"2-digit",month:"short"}); }
+
+function computeReport(){
+  const data=state.data;
+  const emps=data.employees||[];
+  const leaveBy={};
+  (data.leave||[]).forEach((l)=>{ (leaveBy[l.employeeId]=leaveBy[l.employeeId]||{})[l.date]={ type:l.type, note:l.note }; });
+
+  // group records: empId -> date -> [recs]
+  const g={};
+  (data.records||[]).forEach((r)=>{
+    const day=String(r.dateLocal||"").slice(0,10); if(!day)return;
+    ((g[r.employeeId]=g[r.employeeId]||{})[day]=g[r.employeeId][day]||[]).push(r);
+  });
+
+  const today=todayStr();
+  const rangeEnd = state.to<today ? state.to : today;
+  const totalRangeDays = daysBetween(state.from, rangeEnd);
+
+  const perEmp = emps.map((e)=>{
+    const byDay=g[e.id]||{};
+    const empLeave=leaveBy[e.id]||{};
+    const days=[];
+    let totalMin=0, lateDays=0, incompleteDays=0;
+    const dayKeys=new Set([...Object.keys(byDay), ...Object.keys(empLeave)]);
+    [...dayKeys].sort((a,b)=>b.localeCompare(a)).forEach((day)=>{
+      if (empLeave[day] && !byDay[day]){ days.push({ date:day, leave:empLeave[day] }); return; }
+      const recs=(byDay[day]||[]).slice().sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+      let stack=[], min=0, firstIn=null;
+      recs.forEach((r)=>{
+        if (r.type==="in"){ stack.push(r); if(!firstIn) firstIn=r; }
+        else if (r.type==="out"){ const open=stack.pop(); if (open){ const dur=(new Date(r.timestamp)-new Date(open.timestamp))/60000; if(dur>0) min+=dur; } }
+      });
+      const incomplete = stack.length>0 || (recs.length>0 && !recs.some((r)=>r.type==="out"));
+      const late = firstIn ? (new Date(firstIn.timestamp) > lateThreshold(day, e.branch)) : false;
+      const outRec = recs.filter((r)=>r.type==="out").slice(-1)[0];
+      if (min>0) totalMin+=min;
+      if (late) lateDays++;
+      if (incomplete) incompleteDays++;
+      days.push({ date:day, inTs:firstIn?firstIn.timestamp:null, outTs:outRec?outRec.timestamp:null, min, late, incomplete, leave:empLeave[day]||null });
+    });
+    const daysWorked=Object.keys(byDay).length;
+    const leaveDays=Object.keys(empLeave).filter((d)=>!byDay[d]).length;
+    const noPunch=Math.max(0, totalRangeDays - daysWorked - leaveDays);
+    return { id:e.id, name:e.name, branch:e.branch, days, totalMin, daysWorked, lateDays, incompleteDays, leaveDays, noPunch };
+  });
+
+  const active=perEmp.filter((e)=>e.daysWorked>0 || e.leaveDays>0);
+  const kpis={
+    totalMin: active.reduce((s,e)=>s+e.totalMin,0),
+    staff: perEmp.filter((e)=>e.daysWorked>0).length,
+    late: active.reduce((s,e)=>s+e.lateDays,0),
+    incomplete: active.reduce((s,e)=>s+e.incompleteDays,0),
+    leave: active.reduce((s,e)=>s+e.leaveDays,0),
+    noPunch: perEmp.reduce((s,e)=>s+e.noPunch,0),
+    rangeDays: totalRangeDays,
+  };
+  return { perEmp, kpis };
+}
+
+// ---------- render ----------
+function render(){
+  applyTheme();
+  const content=document.getElementById("content");
+
+  if (!apiReady()){
+    content.innerHTML=`<div class="err-box">ยังไม่ได้เชื่อมระบบหลังบ้าน — วางลิงก์ Apps Script (ตัวเดียวกับ attendance.html) ในตัวแปร <b>API_URL</b> ของไฟล์ report.html</div>`;
+    return;
+  }
+  if (!state.authed){ content.innerHTML=renderGate(); setTimeout(()=>{ syncPinDots(); focusPin(); },0); return; }
+
+  let html=`<h1>รายงานการทำงาน</h1><p class="sub">สรุปชั่วโมงทำงาน · มาสาย · ลา/ไม่มา</p>`;
+
+  html+=`<div class="branch-row">
+    <div class="branch-btn ${state.branch==="rush"?"active":""}" onclick="setBranch('rush')"><span class="sw silver"></span>Rush</div>
+    <div class="branch-btn ${state.branch==="rushhour"?"active":""}" onclick="setBranch('rushhour')"><span class="sw gold"></span>Rush Hour</div>
+    <div class="branch-btn ${state.branch==="all"?"active":""}" onclick="setBranch('all')"><span class="sw all"></span>รวม</div>
+  </div>`;
+
+  html+=`<div class="chiprow">
+    <div class="chip ${state.period==="week"?"active":""}" onclick="setPeriod('week')">สัปดาห์นี้</div>
+    <div class="chip ${state.period==="month"?"active":""}" onclick="setPeriod('month')">เดือนนี้</div>
+    <div class="chip ${state.period==="custom"?"active":""}" onclick="setPeriod('custom')">กำหนดเอง</div>
+  </div>`;
+  if (state.period==="custom"){
+    html+=`<div class="card" style="display:flex; gap:10px;">
+      <div style="flex:1;"><label class="label">จากวันที่</label><input type="date" value="${state.from}" onchange="setFrom(this.value)"></div>
+      <div style="flex:1;"><label class="label">ถึงวันที่</label><input type="date" value="${state.to}" onchange="setTo(this.value)"></div>
+    </div>`;
+  }
+
+  if (state.error){ html+=`<div class="err-box">${escapeHtml(state.error)}</div>`; }
+  if (state.loading){ html+=`<div class="loading-text">กำลังประมวลผล...</div>`; content.innerHTML=html; return; }
+
+  const { perEmp, kpis }=computeReport();
+
+  html+=`<div class="kpi-grid">
+    <div class="kpi-card"><p class="kpi-label">ชั่วโมงทำงานรวม</p><p class="kpi-value">${fmtH(kpis.totalMin)}</p><p class="kpi-sub">ชม. · พนักงาน ${kpis.staff} คน</p></div>
+    <div class="kpi-card"><p class="kpi-label">มาสาย</p><p class="kpi-value" style="color:var(--amber)">${kpis.late}</p><p class="kpi-sub">ครั้ง</p></div>
+    <div class="kpi-card"><p class="kpi-label">ลา</p><p class="kpi-value" style="color:var(--accent-deep)">${kpis.leave}</p><p class="kpi-sub">วัน-คน</p></div>
+    <div class="kpi-card"><p class="kpi-label">ไม่มาตอก (โดยประมาณ)</p><p class="kpi-value" style="color:var(--red)">${kpis.noPunch}</p><p class="kpi-sub">วัน-คน · ไม่นับลา</p></div>
+  </div>`;
+
+  const shown=perEmp.filter((e)=>e.daysWorked>0 || e.leaveDays>0 || e.noPunch>0)
+    .sort((a,b)=>b.totalMin-a.totalMin);
+  if (shown.length===0){
+    html+=`<div class="empty">ไม่มีข้อมูลการตอกบัตรในช่วงที่เลือก</div>`;
+  }else{
+    html+=shown.map(renderEmp).join("");
+  }
+
+  html+=`<p class="note">* "มาสาย" เทียบกับเวลาเข้างาน ${escapeHtml((state.data.shift&&state.data.shift.start)||"08:00")} น. (ผ่อนผัน ${(state.data.shift&&state.data.shift.graceMin)||0} นาที) ปรับได้ในไฟล์ attendance.gs<br>* "ไม่มาตอก" ประมาณจากจำนวนวันในช่วง (ถึงวันนี้) ลบวันที่มาทำงานและวันลา — ถ้ามีวันหยุดประจำให้บันทึกในชีต Leave เพื่อไม่ให้นับเป็นไม่มา</p>`;
+
+  content.innerHTML=html;
+}
+
+function renderEmp(e){
+  const open=!!state.expanded[e.id];
+  const initial=(e.name||"?").trim().charAt(0);
+  const badges=[];
+  if (e.lateDays>0) badges.push(`<span class="badge b-late">สาย ${e.lateDays}</span>`);
+  if (e.incompleteDays>0) badges.push(`<span class="badge b-miss">ไม่ตอกออก ${e.incompleteDays}</span>`);
+  if (e.leaveDays>0) badges.push(`<span class="badge b-leave">ลา ${e.leaveDays}</span>`);
+  if (badges.length===0 && e.daysWorked>0) badges.push(`<span class="badge b-ok">ปกติ</span>`);
+
+  const detail = e.days.length===0
+    ? `<p class="note" style="padding:10px 0;">ไม่มีบันทึกในช่วงนี้</p>`
+    : e.days.map((d)=>{
+        if (d.leave){ return `<div class="day-row"><div><div class="day-date">${fmtDay(d.date)}</div><div class="day-times">ลา${d.leave.type&&d.leave.type!=="ลา"?" ("+escapeHtml(d.leave.type)+")":""}${d.leave.note?" · "+escapeHtml(d.leave.note):""}</div></div><span class="badge b-leave">ลา</span></div>`; }
+        const flags=[];
+        if (d.late) flags.push(`<span class="badge b-late">สาย</span>`);
+        if (d.incomplete) flags.push(`<span class="badge b-miss">ไม่ตอกออก</span>`);
+        return `<div class="day-row">
+          <div><div class="day-date">${fmtDay(d.date)}</div>
+          <div class="day-times">เข้า ${fmtClock(d.inTs)}${d.outTs?" · ออก "+fmtClock(d.outTs):""}</div></div>
+          <div style="display:flex; align-items:center; gap:7px;">${flags.join("")}<span class="day-h">${d.min>0?fmtH(d.min)+" ชม.":"–"}</span></div>
+        </div>`;
+      }).join("");
+
+  return `<div class="emp-card ${open?"open":""}">
+    <div class="emp-head" onclick="toggleEmp('${escapeHtml(e.id)}')">
+      <div class="emp-avatar">${escapeHtml(initial)}</div>
+      <div style="flex:1; min-width:0;">
+        <p class="emp-name">${escapeHtml(e.name)}</p>
+        <div class="emp-meta"><span>${BRANCH_LABEL[e.branch]||e.branch||""}</span><span>·</span><span>มา ${e.daysWorked} วัน</span> ${badges.join(" ")}</div>
+      </div>
+      <div class="emp-hours"><div class="n">${fmtH(e.totalMin)}</div><div class="u">ชม.รวม</div></div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="emp-detail">${detail}</div>
+  </div>`;
+}
+
+function renderGate(){
+  return `<div class="gate">
+    <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+    <h1 style="margin:0 0 4px;">รายงานสำหรับผู้จัดการ</h1>
+    <p class="sub" style="margin:0 0 4px;">ใส่รหัสผู้จัดการ 4 หลักเพื่อดูข้อมูล</p>
+    ${state.pinError?`<div class="err-box" style="text-align:center;">${escapeHtml(state.pinError)}</div>`:""}
+    ${state.loading?`<p class="loading-text">กำลังตรวจสอบ...</p>`:""}
+    <div class="pin-wrap" onclick="focusPin()">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+      <input class="pin-input" id="pinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" oninput="onPinInput(this.value)">
+    </div>
+  </div>`;
+}
+
+// init
+render();
+</script>
+</body>
+</html>
