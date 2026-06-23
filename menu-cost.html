@@ -444,5 +444,6 @@ loadAll();
 setInterval(() => { if (state.view!=="add") loadAll(); }, 15000);
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+<script src="pwa-install.js"></script>
 </body>
 </html>
