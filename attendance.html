@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>ตอกบัตร เข้า-ออกงาน · Rush Coffee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===================== Rush Coffee · Modern Silver & Gold (Light Luxe) ===================== */
+  :root{
+    --bg:#F4F3EF;
+    --bg-grad: radial-gradient(135% 110% at 50% -10%, #FCFBF9 0%, #F4F3EF 55%, #ECEAE3 100%);
+    --surface:#FFFFFF; --surface-2:#FBFAF7;
+    --line:#EAE7DF; --line-strong:#DDD9CF;
+    --ink:#1E232A; --ink-2:#5D646E; --ink-3:#9A9FA8;
+    --green:#2F8F5B; --green-bg:#E9F4EE;
+    --red:#C7553B; --red-bg:#FBEDE9;
+    --amber:#CF9A2B; --amber-bg:#FAF2DD;
+    --shadow-sm:0 1px 2px rgba(28,28,36,.04), 0 2px 8px rgba(28,28,36,.05);
+    --shadow-md:0 6px 22px rgba(28,28,36,.09);
+    --radius:16px; --radius-sm:11px;
+    --accent:#6E7884; --accent-deep:#3E4651; --accent-soft:#EEF1F4;
+    --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%);
+    --metal-grad:linear-gradient(120deg,#737C88 0%,#C7CDD5 48%,#6A7280 100%);
+    --on-accent:#FFFFFF;
+  }
+  body.theme-rush{ --accent:#6E7884; --accent-deep:#3A424D; --accent-soft:#EDF0F3;
+    --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%);
+    --metal-grad:linear-gradient(120deg,#737C88 0%,#CBD1D8 48%,#6A7280 100%); --on-accent:#FFFFFF; }
+  body.theme-rushhour{ --accent:#B5870F; --accent-deep:#8A6608; --accent-soft:#FAF3DC;
+    --accent-grad:linear-gradient(135deg,#E3BE4A 0%,#C2941A 100%);
+    --metal-grad:linear-gradient(120deg,#A6800E 0%,#EBC955 48%,#9A7110 100%); --on-accent:#3A2C04; }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; }
+  body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+    color:var(--ink); padding-bottom:84px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:560px; margin:0 auto; padding:14px 16px 8px; }
+
+  .appbar{ position:sticky; top:0; z-index:40; background:rgba(244,243,239,.82); backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line); }
+  .appbar-inner{ max-width:560px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .logo{ width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--accent-grad); box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.35); flex-shrink:0; }
+  .logo svg{ width:21px; height:21px; }
+  .brand-text{ min-width:0; }
+  .wordmark{ font-weight:800; font-size:15px; letter-spacing:.4px; line-height:1; background:var(--metal-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .brand-tag{ font-size:11px; color:var(--ink-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .clock-now{ display:inline-flex; flex-direction:column; align-items:flex-end; font-variant-numeric:tabular-nums; }
+  .clock-now .t{ font-size:16px; font-weight:800; color:var(--accent-deep); line-height:1; }
+  .clock-now .d{ font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+
+  h1{ font-size:20px; font-weight:800; margin:6px 0 2px; letter-spacing:.2px; }
+  h2{ font-size:14px; font-weight:800; margin:0 0 9px; display:flex; align-items:center; gap:7px; }
+  .step-no{ width:21px; height:21px; border-radius:50%; background:var(--accent-grad); color:var(--on-accent); font-size:12px; display:grid; place-items:center; flex-shrink:0; }
+  .sub{ color:var(--ink-2); font-size:12.5px; margin:0 0 14px; }
+
+  .branch-row{ display:flex; gap:7px; margin:0 0 14px; }
+  .branch-btn{ flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 6px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); transition:.18s; box-shadow:var(--shadow-sm); }
+  .branch-btn .sw{ width:11px; height:11px; border-radius:50%; box-shadow:inset 0 1px 1px rgba(255,255,255,.6); }
+  .sw.silver{ background:linear-gradient(135deg,#C7CDD5,#7C8794); }
+  .sw.gold{ background:linear-gradient(135deg,#EBC955,#B5870F); }
+  .branch-btn.active{ color:var(--on-accent); border-color:transparent; background:var(--accent-grad); box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.3); }
+  .branch-btn.active .sw{ box-shadow:0 0 0 2px rgba(255,255,255,.5); }
+
+  .tabs{ display:flex; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:4px; margin-bottom:14px; box-shadow:var(--shadow-sm); }
+  .tab{ flex:1; text-align:center; padding:9px; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; color:var(--ink-2); transition:.15s; }
+  .tab.active{ background:var(--accent-grad); color:var(--on-accent); box-shadow:var(--shadow-sm); }
+
+  input,select{ width:100%; border:1px solid var(--line-strong); border-radius:10px; padding:11px 12px; font-size:14px; background:var(--surface); color:var(--ink); font-family:inherit; transition:.15s; }
+  input:focus,select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .label{ font-size:12px; color:var(--ink-2); margin-bottom:5px; display:block; font-weight:600; }
+  .field{ margin-bottom:13px; }
+  .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
+
+  .btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:12px; padding:14px 16px; font-size:15px; font-weight:800; cursor:pointer; width:100%; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); transition:.12s; }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn-ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:12px; padding:13px 16px; font-size:14px; font-weight:700; cursor:pointer; width:100%; }
+  .punch-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn-in{ background:linear-gradient(135deg,#3BA06A,#2C8052); color:#fff; }
+  .btn-out{ background:linear-gradient(135deg,#D06044,#B5482F); color:#fff; }
+
+  /* PIN */
+  .pin-wrap{ display:flex; gap:9px; justify-content:center; margin:2px 0; }
+  .pin-dot{ width:46px; height:54px; border:1.5px solid var(--line-strong); border-radius:12px; display:grid; place-items:center; font-size:24px; font-weight:800; background:var(--surface); }
+  .pin-dot.filled{ border-color:var(--accent); color:var(--accent-deep); }
+  .pin-input{ position:absolute; opacity:0; pointer-events:none; }
+
+  /* Camera */
+  .cam-frame{ position:relative; width:100%; aspect-ratio:3/4; max-height:62vh; border-radius:var(--radius); overflow:hidden; background:#15171b; display:grid; place-items:center; }
+  .cam-frame video,.cam-frame img,.cam-frame canvas{ width:100%; height:100%; object-fit:cover; }
+  .cam-frame video{ transform:scaleX(-1); }
+  .cam-hint{ color:#cdd2d8; font-size:13px; text-align:center; padding:24px; }
+  .cam-overlay-tag{ position:absolute; left:10px; bottom:10px; right:10px; color:#fff; font-size:11px; text-shadow:0 1px 3px rgba(0,0,0,.8); pointer-events:none; line-height:1.45; }
+  .cam-bar{ display:flex; gap:9px; margin-top:10px; }
+  .shutter{ width:60px; height:60px; border-radius:50%; border:4px solid var(--surface); background:var(--accent-grad); box-shadow:var(--shadow-md); cursor:pointer; display:grid; place-items:center; }
+  .shutter svg{ width:24px; height:24px; color:var(--on-accent); }
+  .cam-center{ display:flex; justify-content:center; margin-top:12px; }
+
+  /* status chips */
+  .stat-line{ display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:11px; font-size:13px; font-weight:600; margin-bottom:8px; }
+  .stat-line svg{ width:18px; height:18px; flex-shrink:0; }
+  .stat-ok{ background:var(--green-bg); color:#27764a; }
+  .stat-warn{ background:var(--amber-bg); color:#8a6a14; }
+  .stat-bad{ background:var(--red-bg); color:var(--red); }
+  .stat-idle{ background:var(--accent-soft); color:var(--accent-deep); }
+
+  .today-card{ display:flex; align-items:center; gap:12px; }
+  .today-ic{ width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent-deep); flex-shrink:0; }
+  .today-ic svg{ width:22px; height:22px; }
+
+  .rec-row{ display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .rec-row:last-child{ border-bottom:none; }
+  .rec-thumb{ width:42px; height:42px; border-radius:10px; object-fit:cover; background:var(--accent-soft); flex-shrink:0; }
+  .rec-badge{ font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px; }
+  .badge-in{ background:var(--green-bg); color:#27764a; } .badge-out{ background:var(--red-bg); color:var(--red); }
+
+  .empty{ text-align:center; padding:40px 16px; color:var(--ink-3); font-size:14px; }
+  .err-box{ background:var(--red-bg); color:var(--red); border:1px solid #EED2C8; border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:13px; font-weight:600; }
+  .setup-box{ background:var(--amber-bg); color:#8a6a14; border:1px solid #EFE0B8; border-radius:12px; padding:14px; font-size:13px; line-height:1.6; margin-bottom:13px; }
+  .setup-box code{ background:#fff; padding:1px 6px; border-radius:5px; font-size:12px; }
+  .loading-text{ color:var(--ink-3); font-size:14px; text-align:center; padding:36px 0; }
+  .toast{ position:fixed; bottom:96px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px; font-weight:600; z-index:120; box-shadow:var(--shadow-md); white-space:nowrap; max-width:90vw; text-align:center; }
+
+  /* success overlay */
+  .overlay{ position:fixed; inset:0; background:rgba(24,22,20,.55); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; padding:18px; z-index:90; }
+  .success-sheet{ background:var(--surface); border-radius:20px; padding:24px 20px; width:100%; max-width:360px; text-align:center; box-shadow:var(--shadow-md); animation:pop .25s ease; }
+  @keyframes pop{ from{ transform:scale(.9); opacity:.4; } to{ transform:scale(1); opacity:1; } }
+  .success-ic{ width:64px; height:64px; border-radius:50%; margin:0 auto 12px; display:grid; place-items:center; background:var(--green-bg); color:var(--green); }
+  .success-ic svg{ width:34px; height:34px; }
+
+  .bottom-nav{ position:fixed; left:0; right:0; bottom:0; z-index:60; background:rgba(255,255,255,.86); backdrop-filter:saturate(160%) blur(14px); border-top:1px solid var(--line); padding:7px 8px calc(7px + env(safe-area-inset-bottom)); }
+  .nav-inner{ display:flex; max-width:560px; margin:0 auto; gap:2px; }
+  .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border-radius:13px; color:var(--ink-3); font-size:10px; font-weight:700; text-decoration:none; white-space:nowrap; transition:.15s; }
+  .nav-item svg{ width:22px; height:22px; }
+  .nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
+</style>
+</head>
+<body class="theme-rush" id="bodyEl">
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.4c-.5.7-.5 1.5 0 2.2M11 3.4c-.5.7-.5 1.5 0 2.2"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="wordmark">RUSH COFFEE</div>
+        <div class="brand-tag">ตอกบัตรเข้า-ออกงาน</div>
+      </div>
+    </div>
+    <div class="clock-now"><span class="t" id="clockT">--:--</span><span class="d" id="clockD"></span></div>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+  <h1>ตอกบัตรเข้า-ออกงาน</h1>
+  <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
+
+  <div class="branch-row" id="branchRow">
+    <div class="branch-btn" id="branchRush" onclick="setBranch('rush')"><span class="sw silver"></span>Rush</div>
+    <div class="branch-btn" id="branchRushhour" onclick="setBranch('rushhour')"><span class="sw gold"></span>Rush Hour</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabPunch" onclick="setView('punch')">ตอกบัตร</div>
+    <div class="tab" id="tabHistory" onclick="setView('history')">ประวัติล่าสุด</div>
+  </div>
+
+  <div id="errorBox"></div>
+  <div id="content"><div class="loading-text">กำลังโหลดข้อมูล...</div></div>
+</div>
+
+<div id="modalRoot"></div>
+
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <a class="nav-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21 3 16.5v-9Z"/><path d="m3 7.5 9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
+      สต๊อก
+    </a>
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="13.5" width="3" height="4.5" rx="1"/></svg>
+      บัญชี
+    </a>
+    <a class="nav-item" href="menu-cost.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.2-1.3-2 1.3-2-1.3-2 1.3L6 21V3Z"/><path d="M9 8h6M9 12h6"/></svg>
+      ต้นทุน
+    </a>
+    <a class="nav-item active" href="attendance.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      ตอกบัตร
+    </a>
+    <a class="nav-item" href="report.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1Z"/><path d="m9.5 13 1.8 1.8L15 11"/></svg>
+      รายงาน
+    </a>
+  </div>
+</nav>
+
+<script>
+// ============================================================================
+//  ตั้งค่า: วาง URL ของ Google Apps Script (Attendance) ที่ deploy เป็น Web App
+//  ดูวิธีทำใน README.md หัวข้อ "ตั้งค่าระบบตอกบัตร"
+// ============================================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbxNyrGfWkAKWj0eN9Wf6fUHzEpSrVVyFm10IKoQNTo9kflFm5eRk_XCqS7H4EKHCVPr/exec";
+
+const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour" };
+let state = {
+  view:"punch", branch:"rush",
+  config:{ employees:[], branches:{}, radiusM:150 },
+  configLoaded:false, configError:"",
+  selectedEmp:"", pin:"",
+  photoDataUrl:null, stream:null,
+  geo:{ status:"idle", lat:null, lng:null, acc:null, dist:null, ok:false },
+  records:[], submitting:false,
+};
+
+function apiReady(){ return /^https:\/\/script\.google\.com/.test(API_URL); }
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent = s==null?"":s; return d.innerHTML; }
+function fmtTime(d){ return d.toLocaleTimeString("th-TH",{ hour:"2-digit", minute:"2-digit" }); }
+
+// ---- live clock in app bar ----
+function tickClock(){
+  const d = new Date();
+  document.getElementById("clockT").textContent = d.toLocaleTimeString("th-TH",{ hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  document.getElementById("clockD").textContent = d.toLocaleDateString("th-TH",{ weekday:"short", day:"2-digit", month:"short" });
+}
+
+async function apiCall(action, payload){
+  let res;
+  try{
+    const body = new URLSearchParams({ action });
+    if (payload) body.set("payload", JSON.stringify(payload));
+    res = await fetch(API_URL, { method:"POST", redirect:"follow", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: body.toString() });
+  }catch(networkErr){ throw new Error("เชื่อมต่อเครือข่ายไม่ได้: " + networkErr.message); }
+  const text = await res.text();
+  if (!res.ok) throw new Error("เซิร์ฟเวอร์ตอบกลับ HTTP " + res.status + " — " + text.slice(0,200));
+  try{ return JSON.parse(text); } catch(e){ throw new Error("รูปแบบข้อมูลที่ได้ไม่ถูกต้อง: " + text.slice(0,200)); }
+}
+
+async function loadConfig(){
+  if (!apiReady()){ state.configLoaded=true; render(); return; }
+  try{
+    const data = await apiCall("getConfig");
+    if (data.error) throw new Error(data.error);
+    state.config = {
+      employees: data.employees || [],
+      branches: data.branches || {},
+      radiusM: Number(data.radiusM) || 150,
+    };
+    state.configError = "";
+  }catch(e){ state.configError = e.message; }
+  state.configLoaded = true;
+  await loadRecords();
+  render();
+}
+
+async function loadRecords(){
+  if (!apiReady()) return;
+  try{
+    const data = await apiCall("getRecords", { branch: state.branch, limit: 60 });
+    state.records = (data.records || []);
+  }catch(e){ /* เงียบไว้ ไม่ให้บังหน้าจอหลัก */ }
+}
+
+function setBranch(b){
+  state.branch = b;
+  state.selectedEmp = "";
+  loadRecords().then(render);
+  render();
+}
+function setView(v){
+  state.view = v;
+  document.getElementById("tabPunch").classList.toggle("active", v==="punch");
+  document.getElementById("tabHistory").classList.toggle("active", v==="history");
+  if (v!=="punch") stopCamera();
+  render();
+}
+function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+
+function applyTheme(){
+  document.getElementById("bodyEl").className = state.branch==="rushhour" ? "theme-rushhour" : "theme-rush";
+  document.getElementById("branchRush").classList.toggle("active", state.branch==="rush");
+  document.getElementById("branchRushhour").classList.toggle("active", state.branch==="rushhour");
+}
+
+function empsForBranch(){ return state.config.employees.filter((e)=> e.branch===state.branch || !e.branch); }
+
+function render(){
+  applyTheme();
+  const content = document.getElementById("content");
+  if (!state.configLoaded){ content.innerHTML = `<div class="loading-text">กำลังโหลดข้อมูล...</div>`; return; }
+
+  document.getElementById("errorBox").innerHTML = state.configError
+    ? `<div class="err-box">โหลดข้อมูลพนักงานไม่สำเร็จ: ${escapeHtml(state.configError)}</div>` : "";
+
+  document.getElementById("summaryText").textContent =
+    state.view==="history" ? "ประวัติการตอกบัตรล่าสุด" : "เลือกชื่อ → ใส่ PIN → ถ่ายรูป → ตอกบัตร";
+
+  content.innerHTML = state.view==="punch" ? renderPunch() : renderHistory();
+
+  if (state.view==="punch" && apiReady()){
+    if (state.photoDataUrl) showCapturedPhoto();
+    else startCamera();
+    requestLocationIfNeeded();
+    syncPinDots();
+  }
+}
+
+// ----------------- PUNCH VIEW -----------------
+function renderPunch(){
+  if (!apiReady()){
+    return `<div class="setup-box">
+      <b>⚙️ ยังไม่ได้เชื่อมระบบหลังบ้าน</b><br>
+      ระบบตอกบัตรต้องต่อกับ Google Apps Script ก่อนใช้งาน เปิดไฟล์ <code>attendance.html</code> แล้ววางลิงก์ Web App ในตัวแปร <code>API_URL</code><br>
+      ขั้นตอนทั้งหมดอยู่ใน <code>README.md</code> หัวข้อ "ตั้งค่าระบบตอกบัตร" และโค้ดหลังบ้านอยู่ในไฟล์ <code>attendance.gs</code>
+    </div>`;
+  }
+
+  const emps = empsForBranch();
+  const today = todayStatusFor(state.selectedEmp);
+
+  let html = "";
+
+  // today status
+  if (state.selectedEmp){
+    const emp = state.config.employees.find((e)=>e.id===state.selectedEmp);
+    html += `<div class="card today-card">
+      <div class="today-ic">${today.lastType==="in"
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`}</div>
+      <div style="flex:1; min-width:0;">
+        <p style="margin:0; font-weight:800; font-size:15px;">${escapeHtml(emp?emp.name:"")}</p>
+        <p style="margin:2px 0 0; font-size:12.5px; color:var(--ink-2);">${today.text}</p>
+      </div>
+    </div>`;
+  }
+
+  // step 1: employee + pin
+  html += `<div class="card">
+    <h2><span class="step-no">1</span> ระบุตัวพนักงาน</h2>
+    <div class="field">
+      <label class="label">ชื่อพนักงาน (สาขา ${BRANCH_LABEL[state.branch]})</label>
+      <select id="empSelect" onchange="onEmpChange(this.value)">
+        <option value="">— เลือกชื่อ —</option>
+        ${emps.map((e)=>`<option value="${escapeHtml(e.id)}" ${state.selectedEmp===e.id?"selected":""}>${escapeHtml(e.name)}</option>`).join("")}
+      </select>
+      ${emps.length===0 ? `<p style="font-size:12px; color:var(--ink-3); margin:8px 0 0;">ยังไม่มีรายชื่อพนักงานในสาขานี้ — เพิ่มในชีต Employees</p>`:""}
+    </div>
+    <label class="label">รหัส PIN 4 หลัก</label>
+    <div class="pin-wrap" onclick="focusPin()">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+      <input class="pin-input" id="pinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" oninput="onPinInput(this.value)" />
+    </div>
+  </div>`;
+
+  // step 2: camera
+  html += `<div class="card">
+    <h2><span class="step-no">2</span> ถ่ายรูปยืนยันตัวตน</h2>
+    <div class="cam-frame" id="camFrame">
+      <div class="cam-hint" id="camHint">กำลังเปิดกล้อง...</div>
+      <video id="camVideo" autoplay playsinline muted style="display:none;"></video>
+      <div class="cam-overlay-tag" id="camTag" style="display:none;"></div>
+    </div>
+    <div class="cam-center" id="camControls">
+      <button class="shutter" onclick="capturePhoto()" title="ถ่ายรูป">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="4"/><path d="M3 9a2 2 0 0 1 2-2h1.5l1-2h7l1 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/></svg>
+      </button>
+    </div>
+    <canvas id="snapCanvas" style="display:none;"></canvas>
+  </div>`;
+
+  // step 3: location
+  html += `<div class="card">
+    <h2><span class="step-no">3</span> ตรวจสอบตำแหน่ง</h2>
+    <div id="geoStatus">${renderGeoStatus()}</div>
+  </div>`;
+
+  // submit
+  const ready = canSubmit();
+  html += `<div class="punch-grid">
+    <button class="btn-primary btn-in" ${ready?"":"disabled"} onclick="submitPunch('in')">เข้างาน</button>
+    <button class="btn-primary btn-out" ${ready?"":"disabled"} onclick="submitPunch('out')">เลิกงาน</button>
+  </div>`;
+  if (!ready){
+    html += `<p style="font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 0;">${reasonNotReady()}</p>`;
+  }
+  return html;
+}
+
+function renderGeoStatus(){
+  const g = state.geo;
+  if (g.status==="idle" || g.status==="loading")
+    return `<div class="stat-line stat-idle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg> กำลังอ่านพิกัด GPS...</div>`;
+  if (g.status==="denied")
+    return `<div class="stat-line stat-bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg> ไม่ได้รับสิทธิ์ใช้ตำแหน่ง — เปิด Location ให้เบราว์เซอร์แล้วลองใหม่</div>
+      <button class="btn-ghost" style="margin-top:4px;" onclick="forceLocation()">ลองอ่านพิกัดอีกครั้ง</button>`;
+  if (g.status==="error")
+    return `<div class="stat-line stat-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01" stroke-linecap="round"/></svg> อ่านพิกัดไม่ได้ ลองใหม่</div>
+      <button class="btn-ghost" style="margin-top:4px;" onclick="forceLocation()">ลองอ่านพิกัดอีกครั้ง</button>`;
+  // ready
+  const branch = state.config.branches[state.branch];
+  if (!branch || branch.lat==null){
+    return `<div class="stat-line stat-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01" stroke-linecap="round"/></svg> ยังไม่ได้ตั้งพิกัดสาขา ${BRANCH_LABEL[state.branch]} ในชีต/โค้ด</div>`;
+  }
+  const within = g.dist!=null && g.dist <= state.config.radiusM;
+  return `<div class="stat-line ${within?"stat-ok":"stat-bad"}">
+    ${within
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> อยู่ในพื้นที่ร้าน · ห่าง ~${Math.round(g.dist)} ม.`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg> อยู่นอกพื้นที่ร้าน · ห่าง ~${Math.round(g.dist)} ม. (ต้องไม่เกิน ${state.config.radiusM} ม.)`}
+  </div>
+  <p style="font-size:11px; color:var(--ink-3); margin:2px 2px 0;">ความแม่นยำ GPS ±${g.acc!=null?Math.round(g.acc):"?"} ม.</p>`;
+}
+
+function todayStatusFor(empId){
+  if (!empId) return { text:"", lastType:null };
+  const todayKey = new Date().toISOString().slice(0,10);
+  const mine = state.records
+    .filter((r)=> r.employeeId===empId && String(r.timestamp||"").slice(0,10)===todayKey)
+    .sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+  if (mine.length===0) return { text:"วันนี้ยังไม่ได้ตอกบัตร", lastType:null };
+  const last = mine[0];
+  const t = fmtTime(new Date(last.timestamp));
+  return { text: last.type==="in" ? `เข้างานล่าสุด ${t} — อย่าลืมตอกออกเมื่อเลิกงาน` : `ตอกออกล่าสุด ${t}`, lastType:last.type };
+}
+
+function canSubmit(){
+  const branch = state.config.branches[state.branch];
+  const within = state.geo.dist!=null && branch && state.geo.dist <= state.config.radiusM;
+  return !!(state.selectedEmp && state.pin.length===4 && state.photoDataUrl && within && !state.submitting);
+}
+function reasonNotReady(){
+  if (!state.selectedEmp) return "เลือกชื่อพนักงานก่อน";
+  if (state.pin.length!==4) return "ใส่รหัส PIN ให้ครบ 4 หลัก";
+  if (!state.photoDataUrl) return "ถ่ายรูปยืนยันตัวตนก่อน";
+  const branch = state.config.branches[state.branch];
+  if (!branch || branch.lat==null) return "ยังไม่ได้ตั้งพิกัดสาขา";
+  if (state.geo.dist==null) return "กำลังรอพิกัด GPS...";
+  if (state.geo.dist > state.config.radiusM) return "ต้องอยู่ในพื้นที่ร้านก่อนตอกบัตร";
+  return "";
+}
+
+// ----------------- PIN -----------------
+function focusPin(){ const el=document.getElementById("pinInput"); if (el) el.focus(); }
+function onPinInput(v){ state.pin = (v||"").replace(/\D/g,"").slice(0,4); syncPinDots(); refreshButtons(); }
+function syncPinDots(){
+  for (let i=0;i<4;i++){
+    const d=document.getElementById("pd"+i); if (!d) continue;
+    if (i<state.pin.length){ d.textContent="•"; d.classList.add("filled"); } else { d.textContent=""; d.classList.remove("filled"); }
+  }
+}
+function onEmpChange(v){ state.selectedEmp=v; render(); }
+function refreshButtons(){
+  const ready=canSubmit();
+  document.querySelectorAll(".punch-grid .btn-primary").forEach((b)=> b.disabled = !ready);
+}
+
+// ----------------- CAMERA -----------------
+async function startCamera(){
+  if (state.stream || state.photoDataUrl) return;
+  const video=document.getElementById("camVideo"), hint=document.getElementById("camHint");
+  if (!video) return;
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ ideal:1080 }, height:{ ideal:1440 } }, audio:false });
+    state.stream = stream;
+    video.srcObject = stream;
+    video.style.display="block";
+    if (hint) hint.style.display="none";
+  }catch(e){
+    if (hint) hint.innerHTML = "เปิดกล้องไม่ได้<br><span style='font-size:11px;'>อนุญาตการใช้กล้องในเบราว์เซอร์ แล้วรีเฟรช</span>";
+  }
+}
+function stopCamera(){
+  if (state.stream){ state.stream.getTracks().forEach((t)=>t.stop()); state.stream=null; }
+}
+function capturePhoto(){
+  const video=document.getElementById("camVideo");
+  if (!video || !video.videoWidth){ showToast("กล้องยังไม่พร้อม รอสักครู่"); return; }
+  const canvas=document.getElementById("snapCanvas");
+  const maxW=720;
+  const scale=Math.min(1, maxW/video.videoWidth);
+  const w=Math.round(video.videoWidth*scale), h=Math.round(video.videoHeight*scale);
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext("2d");
+  // mirror to match preview
+  ctx.translate(w,0); ctx.scale(-1,1);
+  ctx.drawImage(video,0,0,w,h);
+  ctx.setTransform(1,0,0,1,0,0);
+  drawStamp(ctx,w,h);
+  state.photoDataUrl = canvas.toDataURL("image/jpeg", 0.72);
+  stopCamera();
+  render();
+}
+function drawStamp(ctx,w,h){
+  const d=new Date();
+  const lines=[
+    `RUSH COFFEE · ${BRANCH_LABEL[state.branch]}`,
+    d.toLocaleString("th-TH",{ day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit", second:"2-digit" }),
+  ];
+  if (state.geo.lat!=null) lines.push(`พิกัด ${state.geo.lat.toFixed(5)}, ${state.geo.lng.toFixed(5)} (±${Math.round(state.geo.acc||0)}m)`);
+  const fs=Math.max(13, Math.round(w/34));
+  ctx.font=`600 ${fs}px Inter, "Noto Sans Thai", sans-serif`;
+  ctx.textBaseline="bottom";
+  const pad=Math.round(w*0.03), lh=fs*1.4;
+  const boxH=lh*lines.length+pad;
+  const grad=ctx.createLinearGradient(0,h-boxH,0,h);
+  grad.addColorStop(0,"rgba(0,0,0,0)"); grad.addColorStop(1,"rgba(0,0,0,0.55)");
+  ctx.fillStyle=grad; ctx.fillRect(0,h-boxH,w,boxH);
+  ctx.fillStyle="#fff";
+  lines.forEach((t,i)=>{ ctx.fillText(t, pad, h-pad-(lines.length-1-i)*lh); });
+}
+function showCapturedPhoto(){
+  const frame=document.getElementById("camFrame"), controls=document.getElementById("camControls");
+  if (!frame) return;
+  frame.innerHTML = `<img src="${state.photoDataUrl}" alt="selfie" />`;
+  if (controls) controls.innerHTML = `<button class="btn-ghost" onclick="retake()">ถ่ายใหม่</button>`;
+}
+function retake(){ state.photoDataUrl=null; render(); }
+
+// ----------------- LOCATION -----------------
+function requestLocationIfNeeded(){
+  if (state.geo.status==="idle") forceLocation();
+}
+function forceLocation(){
+  if (!navigator.geolocation){ state.geo.status="error"; updateGeoUI(); return; }
+  state.geo.status="loading"; updateGeoUI();
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      state.geo.lat=pos.coords.latitude; state.geo.lng=pos.coords.longitude; state.geo.acc=pos.coords.accuracy;
+      const b=state.config.branches[state.branch];
+      state.geo.dist = (b && b.lat!=null) ? haversine(state.geo.lat,state.geo.lng,b.lat,b.lng) : null;
+      state.geo.status="ready"; state.geo.ok = state.geo.dist!=null && state.geo.dist<=state.config.radiusM;
+      updateGeoUI(); refreshButtons();
+    },
+    (err)=>{ state.geo.status = err.code===1 ? "denied" : "error"; updateGeoUI(); refreshButtons(); },
+    { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
+  );
+}
+function updateGeoUI(){ const el=document.getElementById("geoStatus"); if (el) el.innerHTML=renderGeoStatus(); }
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000, toRad=(x)=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+// ----------------- SUBMIT -----------------
+async function submitPunch(type){
+  if (!canSubmit()) { showToast(reasonNotReady()); return; }
+  state.submitting=true; refreshButtons();
+  const emp=state.config.employees.find((e)=>e.id===state.selectedEmp);
+  showToast("กำลังบันทึก...");
+  try{
+    const resp = await apiCall("punch", {
+      employeeId: state.selectedEmp, pin: state.pin, branch: state.branch, type,
+      lat: state.geo.lat, lng: state.geo.lng, accuracy: state.geo.acc, distance: Math.round(state.geo.dist),
+      clientTime: new Date().toISOString(),
+      photoBase64: state.photoDataUrl.split(",")[1], photoMime: "image/jpeg",
+    });
+    if (resp.error){
+      state.submitting=false;
+      if (/pin/i.test(resp.error)) showToast("รหัส PIN ไม่ถูกต้อง");
+      else if (/range|รัศมี|distance/i.test(resp.error)) showToast("อยู่นอกพื้นที่ร้าน ตอกบัตรไม่ได้");
+      else showToast("บันทึกไม่สำเร็จ: " + resp.error);
+      refreshButtons();
+      return;
+    }
+    // success
+    state.pin=""; state.photoDataUrl=null; state.submitting=false;
+    await loadRecords();
+    showSuccess(emp?emp.name:"", type, resp.record);
+    render();
+  }catch(e){
+    state.submitting=false; refreshButtons();
+    showToast("บันทึกไม่สำเร็จ: " + e.message);
+  }
+}
+
+function showSuccess(name, type, record){
+  const t = record && record.timestamp ? fmtTime(new Date(record.timestamp)) : fmtTime(new Date());
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="success-sheet">
+        <div class="success-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h2 style="display:block; justify-content:center; font-size:19px; margin:0 0 4px;">${type==="in"?"เข้างานสำเร็จ":"เลิกงานสำเร็จ"}</h2>
+        <p style="margin:0 0 2px; font-weight:700;">${escapeHtml(name)}</p>
+        <p style="margin:0; color:var(--ink-2); font-size:13px;">${BRANCH_LABEL[state.branch]} · เวลา ${t} น.</p>
+        <button class="btn-primary" style="margin-top:18px;" onclick="closeModal()">เสร็จสิ้น</button>
+      </div>
+    </div>`;
+}
+function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
+
+// ----------------- HISTORY -----------------
+function renderHistory(){
+  if (!apiReady()) return `<div class="empty">ยังไม่ได้เชื่อมระบบหลังบ้าน</div>`;
+  if (state.records.length===0) return `<div class="empty">ยังไม่มีประวัติการตอกบัตรในสาขานี้</div>`;
+  let html=`<div class="card" style="padding:4px 14px;">`;
+  let lastDay="";
+  state.records.forEach((r)=>{
+    const d=new Date(r.timestamp);
+    const dayKey=isNaN(d)?"":d.toLocaleDateString("th-TH",{ weekday:"short", day:"2-digit", month:"short", year:"2-digit" });
+    if (dayKey!==lastDay){
+      if (lastDay!=="") html+=`</div><div class="card" style="padding:4px 14px; margin-top:10px;">`;
+      lastDay=dayKey;
+      html+=`<p style="font-size:12px; font-weight:700; color:var(--ink-3); margin:12px 2px 2px;">${dayKey}</p>`;
+    }
+    const thumb = r.photoUrl ? `<img class="rec-thumb" src="${escapeHtml(r.photoUrl)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"/>` : `<div class="rec-thumb"></div>`;
+    html+=`<div class="rec-row">
+      ${thumb}
+      <div style="flex:1; min-width:0;">
+        <p style="margin:0; font-weight:700; font-size:14px;">${escapeHtml(r.employeeName||"")} <span class="rec-badge ${r.type==="in"?"badge-in":"badge-out"}">${r.type==="in"?"เข้า":"ออก"}</span></p>
+        <p style="margin:2px 0 0; font-size:12px; color:var(--ink-3);">${isNaN(d)?"":fmtTime(d)} น. · ห่าง ~${r.distance!=null?Math.round(r.distance):"?"} ม.${r.address?" · "+escapeHtml(String(r.address).slice(0,40)):""}</p>
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+// ----------------- init -----------------
+tickClock(); setInterval(tickClock, 1000);
+loadConfig();
+window.addEventListener("beforeunload", stopCamera);
+</script>
+</body>
+</html>
