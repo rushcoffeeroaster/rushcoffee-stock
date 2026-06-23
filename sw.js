@@ -2,8 +2,8 @@
    หมายเหตุ: ไม่แคชการเรียก API (Apps Script) และรูปจาก Google Drive เพื่อให้ข้อมูลสดเสมอ */
 const CACHE = "rush-coffee-v1";
 const SHELL = [
-  "./", "index.html", "dashboard.html", "menu-cost.html", "attendance.html", "report.html",
-  "manifest.json", "icon-192.png", "icon-512.png", "icon-180.png"
+  "./", "index.html", "dashboard.html", "menu-cost.html", "attendance.html", "report.html", "bakery.html",
+  "manifest.json", "pwa-install.js", "icon-192.png", "icon-512.png", "icon-180.png"
 ];
 
 self.addEventListener("install", (e) => {
