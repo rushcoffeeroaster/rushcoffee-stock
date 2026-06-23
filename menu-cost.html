@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>ต้นทุนเมนู · Rush Coffee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===================== Rush Coffee · Modern Silver & Gold (Light Luxe) ===================== */
+  :root{
+    --bg:#F4F3EF;
+    --bg-grad: radial-gradient(135% 110% at 50% -10%, #FCFBF9 0%, #F4F3EF 55%, #ECEAE3 100%);
+    --surface:#FFFFFF; --surface-2:#FBFAF7;
+    --line:#EAE7DF; --line-strong:#DDD9CF;
+    --ink:#1E232A; --ink-2:#5D646E; --ink-3:#9A9FA8;
+    --green:#2F8F5B; --green-bg:#E9F4EE;
+    --red:#C7553B; --red-bg:#FBEDE9;
+    --amber:#CF9A2B; --amber-bg:#FAF2DD;
+    --shadow-sm:0 1px 2px rgba(28,28,36,.04), 0 2px 8px rgba(28,28,36,.05);
+    --shadow-md:0 6px 22px rgba(28,28,36,.09);
+    --radius:16px; --radius-sm:11px;
+    --accent:#6E7884; --accent-deep:#3E4651; --accent-soft:#EEF1F4;
+    --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%);
+    --metal-grad:linear-gradient(120deg,#737C88 0%,#C7CDD5 48%,#6A7280 100%);
+    --on-accent:#FFFFFF;
+  }
+  body.theme-rush{ --accent:#6E7884; --accent-deep:#3A424D; --accent-soft:#EDF0F3;
+    --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%);
+    --metal-grad:linear-gradient(120deg,#737C88 0%,#CBD1D8 48%,#6A7280 100%); --on-accent:#FFFFFF; }
+  body.theme-rushhour{ --accent:#B5870F; --accent-deep:#8A6608; --accent-soft:#FAF3DC;
+    --accent-grad:linear-gradient(135deg,#E3BE4A 0%,#C2941A 100%);
+    --metal-grad:linear-gradient(120deg,#A6800E 0%,#EBC955 48%,#9A7110 100%); --on-accent:#3A2C04; }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; }
+  body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+    color:var(--ink); padding-bottom:84px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:560px; margin:0 auto; padding:14px 16px 8px; }
+
+  .appbar{ position:sticky; top:0; z-index:40; background:rgba(244,243,239,.82); backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line); }
+  .appbar-inner{ max-width:560px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .logo{ width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--accent-grad); box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.35); flex-shrink:0; }
+  .logo svg{ width:21px; height:21px; }
+  .brand-text{ min-width:0; }
+  .wordmark{ font-weight:800; font-size:15px; letter-spacing:.4px; line-height:1; background:var(--metal-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .brand-tag{ font-size:11px; color:var(--ink-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .live-dot{ display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-3); border:1px solid var(--line); background:var(--surface); padding:5px 9px; border-radius:999px; white-space:nowrap; }
+  .live-dot i{ width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-bg); }
+
+  h1{ font-size:20px; font-weight:800; margin:6px 0 2px; letter-spacing:.2px; }
+  h2{ font-size:15px; font-weight:800; margin:8px 0 10px; }
+  .sub{ color:var(--ink-2); font-size:12.5px; margin:0 0 14px; }
+
+  .branch-row{ display:flex; gap:7px; margin:0 0 14px; }
+  .branch-btn{ flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 6px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); transition:.18s; box-shadow:var(--shadow-sm); }
+  .branch-btn .sw{ width:11px; height:11px; border-radius:50%; box-shadow:inset 0 1px 1px rgba(255,255,255,.6); }
+  .sw.silver{ background:linear-gradient(135deg,#C7CDD5,#7C8794); }
+  .sw.gold{ background:linear-gradient(135deg,#EBC955,#B5870F); }
+  .branch-btn.active{ color:var(--on-accent); border-color:transparent; background:var(--accent-grad); box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.3); }
+  .branch-btn.active .sw{ box-shadow:0 0 0 2px rgba(255,255,255,.5); }
+
+  .tabs{ display:flex; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:4px; margin-bottom:14px; box-shadow:var(--shadow-sm); }
+  .tab{ flex:1; text-align:center; padding:9px; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; color:var(--ink-2); transition:.15s; }
+  .tab.active{ background:var(--accent-grad); color:var(--on-accent); box-shadow:var(--shadow-sm); }
+
+  .row{ display:flex; gap:8px; margin-bottom:11px; }
+  input,select{ width:100%; border:1px solid var(--line-strong); border-radius:10px; padding:10px 11px; font-size:14px; background:var(--surface); color:var(--ink); font-family:inherit; transition:.15s; }
+  input:focus,select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:10px; padding:10px 16px; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); transition:.12s; }
+  .btn-primary:active{ transform:scale(.97); }
+  .btn-block{ width:100%; padding:13px; }
+  .btn-ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+  .btn-danger{ color:var(--red); border-color:#EED2C8; }
+
+  .chip{ border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:13px; background:var(--surface); cursor:pointer; white-space:nowrap; color:var(--ink-2); font-weight:600; transition:.15s; }
+  .chip.active{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; box-shadow:var(--shadow-sm); }
+  .chiprow{ display:flex; gap:7px; overflow-x:auto; padding-bottom:11px; scrollbar-width:none; }
+  .chiprow::-webkit-scrollbar{ display:none; }
+
+  .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
+  .label{ font-size:12px; color:var(--ink-2); margin-bottom:5px; display:block; font-weight:600; }
+  .field{ margin-bottom:13px; }
+
+  .stat-strip{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:11px 12px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+  .stat::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent-grad); }
+  .stat .n{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .stat .l{ font-size:11px; color:var(--ink-3); margin-top:3px; }
+
+  .menu-card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
+  .menu-top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .menu-name{ margin:0; font-weight:800; font-size:16px; }
+  .menu-price{ font-variant-numeric:tabular-nums; font-size:14px; color:var(--ink-2); font-weight:600; white-space:nowrap; }
+  .gp-bar-row{ display:flex; align-items:center; gap:9px; margin:10px 0 9px; }
+  .gp-bar-bg{ flex:1; height:9px; border-radius:6px; background:var(--accent-soft); overflow:hidden; }
+  .gp-bar-fg{ height:100%; border-radius:6px; transition:width .4s; }
+  .gp-label{ font-size:13px; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ingredient-list{ font-size:12px; color:var(--ink-3); margin:4px 0 0; line-height:1.5; }
+  .menu-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:11px; padding-top:11px; border-top:1px solid var(--line); }
+  .cost-summary{ display:flex; gap:18px; font-size:13px; color:var(--ink-2); }
+  .cost-summary b{ font-variant-numeric:tabular-nums; color:var(--ink); display:block; margin-top:1px; }
+
+  .ingredient-row{ display:flex; gap:6px; align-items:flex-end; margin-bottom:9px; }
+  .ingredient-row .field{ margin-bottom:0; flex:1; }
+  .ingredient-row .field.small{ flex:0 0 64px; }
+  .ingredient-row .field.unit{ flex:0 0 66px; }
+  .ingredient-row input, .ingredient-row select{ padding:9px 8px; font-size:13px; }
+  .del-ing-btn{ background:none; border:none; color:#C4B9AC; font-size:19px; cursor:pointer; padding:0 4px; line-height:1; height:40px; }
+
+  .preview-card{ background:var(--accent-soft); border:1px dashed var(--line-strong); border-radius:var(--radius-sm); padding:13px; margin-bottom:14px; }
+  .empty{ text-align:center; padding:42px 16px; color:var(--ink-3); font-size:14px; }
+  .empty svg{ width:40px; height:40px; opacity:.5; margin-bottom:10px; }
+  .loading-text{ color:var(--ink-3); font-size:14px; text-align:center; padding:36px 0; }
+  .err-box{ background:var(--red-bg); color:var(--red); border:1px solid #EED2C8; border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:13px; font-weight:600; }
+  .toast{ position:fixed; bottom:96px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px; font-weight:600; z-index:120; box-shadow:var(--shadow-md); white-space:nowrap; }
+
+  .bottom-nav{ position:fixed; left:0; right:0; bottom:0; z-index:60; background:rgba(255,255,255,.86); backdrop-filter:saturate(160%) blur(14px); border-top:1px solid var(--line); padding:7px 10px calc(7px + env(safe-area-inset-bottom)); }
+  .nav-inner{ display:flex; max-width:560px; margin:0 auto; gap:4px; }
+  .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px; border-radius:13px; color:var(--ink-3); font-size:11px; font-weight:700; text-decoration:none; transition:.15s; }
+  .nav-item svg{ width:22px; height:22px; }
+  .nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
+</style>
+</head>
+<body class="theme-rush" id="bodyEl">
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.4c-.5.7-.5 1.5 0 2.2M11 3.4c-.5.7-.5 1.5 0 2.2"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="wordmark">RUSH COFFEE</div>
+        <div class="brand-tag" id="appTitle">คำนวณต้นทุน & กำไรเมนู</div>
+      </div>
+    </div>
+    <span class="live-dot"><i></i>ซิงค์อัตโนมัติ</span>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+  <h1>ต้นทุนเมนู</h1>
+  <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
+
+  <div class="branch-row" id="branchRow">
+    <div class="branch-btn" id="branchRush" onclick="setBranch('rush')"><span class="sw silver"></span>Rush</div>
+    <div class="branch-btn" id="branchRushhour" onclick="setBranch('rushhour')"><span class="sw gold"></span>Rush Hour</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabList">รายการเมนู</div>
+    <div class="tab" id="tabAdd">เพิ่มเมนูใหม่</div>
+  </div>
+
+  <div id="errorBox"></div>
+  <div id="content"><div class="loading-text">กำลังโหลดข้อมูล...</div></div>
+</div>
+
+<div id="modalRoot"></div>
+
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <a class="nav-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21 3 16.5v-9Z"/><path d="m3 7.5 9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
+      สต๊อก
+    </a>
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="13.5" width="3" height="4.5" rx="1"/></svg>
+      บัญชี
+    </a>
+    <a class="nav-item active" href="menu-cost.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.2-1.3-2 1.3-2-1.3-2 1.3L6 21V3Z"/><path d="M9 8h6M9 12h6"/></svg>
+      ต้นทุนเมนู
+    </a>
+  </div>
+</nav>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+
+const UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ฟอง", "ถุง", "ขวด"];
+const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour" };
+
+let state = { recipes:[], view:"list", branch:"rush", sort:"gp", form:{ menuName:"", sellingPrice:"", ingredients:[newIngredientRow()] } };
+
+function newIngredientRow(){ return { name:"", qty:"", unit:"g", buyPrice:"", packSize:"" }; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function fmtMoney(n){ return Number(n||0).toLocaleString("th-TH", { maximumFractionDigits:2 }); }
+function escapeHtml(s){ const div=document.createElement("div"); div.textContent = s==null?"":s; return div.innerHTML; }
+
+async function apiCall(action, payload){
+  let res;
+  try{
+    const body = new URLSearchParams({ action });
+    if (payload) body.set("payload", JSON.stringify(payload));
+    res = await fetch(API_URL, { method:"POST", redirect:"follow", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: body.toString() });
+  }catch(networkErr){ throw new Error("เชื่อมต่อเครือข่ายไม่ได้: " + networkErr.message); }
+  const text = await res.text();
+  if (!res.ok) throw new Error("เซิร์ฟเวอร์ตอบกลับ HTTP " + res.status + " — " + text.slice(0, 200));
+  try{ return JSON.parse(text); } catch(e){ throw new Error("รูปแบบข้อมูลที่ได้ไม่ถูกต้อง: " + text.slice(0, 200)); }
+}
+
+async function loadAll(){
+  try{
+    const data = await apiCall("getAll");
+    if (data.error) throw new Error(data.error);
+    state.recipes = (data.recipes || []).map((r) => ({ ...r,
+      sellingPrice:Number(r.sellingPrice)||0, ingredientQty:Number(r.ingredientQty)||0,
+      buyPrice:Number(r.buyPrice)||0, packSize:Number(r.packSize)||0 }));
+    document.getElementById("errorBox").innerHTML = "";
+  }catch(e){
+    document.getElementById("errorBox").innerHTML = '<div class="err-box">เชื่อมต่อข้อมูลไม่สำเร็จ: ' + escapeHtml(e.message) + '</div>';
+  }
+  if (state.view !== "add") render();
+}
+
+function setBranch(b){ state.branch=b; render(); }
+function setSort(s){ state.sort=s; render(); }
+function setView(v){
+  state.view = v;
+  document.getElementById("tabList").classList.toggle("active", v==="list");
+  document.getElementById("tabAdd").classList.toggle("active", v==="add");
+  if (v==="add") state.form = { menuName:"", sellingPrice:"", ingredients:[newIngredientRow()] };
+  render();
+}
+document.getElementById("tabList").onclick = () => setView("list");
+document.getElementById("tabAdd").onclick = () => setView("add");
+
+function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+
+function getMenusForBranch(){
+  const rows = state.recipes.filter((r) => r.branch === state.branch);
+  const byMenu = {};
+  rows.forEach((r) => {
+    if (!byMenu[r.menuName]) byMenu[r.menuName] = { menuName:r.menuName, sellingPrice:r.sellingPrice, ingredients:[] };
+    byMenu[r.menuName].ingredients.push(r);
+  });
+  return Object.values(byMenu);
+}
+
+function computeCost(menu){
+  let totalCost = 0;
+  menu.ingredients.forEach((ing) => {
+    const unitPrice = ing.packSize>0 ? ing.buyPrice/ing.packSize : 0;
+    totalCost += unitPrice * ing.ingredientQty;
+  });
+  const gpAmount = menu.sellingPrice - totalCost;
+  const gpPercent = menu.sellingPrice>0 ? (gpAmount/menu.sellingPrice)*100 : 0;
+  return { totalCost, gpAmount, gpPercent };
+}
+function gpColor(pct){ if (pct<30) return "#C7553B"; if (pct<60) return "#CF9A2B"; return "#2F8F5B"; }
+
+function applyTheme(){
+  document.getElementById("bodyEl").className = state.branch==="rushhour" ? "theme-rushhour" : "theme-rush";
+  document.getElementById("branchRush").classList.toggle("active", state.branch==="rush");
+  document.getElementById("branchRushhour").classList.toggle("active", state.branch==="rushhour");
+  document.getElementById("appTitle").textContent = "ต้นทุนเมนู · สาขา " + BRANCH_LABEL[state.branch];
+}
+
+function render(){
+  applyTheme();
+  const menus = getMenusForBranch();
+  document.getElementById("summaryText").textContent =
+    menus.length===0 ? "ยังไม่มีเมนูในสาขานี้ — เริ่มเพิ่มเมนูแรก" : `มี ${menus.length} เมนูในสาขา ${BRANCH_LABEL[state.branch]}`;
+  document.getElementById("content").innerHTML = state.view==="list" ? renderList(menus) : renderAddForm();
+}
+
+function renderList(menus){
+  if (menus.length===0){
+    return `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.2-1.3-2 1.3-2-1.3-2 1.3L6 21V3Z"/><path d="M9 8h6M9 12h6"/></svg>
+      <div>ยังไม่มีเมนูในสาขานี้ — ไปที่แท็บ "เพิ่มเมนูใหม่" เพื่อเริ่มกรอกสูตร</div></div>`;
+  }
+  const computed = menus.map((m) => ({ menu:m, ...computeCost(m) }));
+
+  // summary
+  const avgGp = computed.reduce((s,c)=>s+c.gpPercent,0) / computed.length;
+  const best = [...computed].sort((a,b)=>b.gpPercent-a.gpPercent)[0];
+  const worst = [...computed].sort((a,b)=>a.gpPercent-b.gpPercent)[0];
+
+  // sort
+  computed.sort((a,b)=>{
+    if (state.sort==="gp") return b.gpPercent-a.gpPercent;
+    if (state.sort==="profit") return b.gpAmount-a.gpAmount;
+    if (state.sort==="price") return b.menu.sellingPrice-a.menu.sellingPrice;
+    return a.menu.menuName.localeCompare(b.menu.menuName, "th");
+  });
+
+  let html = `
+    <div class="stat-strip">
+      <div class="stat"><div class="n">${menus.length}</div><div class="l">เมนูทั้งหมด</div></div>
+      <div class="stat"><div class="n" style="color:${gpColor(avgGp)}">${avgGp.toFixed(0)}%</div><div class="l">GP เฉลี่ย</div></div>
+      <div class="stat"><div class="n" style="color:#2F8F5B">${best.gpPercent.toFixed(0)}%</div><div class="l">สูงสุด: ${escapeHtml(best.menu.menuName)}</div></div>
+    </div>
+    <div class="chiprow">
+      <span style="font-size:12px; color:var(--ink-3); align-self:center; margin-right:2px;">เรียง:</span>
+      <div class="chip ${state.sort==="gp"?"active":""}" onclick="setSort('gp')">GP สูง→ต่ำ</div>
+      <div class="chip ${state.sort==="profit"?"active":""}" onclick="setSort('profit')">กำไร (บาท)</div>
+      <div class="chip ${state.sort==="price"?"active":""}" onclick="setSort('price')">ราคาขาย</div>
+      <div class="chip ${state.sort==="name"?"active":""}" onclick="setSort('name')">ชื่อ A-Z</div>
+    </div>`;
+
+  html += computed.map(({ menu, totalCost, gpAmount, gpPercent }) => {
+    const color = gpColor(gpPercent);
+    const ingredientText = menu.ingredients.map((i)=>`${escapeHtml(i.ingredientName)} ${i.ingredientQty}${escapeHtml(i.ingredientUnit)}`).join(" · ");
+    return `
+      <div class="menu-card">
+        <div class="menu-top">
+          <p class="menu-name">${escapeHtml(menu.menuName)}</p>
+          <span class="menu-price">ขาย ${fmtMoney(menu.sellingPrice)} ฿</span>
+        </div>
+        <p class="ingredient-list">${ingredientText}</p>
+        <div class="gp-bar-row">
+          <div class="gp-bar-bg"><div class="gp-bar-fg" style="width:${Math.max(0,Math.min(100,gpPercent))}%; background:${color}"></div></div>
+          <span class="gp-label" style="color:${color}">GP ${gpPercent.toFixed(0)}%</span>
+        </div>
+        <div class="menu-bottom">
+          <div class="cost-summary">
+            <span>ต้นทุน<b>${fmtMoney(totalCost)} ฿</b></span>
+            <span>กำไร/แก้ว<b style="color:${gpAmount>=0?"#2F8F5B":"#C7553B"}">${fmtMoney(gpAmount)} ฿</b></span>
+          </div>
+          <button class="btn-ghost btn-danger" onclick="deleteMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">ลบ</button>
+        </div>
+      </div>`;
+  }).join("");
+  return html;
+}
+
+async function deleteMenu(menuName){
+  if (!confirm(`ลบเมนู "${menuName}" ทั้งหมด (ทุกวัตถุดิบในเมนูนี้) ใช่ไหม?`)) return;
+  try{
+    await fetch(API_URL, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body:new URLSearchParams({ action:"deleteRecipeMenu", menuName, branch:state.branch }).toString() });
+    showToast(`ลบเมนู "${menuName}" แล้ว`);
+    await loadAll();
+    render();
+  }catch(e){ showToast("ลบไม่สำเร็จ: " + e.message); }
+}
+
+// ----- Add form -----
+function renderAddForm(){
+  return `
+    <div class="card">
+      <div class="field"><label class="label">ชื่อเมนู</label>
+        <input id="formMenuName" value="${escapeHtml(state.form.menuName)}" oninput="state.form.menuName=this.value" placeholder="เช่น ลาเต้ร้อน" /></div>
+      <div class="field"><label class="label">ราคาขาย (บาท)</label>
+        <input id="formSellingPrice" type="number" inputmode="decimal" min="0" value="${state.form.sellingPrice}" oninput="state.form.sellingPrice=this.value; updateLivePreview()" placeholder="0" /></div>
+
+      <h2 style="margin:6px 0 4px;">วัตถุดิบที่ใช้</h2>
+      <p style="font-size:11.5px; color:var(--ink-3); margin:0 0 11px;">กรอก "ราคาซื้อ" และ "ขนาดที่ซื้อ" ของแพ็ก เช่น ซื้อเมล็ด 250 บาท/1000 g → ระบบหารต้นทุนต่อหน่วยให้อัตโนมัติ</p>
+      <div id="ingredientRows">${renderIngredientRows()}</div>
+      <button class="btn-ghost" style="width:100%; margin-bottom:14px;" onclick="addIngredientRow()">+ เพิ่มวัตถุดิบ</button>
+
+      <div class="preview-card">
+        <p style="margin:0 0 4px; font-size:12px; color:var(--ink-2); font-weight:600;">ตัวอย่างผลคำนวณ</p>
+        <p id="livePreview" style="margin:0; font-weight:800; font-size:14px;"></p>
+      </div>
+
+      <button class="btn-primary btn-block" onclick="submitMenu()">บันทึกเมนูนี้</button>
+    </div>`;
+}
+
+function renderIngredientRows(){
+  return state.form.ingredients.map((ing, idx) => `
+    <div class="ingredient-row">
+      <div class="field"><label class="label">${idx===0?"วัตถุดิบ":""}</label>
+        <input value="${escapeHtml(ing.name)}" oninput="updateIngredient(${idx},'name',this.value)" placeholder="ชื่อ" /></div>
+      <div class="field small"><label class="label">${idx===0?"ใช้":""}</label>
+        <input type="number" inputmode="decimal" min="0" value="${ing.qty}" oninput="updateIngredient(${idx},'qty',this.value)" placeholder="0" /></div>
+      <div class="field unit"><label class="label">${idx===0?"หน่วย":""}</label>
+        <select onchange="updateIngredient(${idx},'unit',this.value)">${UNITS.map((u)=>`<option value="${u}" ${ing.unit===u?"selected":""}>${u}</option>`).join("")}</select></div>
+      <div class="field small"><label class="label">${idx===0?"ราคาซื้อ":""}</label>
+        <input type="number" inputmode="decimal" min="0" value="${ing.buyPrice}" oninput="updateIngredient(${idx},'buyPrice',this.value)" placeholder="0" /></div>
+      <div class="field small"><label class="label">${idx===0?"ขนาดแพ็ก":""}</label>
+        <input type="number" inputmode="decimal" min="0" value="${ing.packSize}" oninput="updateIngredient(${idx},'packSize',this.value)" placeholder="0" /></div>
+      ${state.form.ingredients.length>1 ? `<button class="del-ing-btn" onclick="removeIngredientRow(${idx})">✕</button>` : ""}
+    </div>`).join("");
+}
+
+function updateIngredient(idx, field, value){ state.form.ingredients[idx][field]=value; updateLivePreview(); }
+function addIngredientRow(){ state.form.ingredients.push(newIngredientRow()); document.getElementById("ingredientRows").innerHTML=renderIngredientRows(); updateLivePreview(); }
+function removeIngredientRow(idx){ state.form.ingredients.splice(idx,1); document.getElementById("ingredientRows").innerHTML=renderIngredientRows(); updateLivePreview(); }
+
+function updateLivePreview(){
+  const sellingPrice = Number(state.form.sellingPrice)||0;
+  let totalCost = 0;
+  state.form.ingredients.forEach((ing)=>{
+    const qty=Number(ing.qty)||0, buyPrice=Number(ing.buyPrice)||0, packSize=Number(ing.packSize)||0;
+    const unitPrice = packSize>0 ? buyPrice/packSize : 0;
+    totalCost += unitPrice*qty;
+  });
+  const gpAmount = sellingPrice - totalCost;
+  const gpPercent = sellingPrice>0 ? (gpAmount/sellingPrice)*100 : 0;
+  const color = gpColor(gpPercent);
+  const el = document.getElementById("livePreview");
+  if (el){
+    el.innerHTML = (sellingPrice>0 || totalCost>0)
+      ? `ต้นทุน ${fmtMoney(totalCost)} ฿ &nbsp;·&nbsp; กำไร ${fmtMoney(gpAmount)} ฿ &nbsp;·&nbsp; <span style="color:${color}">GP ${gpPercent.toFixed(1)}%</span>`
+      : `<span style="color:var(--ink-3); font-weight:500;">กรอกราคาขายและวัตถุดิบเพื่อดูตัวอย่าง</span>`;
+  }
+}
+
+async function submitMenu(){
+  const menuName = state.form.menuName.trim();
+  const sellingPrice = Number(state.form.sellingPrice)||0;
+  if (!menuName){ showToast("กรุณาใส่ชื่อเมนู"); return; }
+  const validIngredients = state.form.ingredients.filter((i)=>i.name.trim());
+  if (validIngredients.length===0){ showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ"); return; }
+  try{
+    for (const ing of validIngredients){
+      await apiCall("addRecipeRow", {
+        id:uid(), menuName, sellingPrice,
+        ingredientName:ing.name.trim(), ingredientQty:Number(ing.qty)||0, ingredientUnit:ing.unit,
+        buyPrice:Number(ing.buyPrice)||0, packSize:Number(ing.packSize)||0, branch:state.branch,
+      });
+    }
+    showToast(`บันทึกเมนู "${menuName}" แล้ว`);
+    await loadAll();
+    setView("list");
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
+}
+
+loadAll();
+setInterval(() => { if (state.view!=="add") loadAll(); }, 15000);
+</script>
+</body>
+</html>
