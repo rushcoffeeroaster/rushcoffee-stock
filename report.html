@@ -79,6 +79,15 @@
   .emp-detail{ border-top:1px solid var(--line); padding:4px 14px 8px; display:none; }
   .emp-card.open .emp-detail{ display:block; }
   .day-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .day-block{ border-bottom:1px solid var(--line); }
+  .day-block:last-child{ border-bottom:none; }
+  .day-block .day-row{ border-bottom:none; }
+  .punch-list{ display:flex; flex-direction:column; gap:6px; padding:0 0 10px 2px; }
+  .punch-row{ display:flex; align-items:center; gap:9px; }
+  .rep-thumb{ width:38px; height:38px; border-radius:9px; object-fit:cover; background:var(--accent-soft); display:inline-block; }
+  .punch-time{ font-variant-numeric:tabular-nums; font-size:13px; color:var(--ink-2); }
+  .del-x{ margin-left:auto; background:none; border:1px solid var(--line-strong); color:var(--ink-3); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer; }
+  .del-x:active{ background:var(--red-bg); color:var(--red); border-color:#EED2C8; }
   .day-row:last-child{ border-bottom:none; }
   .day-date{ font-size:13px; font-weight:700; }
   .day-times{ font-size:12px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
@@ -186,6 +195,15 @@ function setFrom(v){ state.from=v; if (state.authed) fetchReport(); }
 function setTo(v){ state.to=v; if (state.authed) fetchReport(); }
 function applyTheme(){ document.getElementById("bodyEl").className = state.branch==="rush"?"theme-rush":state.branch==="rushhour"?"theme-rushhour":"theme-all"; }
 function toggleEmp(id){ state.expanded[id]=!state.expanded[id]; render(); }
+async function deletePunch(id){
+  if (!id) return;
+  if (!confirm("ลบรายการตอกบัตรนี้? ลบแล้วกู้คืนไม่ได้")) return;
+  try{
+    const r=await apiCall("deletePunch",{ id:id, managerPin:state.managerPin });
+    if (r.error){ alert(/pin/i.test(r.error)?"รหัสผู้จัดการไม่ถูกต้อง":("ลบไม่สำเร็จ: "+r.error)); return; }
+    await fetchReport();
+  }catch(e){ alert("ลบไม่สำเร็จ: "+e.message); }
+}
 
 // ---------- PIN ----------
 function onPinInput(v){ state.managerPin=(v||"").replace(/\D/g,"").slice(0,4); syncPinDots(); if (state.managerPin.length===4) setTimeout(fetchReport,150); }
@@ -201,12 +219,21 @@ function startForDate(branch, dateStr){
   if (s && Array.isArray(s.days) && s.days.indexOf(dow)<0) return null;
   return (s && s.start) || "08:00";
 }
-// เกณฑ์มาสาย: ใช้กะของพนักงาน (emp.shiftStart) ก่อน ถ้าไม่มีค่อยใช้เวลาตามวันของสาขา; คืน null = วันหยุด/ไม่นับสาย
-function lateThresholdFor(emp, dateStr){
-  const start = (emp && emp.shiftStart) ? emp.shiftStart : startForDate(emp.branch, dateStr);
-  if (start==null) return null;
-  const p=String(start).split(":"); const d=new Date(dateStr+"T00:00:00");
-  d.setHours(Number(p[0])||0, (Number(p[1])||0)+graceOf(emp.branch), 0, 0); return d;
+function thresholdFromStart(dateStr, startStr, grace){
+  if (startStr==null) return null;
+  const p=String(startStr).split(":"); const d=new Date(dateStr+"T00:00:00");
+  d.setHours(Number(p[0])||0, (Number(p[1])||0)+(grace||0), 0, 0); return d;
+}
+// สาขาที่มีหลายกะ (เช่น Rush Hour) เดากะของวันนั้นจากเวลาตอกเข้าจริง — เลือกกะที่ "ใกล้ที่สุด"
+function resolveShiftStart(branch, firstInDate){
+  const s=shiftFor(branch);
+  if (s && Array.isArray(s.shifts) && s.shifts.length && firstInDate){
+    const arr=firstInDate.getHours()*60+firstInDate.getMinutes();
+    let best=null, bestDiff=Infinity;
+    s.shifts.forEach(function(hhmm){ const p=String(hhmm).split(":"); const sm=(Number(p[0])||0)*60+(Number(p[1])||0); const diff=Math.abs(arr-sm); if(diff<bestDiff){ bestDiff=diff; best=hhmm; } });
+    return best;
+  }
+  return null;
 }
 function daysBetween(from, to){
   const a=new Date(from+"T00:00:00"), b=new Date(to+"T00:00:00"); if (isNaN(a)||isNaN(b)) return 0;
@@ -219,6 +246,8 @@ function countWorkdays(from, to, daysArr){
 }
 function fmtH(min){ return (min/60).toFixed(1); }
 function fmtClock(ts){ const d=new Date(ts); return isNaN(d)?"–":d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"}); }
+function driveId(u){ if(!u) return ""; let m=String(u).match(/[?&]id=([-\w]+)/); if(m) return m[1]; m=String(u).match(/\/d\/([-\w]+)/); return m?m[1]:""; }
+function driveImg(u,sz){ const id=driveId(u); return id?("https://drive.google.com/thumbnail?id="+id+"&sz=w"+(sz||200)):(u||""); }
 function fmtDay(ds){ const d=new Date(ds+"T00:00:00"); return isNaN(d)?ds:d.toLocaleDateString("th-TH",{weekday:"short",day:"2-digit",month:"short"}); }
 
 function computeReport(){
@@ -253,13 +282,16 @@ function computeReport(){
         else if (r.type==="out"){ const open=stack.pop(); if (open){ const dur=(new Date(r.timestamp)-new Date(open.timestamp))/60000; if(dur>0) min+=dur; } }
       });
       const incomplete = stack.length>0 || (recs.length>0 && !recs.some((r)=>r.type==="out"));
-      const lt = firstIn ? lateThresholdFor(e, day) : null;
-      const late = !!(lt && new Date(firstIn.timestamp) > lt);
+      const inDate = firstIn ? new Date(firstIn.timestamp) : null;
+      let shiftStartStr = e.shiftStart ? e.shiftStart : resolveShiftStart(e.branch, inDate);
+      if (shiftStartStr==null) shiftStartStr = startForDate(e.branch, day);
+      const lt = (inDate && shiftStartStr!=null) ? thresholdFromStart(day, shiftStartStr, graceOf(e.branch)) : null;
+      const late = !!(lt && inDate > lt);
       const outRec = recs.filter((r)=>r.type==="out").slice(-1)[0];
       if (min>0) totalMin+=min;
       if (late) lateDays++;
       if (incomplete) incompleteDays++;
-      days.push({ date:day, inTs:firstIn?firstIn.timestamp:null, outTs:outRec?outRec.timestamp:null, min, late, incomplete, leave:empLeave[day]||null });
+      days.push({ date:day, inTs:firstIn?firstIn.timestamp:null, outTs:outRec?outRec.timestamp:null, min, late, incomplete, shift:(firstIn?shiftStartStr:null), punches:recs.map(function(r){ return { id:r.id, type:r.type, timestamp:r.timestamp, photoUrl:r.photoUrl }; }), leave:empLeave[day]||null });
     });
     const daysWorked=Object.keys(byDay).length;
     const leaveDays=Object.keys(empLeave).filter((d)=>!byDay[d]).length;
@@ -332,7 +364,7 @@ function render(){
     html+=shown.map(renderEmp).join("");
   }
 
-  html+=`<p class="note">* "มาสาย" อิงเวลาเข้างานของแต่ละสาขา/แต่ละวัน และกะของพนักงาน (คอลัมน์ shiftStart เช่น Rush Hour 10:00 หรือ 12:00) — ตั้งใน attendance.gs และชีต Employees<br>* "ไม่มาตอก" นับเฉพาะวันทำงานของสาขานั้นในช่วงที่เลือก (ถึงวันนี้) ลบวันที่มาทำงานและวันลา</p>`;
+  html+=`<p class="note">* "มาสาย" อิงเวลาเข้างานของแต่ละสาขา/แต่ละวัน — Rush Hour ที่สลับกะ ระบบเดากะจากเวลาตอกเข้าจริง (เลือกกะที่ใกล้สุดจาก 10:00/12:00); ถ้าใครกะตายตัวให้ใส่ในคอลัมน์ shiftStart<br>* "ไม่มาตอก" นับเฉพาะวันทำงานของสาขานั้นในช่วงที่เลือก (ถึงวันนี้) ลบวันที่มาทำงานและวันลา</p>`;
 
   content.innerHTML=html;
 }
@@ -353,10 +385,18 @@ function renderEmp(e){
         const flags=[];
         if (d.late) flags.push(`<span class="badge b-late">สาย</span>`);
         if (d.incomplete) flags.push(`<span class="badge b-miss">ไม่ตอกออก</span>`);
-        return `<div class="day-row">
-          <div><div class="day-date">${fmtDay(d.date)}</div>
-          <div class="day-times">เข้า ${fmtClock(d.inTs)}${d.outTs?" · ออก "+fmtClock(d.outTs):""}</div></div>
-          <div style="display:flex; align-items:center; gap:7px;">${flags.join("")}<span class="day-h">${d.min>0?fmtH(d.min)+" ชม.":"–"}</span></div>
+        const punchList=(d.punches||[]).map(function(pc){
+          const img=driveImg(pc.photoUrl,200);
+          const th=img?`<a href="${escapeHtml(driveImg(pc.photoUrl,1600))}" target="_blank" rel="noopener"><img class="rep-thumb" src="${escapeHtml(img)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'"></a>`:`<span class="rep-thumb"></span>`;
+          return `<div class="punch-row">${th}<span class="rec-badge ${pc.type==='in'?'badge-in':'badge-out'}">${pc.type==='in'?'เข้า':'ออก'}</span><span class="punch-time">${fmtClock(pc.timestamp)} น.</span><button class="del-x" onclick="deletePunch('${escapeHtml(pc.id)}')">ลบ ✕</button></div>`;
+        }).join("");
+        return `<div class="day-block">
+          <div class="day-row">
+            <div><div class="day-date">${fmtDay(d.date)}</div>
+            <div class="day-times">เข้า ${fmtClock(d.inTs)}${d.outTs?" · ออก "+fmtClock(d.outTs):""}${d.shift?" · กะ "+escapeHtml(d.shift):""}</div></div>
+            <div style="display:flex; align-items:center; gap:7px;">${flags.join("")}<span class="day-h">${d.min>0?fmtH(d.min)+" ชม.":"–"}</span></div>
+          </div>
+          ${punchList?`<div class="punch-list">${punchList}</div>`:""}
         </div>`;
       }).join("");
 
@@ -365,7 +405,7 @@ function renderEmp(e){
       <div class="emp-avatar">${escapeHtml(initial)}</div>
       <div style="flex:1; min-width:0;">
         <p class="emp-name">${escapeHtml(e.name)}</p>
-        <div class="emp-meta"><span>${BRANCH_LABEL[e.branch]||e.branch||""}</span>${e.shiftStart?`<span>·</span><span>กะ ${escapeHtml(e.shiftStart)}</span>`:""}<span>·</span><span>มา ${e.daysWorked} วัน</span> ${badges.join(" ")}</div>
+        <div class="emp-meta"><span>${BRANCH_LABEL[e.branch]||e.branch||""}</span>${e.shiftStart?`<span>·</span><span>กะ ${escapeHtml(e.shiftStart)}</span>`:(e.branch==="rushhour"?`<span>·</span><span>กะหมุน</span>`:"")}<span>·</span><span>มา ${e.daysWorked} วัน</span> ${badges.join(" ")}</div>
       </div>
       <div class="emp-hours"><div class="n">${fmtH(e.totalMin)}</div><div class="u">ชม.รวม</div></div>
       <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>

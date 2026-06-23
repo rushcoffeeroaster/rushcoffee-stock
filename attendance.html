@@ -221,6 +221,8 @@ let state = {
 
 function apiReady(){ return /^https:\/\/script\.google\.com/.test(API_URL); }
 function escapeHtml(s){ const d=document.createElement("div"); d.textContent = s==null?"":s; return d.innerHTML; }
+function driveId(u){ if(!u) return ""; let m=String(u).match(/[?&]id=([-\w]+)/); if(m) return m[1]; m=String(u).match(/\/d\/([-\w]+)/); return m?m[1]:""; }
+function driveImg(u){ const id=driveId(u); return id?("https://drive.google.com/thumbnail?id="+id+"&sz=w600"):(u||""); }
 function fmtTime(d){ return d.toLocaleTimeString("th-TH",{ hour:"2-digit", minute:"2-digit" }); }
 
 // ---- live clock in app bar ----
@@ -638,7 +640,8 @@ function renderHistory(){
       lastDay=dayKey;
       html+=`<p style="font-size:12px; font-weight:700; color:var(--ink-3); margin:12px 2px 2px;">${dayKey}</p>`;
     }
-    const thumb = r.photoUrl ? `<img class="rec-thumb" src="${escapeHtml(r.photoUrl)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"/>` : `<div class="rec-thumb"></div>`;
+    const _img = driveImg(r.photoUrl);
+    const thumb = _img ? `<a href="${escapeHtml(_img.replace('sz=w600','sz=w1600'))}" target="_blank" rel="noopener"><img class="rec-thumb" src="${escapeHtml(_img)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'"/></a>` : `<div class="rec-thumb"></div>`;
     html+=`<div class="rec-row">
       ${thumb}
       <div style="flex:1; min-width:0;">
