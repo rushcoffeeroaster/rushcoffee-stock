@@ -8,6 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#1A1407">
+<link rel="manifest" href="order-manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rush Hour สั่ง">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
   :root{
     --bg:#FBF7EE; --bg-grad: radial-gradient(130% 90% at 50% -10%, #FFFDF7 0%, #FBF7EE 55%, #F2E9D5 100%);
@@ -105,6 +112,7 @@
   <h1>สั่งกาแฟ-ขนม</h1>
   <p>เซ็นทรัล พิษณุโลก · สั่งง่าย ส่งถึงจุด</p>
   <span class="deliv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg><span id="delivNote">ส่งฟรีภายในห้าง</span></span>
+  <button id="installBtn" onclick="installApp()" style="display:none; margin-top:12px; margin-left:8px; border:1px solid #C2941A; background:transparent; color:#EBC955; font-family:inherit; font-size:12.5px; font-weight:800; padding:6px 13px; border-radius:999px; cursor:pointer;">⤓ ติดตั้งแอปลงเครื่อง</button>
 </div></div>
 
 <div class="wrap">
@@ -125,8 +133,11 @@
 <div id="modalRoot"></div>
 
 <script>
-/* ============================ CONFIG — แก้ตรงนี้ ============================ */
-const SHOP = {
+// (ออปชั่น) วาง URL ของ order.gs เพื่อดึงเมนูจาก Google Sheet — เว้นว่าง = ใช้เมนูในไฟล์ด้านล่าง
+const ORDER_API = "";
+
+/* ====== CONFIG: เมนูในไฟล์ (ถ้าตั้ง ORDER_API จะดึงจากชีตมาทับ) — แก้ได้ที่นี่ ====== */
+let SHOP = {
   name: "RUSH HOUR",
   branch: "เซ็นทรัล พิษณุโลก",
   delivNote: "ส่งฟรีภายในห้าง",   // ข้อความใต้หัว
@@ -136,14 +147,14 @@ const SHOP = {
 };
 
 // โปรโมชั่น (โชว์เป็นการ์ด)
-const PROMOS = [
+let PROMOS = [
   { title: "1 แถม 1 🎉", detail: "อเมริกาโน่ / ลาเต้ (เย็น) ทุกวันจันทร์" },
   { title: "เซ็ตเบรก ☕🥐", detail: "กาแฟ + ครัวซอง ลด 15 บาท" },
   { title: "สั่ง 5 แก้วขึ้นไป", detail: "แถมคุกกี้ 1 ชิ้น · ส่งฟรีถึงจุด" }
 ];
 
 // เมนู: temp:true = มีตัวเลือก ร้อน/เย็น/ปั่น (เย็น/ปั่น บวกเพิ่มตามค่าด้านบน)
-const MENU = [
+let MENU = [
   { cat: "กาแฟ", items: [
     { name: "เอสเพรสโซ่", price: 45, temp: false, desc: "ช็อตเข้ม" },
     { name: "อเมริกาโน่", price: 50, temp: true },
@@ -353,8 +364,38 @@ function fallbackCopy(t){ const ta=document.createElement("textarea"); ta.value=
 function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
 function showToast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
 
-// init
+// init — แสดงเมนูในไฟล์ก่อน แล้วถ้าตั้ง ORDER_API ค่อยดึงเมนูจากชีตมาทับ
 initHero(); renderPromos(); renderCats(); renderMenu(); renderCartBar();
+async function fetchMenu(){
+  if (!/^https:\/\/script\.google\.com/.test(ORDER_API)) return;
+  try{
+    const res = await fetch(ORDER_API, { method:"POST", redirect:"follow", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:"action=getMenu" });
+    const d = JSON.parse(await res.text());
+    if (d && !d.error){
+      if (d.shop) SHOP = Object.assign({}, SHOP, d.shop);
+      if (Array.isArray(d.promos)) PROMOS = d.promos;
+      if (Array.isArray(d.menu) && d.menu.length) MENU = d.menu;
+      state.activeCat = 0;
+      initHero(); renderPromos(); renderCats(); renderMenu(); renderCartBar();
+    }
+  }catch(e){}
+}
+fetchMenu();
+</script>
+<script>
+var _deferredPrompt=null, _isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+function installApp(){
+  if(_deferredPrompt){ _deferredPrompt.prompt(); _deferredPrompt.userChoice.then(function(){ _deferredPrompt=null; var b=document.getElementById('installBtn'); if(b) b.style.display='none'; }); return; }
+  alert(_isIOS ? 'ติดตั้งลงไอโฟน (Safari):\n1) แตะปุ่มแชร์ (กล่องลูกศรขึ้น)\n2) เลือก "เพิ่มไปยังหน้าจอโฮม"' : 'เปิดเมนู ⋮ ของ Chrome แล้วเลือก "ติดตั้งแอป / เพิ่มลงในหน้าจอหลัก"');
+}
+(function(){
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
+  var b=document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); _deferredPrompt=e; if(b) b.style.display='inline-block'; });
+  window.addEventListener('appinstalled',function(){ if(b) b.style.display='none'; _deferredPrompt=null; });
+  if(_isIOS && b) setTimeout(function(){ b.style.display='inline-block'; },1400);
+})();
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 </script>
 </body>
 </html>
