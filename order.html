@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>สั่งกาแฟ · Rush Hour เซ็นทรัลพิษณุโลก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#1A1407">
+<style>
+  :root{
+    --bg:#FBF7EE; --bg-grad: radial-gradient(130% 90% at 50% -10%, #FFFDF7 0%, #FBF7EE 55%, #F2E9D5 100%);
+    --surface:#FFFFFF; --line:#EFE7D4; --line-strong:#E2D6BC;
+    --ink:#2A2208; --ink-2:#6E6444; --ink-3:#A99E7E;
+    --gold:#C2941A; --gold-deep:#8A6608; --gold-soft:#FBF1D5;
+    --gold-grad:linear-gradient(135deg,#E8C24E 0%,#C2941A 100%);
+    --green:#2F8F5B; --green-bg:#E9F4EE; --red:#C7553B; --line-line:#25D366;
+    --shadow-sm:0 1px 2px rgba(40,32,8,.05), 0 2px 8px rgba(40,32,8,.06);
+    --shadow-md:0 8px 26px rgba(40,32,8,.12);
+    --radius:16px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; }
+  body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif; background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed; color:var(--ink); padding-bottom:96px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:560px; margin:0 auto; padding:0 16px 8px; }
+
+  /* hero header */
+  .hero{ background:linear-gradient(135deg,#23190A 0%,#3A2B0E 100%); color:#fff; padding:20px 18px 22px; border-radius:0 0 24px 24px; box-shadow:var(--shadow-md); }
+  .hero-inner{ max-width:560px; margin:0 auto; }
+  .badge-shop{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.5px; color:#3A2B0E; background:var(--gold-grad); padding:4px 11px; border-radius:999px; }
+  .hero h1{ font-size:27px; font-weight:800; margin:11px 0 3px; letter-spacing:.5px; background:linear-gradient(120deg,#EBC955 0%,#FFF1C2 50%,#D9A93B 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero p{ margin:0; font-size:13px; color:#E7DCBD; }
+  .hero .deliv{ display:inline-flex; align-items:center; gap:6px; margin-top:12px; font-size:12.5px; font-weight:600; color:#1A1407; background:#EBC955; padding:6px 12px; border-radius:999px; }
+  .hero .deliv svg{ width:15px; height:15px; }
+
+  h2{ font-size:16px; font-weight:800; margin:22px 2px 11px; }
+
+  /* promos */
+  .promo-row{ display:flex; gap:11px; overflow-x:auto; padding:2px 0 6px; scrollbar-width:none; margin:0 -16px; padding-left:16px; padding-right:16px; }
+  .promo-row::-webkit-scrollbar{ display:none; }
+  .promo{ flex:0 0 78%; max-width:300px; border-radius:var(--radius); padding:15px 16px; color:#2A2208; background:var(--gold-grad); box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+  .promo::after{ content:"%"; position:absolute; right:-6px; top:-14px; font-size:80px; font-weight:800; opacity:.12; }
+  .promo .pt{ font-size:16px; font-weight:800; }
+  .promo .pd{ font-size:12.5px; margin-top:3px; opacity:.85; line-height:1.5; }
+
+  /* category chips */
+  .cats{ position:sticky; top:0; z-index:20; background:var(--bg); display:flex; gap:7px; overflow-x:auto; padding:10px 0; scrollbar-width:none; }
+  .cats::-webkit-scrollbar{ display:none; }
+  .cat-chip{ border:1px solid var(--line-strong); border-radius:999px; padding:7px 15px; font-size:13.5px; font-weight:700; background:var(--surface); color:var(--ink-2); white-space:nowrap; cursor:pointer; }
+  .cat-chip.active{ background:var(--gold-grad); color:#2A2208; border-color:transparent; box-shadow:var(--shadow-sm); }
+
+  /* menu item */
+  .item{ display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:13px 14px; margin-bottom:10px; box-shadow:var(--shadow-sm); }
+  .item-info{ flex:1; min-width:0; }
+  .item-name{ font-weight:700; font-size:15px; margin:0; }
+  .item-name .tag{ font-size:10px; font-weight:800; color:#8A6608; background:var(--gold-soft); padding:1px 7px; border-radius:6px; margin-left:6px; }
+  .item-desc{ font-size:12px; color:var(--ink-3); margin:2px 0 0; }
+  .item-price{ font-weight:800; font-size:15px; color:var(--gold-deep); white-space:nowrap; }
+  .add-btn{ border:none; background:var(--gold-grad); color:#2A2208; width:34px; height:34px; border-radius:10px; font-size:20px; font-weight:800; cursor:pointer; flex-shrink:0; box-shadow:var(--shadow-sm); display:grid; place-items:center; }
+  .add-btn:active{ transform:scale(.92); }
+  .qty-ctl{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .qty-ctl button{ width:32px; height:32px; border-radius:9px; border:1px solid var(--line-strong); background:var(--surface); font-size:18px; font-weight:800; cursor:pointer; color:var(--gold-deep); }
+  .qty-ctl b{ font-variant-numeric:tabular-nums; min-width:18px; text-align:center; }
+
+  /* cart bar */
+  .cart-bar{ position:fixed; left:0; right:0; bottom:0; z-index:60; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(0deg, var(--bg) 70%, transparent); }
+  .cart-btn{ max-width:560px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; background:linear-gradient(135deg,#2A1E0A,#3F2E0F); color:#fff; border:none; border-radius:16px; padding:15px 18px; font-family:inherit; font-size:15px; font-weight:800; cursor:pointer; box-shadow:var(--shadow-md); width:100%; }
+  .cart-btn .c-left{ display:flex; align-items:center; gap:11px; }
+  .cart-count{ background:var(--gold-grad); color:#2A2208; min-width:26px; height:26px; border-radius:8px; display:grid; place-items:center; font-size:14px; }
+  .cart-btn .c-total{ color:#EBC955; }
+  .cart-bar.hidden{ display:none; }
+
+  /* sheet */
+  .overlay{ position:fixed; inset:0; background:rgba(26,20,7,.55); backdrop-filter:blur(3px); display:flex; align-items:flex-end; justify-content:center; z-index:120; }
+  .sheet{ background:var(--bg); border-radius:22px 22px 0 0; width:100%; max-width:560px; max-height:92vh; overflow-y:auto; padding:8px 16px calc(20px + env(safe-area-inset-bottom)); box-shadow:0 -12px 40px rgba(0,0,0,.2); animation:up .25s ease; }
+  @keyframes up{ from{ transform:translateY(24px); opacity:.5 } to{ transform:none; opacity:1 } }
+  .sheet-grab{ width:44px; height:5px; border-radius:3px; background:var(--line-strong); margin:8px auto 12px; }
+  .sheet h3{ margin:4px 2px 12px; font-size:19px; font-weight:800; }
+  .crow{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .crow-name{ font-weight:700; font-size:14.5px; }
+  .crow-sub{ font-size:12px; color:var(--ink-3); }
+  .field{ margin-bottom:12px; }
+  .label{ font-size:12.5px; color:var(--ink-2); margin-bottom:5px; display:block; font-weight:700; }
+  input,select,textarea{ width:100%; border:1px solid var(--line-strong); border-radius:11px; padding:11px 12px; font-size:14px; background:var(--surface); color:var(--ink); font-family:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
+  .total-line{ display:flex; justify-content:space-between; align-items:baseline; padding:14px 2px; font-size:15px; }
+  .total-line b{ font-size:24px; font-weight:800; color:var(--gold-deep); font-variant-numeric:tabular-nums; }
+  .btn-line{ width:100%; display:flex; align-items:center; justify-content:center; gap:9px; background:#06C755; color:#fff; border:none; border-radius:13px; padding:15px; font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; box-shadow:var(--shadow-sm); }
+  .btn-line svg{ width:22px; height:22px; }
+  .btn-copy{ width:100%; background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:13px; padding:13px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; margin-top:9px; }
+  .seg{ display:flex; gap:7px; }
+  .seg button{ flex:1; border:1px solid var(--line-strong); background:var(--surface); border-radius:10px; padding:10px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; color:var(--ink-2); }
+  .seg button.on{ background:var(--gold-grad); color:#2A2208; border-color:transparent; }
+  .toast{ position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px; font-weight:600; z-index:200; box-shadow:var(--shadow-md); }
+  .empty-cart{ text-align:center; color:var(--ink-3); padding:30px 0; }
+</style>
+</head>
+<body>
+
+<!-- แก้เมนู / ราคา / โปรโมชั่น ได้ที่บล็อก CONFIG ในส่วนสคริปต์ด้านล่าง -->
+
+<div class="hero"><div class="hero-inner">
+  <span class="badge-shop">RUSH HOUR</span>
+  <h1>สั่งกาแฟ-ขนม</h1>
+  <p>เซ็นทรัล พิษณุโลก · สั่งง่าย ส่งถึงจุด</p>
+  <span class="deliv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg><span id="delivNote">ส่งฟรีภายในห้าง</span></span>
+</div></div>
+
+<div class="wrap">
+  <h2 id="promoHead">โปรโมชั่น</h2>
+  <div class="promo-row" id="promoRow"></div>
+
+  <div class="cats" id="cats"></div>
+  <div id="menu"></div>
+</div>
+
+<div class="cart-bar hidden" id="cartBar">
+  <button class="cart-btn" onclick="openCart()">
+    <span class="c-left"><span class="cart-count" id="cartCount">0</span><span>ดูตะกร้า</span></span>
+    <span class="c-total" id="cartTotal">฿0</span>
+  </button>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============================ CONFIG — แก้ตรงนี้ ============================ */
+const SHOP = {
+  name: "RUSH HOUR",
+  branch: "เซ็นทรัล พิษณุโลก",
+  delivNote: "ส่งฟรีภายในห้าง",   // ข้อความใต้หัว
+  lineUrl: "",                      // (ออปชั่น) ใส่ลิงก์ LINE OA ของร้าน เช่น https://line.me/R/ti/p/@xxxx เพื่อให้ลิงก์ตรงเข้าแชตร้าน
+  icedFee: 10,                      // เพิ่มเงินสำหรับเย็น
+  blendFee: 15                      // เพิ่มเงินสำหรับปั่น
+};
+
+// โปรโมชั่น (โชว์เป็นการ์ด)
+const PROMOS = [
+  { title: "1 แถม 1 🎉", detail: "อเมริกาโน่ / ลาเต้ (เย็น) ทุกวันจันทร์" },
+  { title: "เซ็ตเบรก ☕🥐", detail: "กาแฟ + ครัวซอง ลด 15 บาท" },
+  { title: "สั่ง 5 แก้วขึ้นไป", detail: "แถมคุกกี้ 1 ชิ้น · ส่งฟรีถึงจุด" }
+];
+
+// เมนู: temp:true = มีตัวเลือก ร้อน/เย็น/ปั่น (เย็น/ปั่น บวกเพิ่มตามค่าด้านบน)
+const MENU = [
+  { cat: "กาแฟ", items: [
+    { name: "เอสเพรสโซ่", price: 45, temp: false, desc: "ช็อตเข้ม" },
+    { name: "อเมริกาโน่", price: 50, temp: true },
+    { name: "ลาเต้", price: 55, temp: true, tag: "ขายดี" },
+    { name: "คาปูชิโน่", price: 55, temp: true },
+    { name: "มอคค่า", price: 60, temp: true },
+    { name: "คาราเมล มัคคิอาโต้", price: 65, temp: true }
+  ]},
+  { cat: "ไม่ใช่กาแฟ", items: [
+    { name: "ชาเขียวมัทฉะลาเต้", price: 60, temp: true, tag: "แนะนำ" },
+    { name: "ชาไทย", price: 50, temp: true },
+    { name: "โกโก้", price: 55, temp: true },
+    { name: "ชาเลมอน", price: 50, temp: true }
+  ]},
+  { cat: "ขนม", items: [
+    { name: "ครัวซอง", price: 55, temp: false, tag: "อบสด" },
+    { name: "ครัวซองอัลมอนด์", price: 70, temp: false },
+    { name: "โดนัทบริออช (ไส้คัสตาร์ด)", price: 49, temp: false },
+    { name: "ซาวร์โดว์ (ชิ้น)", price: 45, temp: false },
+    { name: "คุกกี้", price: 35, temp: false }
+  ]}
+];
+/* ========================================================================= */
+
+let state = { activeCat: 0, cart: {} }; // cart: key -> {name, variant, unit, qty}
+
+function fmt(n){ return "฿" + Number(n||0).toLocaleString("th-TH"); }
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+function key(name, variant){ return name + "|" + (variant||""); }
+
+function initHero(){
+  document.getElementById("delivNote").textContent = SHOP.delivNote;
+  if (PROMOS.length===0){ document.getElementById("promoHead").style.display="none"; }
+}
+
+function renderPromos(){
+  document.getElementById("promoRow").innerHTML = PROMOS.map(function(p){
+    return `<div class="promo"><div class="pt">${escapeHtml(p.title)}</div><div class="pd">${escapeHtml(p.detail||"")}</div></div>`;
+  }).join("");
+}
+
+function renderCats(){
+  document.getElementById("cats").innerHTML = MENU.map(function(c,i){
+    return `<div class="cat-chip ${i===state.activeCat?'active':''}" onclick="setCat(${i})">${escapeHtml(c.cat)}</div>`;
+  }).join("");
+}
+function setCat(i){ state.activeCat=i; renderCats(); renderMenu(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+function renderMenu(){
+  const c = MENU[state.activeCat]; if(!c) return;
+  document.getElementById("menu").innerHTML = c.items.map(function(it){
+    const inCart = Object.keys(state.cart).filter(function(k){ return state.cart[k].name===it.name; })
+      .reduce(function(s,k){ return s+state.cart[k].qty; }, 0);
+    const right = inCart>0 && !it.temp
+      ? `<div class="qty-ctl"><button onclick="changeQty('${escapeHtml(key(it.name,""))}',-1)">−</button><b>${inCart}</b><button onclick="addItem('${escapeHtml(it.name)}')">+</button></div>`
+      : `<button class="add-btn" onclick="addItem('${escapeHtml(it.name)}')">+</button>`;
+    return `<div class="item">
+      <div class="item-info">
+        <p class="item-name">${escapeHtml(it.name)}${it.tag?`<span class="tag">${escapeHtml(it.tag)}</span>`:""}</p>
+        ${it.desc?`<p class="item-desc">${escapeHtml(it.desc)}</p>`:it.temp?`<p class="item-desc">ร้อน / เย็น +${SHOP.icedFee} / ปั่น +${SHOP.blendFee}</p>`:""}
+      </div>
+      <span class="item-price">${fmt(it.price)}</span>
+      ${right}
+    </div>`;
+  }).join("");
+}
+
+function findItem(name){
+  for (const c of MENU){ for (const it of c.items){ if (it.name===name) return it; } }
+  return null;
+}
+
+function addItem(name){
+  const it = findItem(name); if(!it) return;
+  if (it.temp){ openTempPicker(it); return; }
+  bump(key(name,""), name, "", it.price, 1);
+}
+function bump(k, name, variant, unit, delta){
+  if (!state.cart[k]) state.cart[k] = { name:name, variant:variant, unit:unit, qty:0 };
+  state.cart[k].qty += delta;
+  if (state.cart[k].qty<=0) delete state.cart[k];
+  renderMenu(); renderCartBar();
+}
+function changeQty(k, delta){ if (state.cart[k]) bump(k, state.cart[k].name, state.cart[k].variant, state.cart[k].unit, delta); }
+
+function openTempPicker(it){
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this) closeModal()"><div class="sheet" style="max-width:560px;">
+      <div class="sheet-grab"></div>
+      <h3>${escapeHtml(it.name)}</h3>
+      <p class="label">เลือกแบบ</p>
+      <div class="seg" id="tempSeg">
+        <button class="on" data-v="ร้อน" data-add="0" onclick="pickTemp(this)">ร้อน ${fmt(it.price)}</button>
+        <button data-v="เย็น" data-add="${SHOP.icedFee}" onclick="pickTemp(this)">เย็น ${fmt(it.price+SHOP.icedFee)}</button>
+        <button data-v="ปั่น" data-add="${SHOP.blendFee}" onclick="pickTemp(this)">ปั่น ${fmt(it.price+SHOP.blendFee)}</button>
+      </div>
+      <button class="btn-line" style="background:var(--gold-grad); color:#2A2208; margin-top:18px;" onclick="confirmTemp('${escapeHtml(it.name)}', ${it.price})">เพิ่มลงตะกร้า</button>
+    </div></div>`;
+}
+let _temp = { v:"ร้อน", add:0 };
+function pickTemp(btn){
+  document.querySelectorAll("#tempSeg button").forEach(function(b){ b.classList.remove("on"); });
+  btn.classList.add("on"); _temp = { v: btn.dataset.v, add: Number(btn.dataset.add) };
+}
+function confirmTemp(name, price){
+  bump(key(name, _temp.v), name, _temp.v, price + _temp.add, 1);
+  closeModal();
+}
+
+function cartCount(){ return Object.values(state.cart).reduce(function(s,c){ return s+c.qty; }, 0); }
+function cartTotal(){ return Object.values(state.cart).reduce(function(s,c){ return s + c.unit*c.qty; }, 0); }
+
+function renderCartBar(){
+  const n = cartCount();
+  const bar = document.getElementById("cartBar");
+  bar.classList.toggle("hidden", n===0);
+  document.getElementById("cartCount").textContent = n;
+  document.getElementById("cartTotal").textContent = fmt(cartTotal());
+}
+
+function renderCartRows(){
+  return Object.entries(state.cart).map(function(e){
+    const k=e[0], c=e[1];
+    return `<div class="crow">
+      <div><div class="crow-name">${escapeHtml(c.name)}${c.variant?` <span class="crow-sub">(${escapeHtml(c.variant)})</span>`:""}</div><div class="crow-sub">${fmt(c.unit)} × ${c.qty}</div></div>
+      <div class="qty-ctl"><button onclick="cartQty('${escapeHtml(k)}',-1)">−</button><b>${c.qty}</b><button onclick="cartQty('${escapeHtml(k)}',1)">+</button></div>
+    </div>`;
+  }).join("");
+}
+function openCart(){
+  if (Object.keys(state.cart).length===0) return;
+  const rows = renderCartRows();
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this) closeModal()"><div class="sheet">
+      <div class="sheet-grab"></div>
+      <h3>ตะกร้า · สรุปออเดอร์</h3>
+      <div id="cartRows">${rows}</div>
+      <div class="total-line"><span>รวมทั้งหมด</span><b id="sumTotal">${fmt(cartTotal())}</b></div>
+
+      <h3 style="font-size:16px; margin-top:6px;">ข้อมูลจัดส่ง</h3>
+      <div class="field"><label class="label">ชื่อผู้สั่ง / ร้าน</label><input id="fName" placeholder="เช่น พี่แอน ร้านมือถือ"></div>
+      <div class="field"><label class="label">จุดส่ง (ร้าน/เคาน์เตอร์ + ชั้น)</label><input id="fLoc" placeholder="เช่น โซน IT ชั้น 3 หน้าร้าน ABC"></div>
+      <div class="field"><label class="label">เบอร์โทร</label><input id="fPhone" type="tel" inputmode="tel" placeholder="08x-xxx-xxxx"></div>
+      <div class="field"><label class="label">ต้องการรับเวลา</label><input id="fTime" placeholder="เช่น 14:30 หรือ เร็วที่สุด"></div>
+      <div class="field"><label class="label">ชำระเงิน</label>
+        <div class="seg" id="paySeg"><button class="on" onclick="pickPay(this)">เงินสด</button><button onclick="pickPay(this)">โอน</button></div>
+      </div>
+      <div class="field"><label class="label">หมายเหตุ (ไม่บังคับ)</label><input id="fNote" placeholder="เช่น หวานน้อย ไม่ใส่ฟอง"></div>
+
+      <button class="btn-line" onclick="sendLine()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.64 2 10.13c0 4.02 3.58 7.39 8.41 8.03.33.07.78.22.89.5.1.26.07.66.03.92l-.14.87c-.04.26-.2 1.02.9.56 1.1-.46 5.93-3.49 8.09-5.98C21.6 13.4 22 11.85 22 10.13 22 5.64 17.52 2 12 2Z"/></svg>
+        ส่งออเดอร์ทาง LINE
+      </button>
+      <button class="btn-copy" onclick="copyOrder()">ก๊อปสรุปออเดอร์ (วางในแชต/โน้ตได้)</button>
+    </div></div>`;
+}
+function cartQty(k, delta){
+  if (state.cart[k]) bump(k, state.cart[k].name, state.cart[k].variant, state.cart[k].unit, delta);
+  if (cartCount()===0){ closeModal(); return; }
+  const r=document.getElementById("cartRows"); if(r) r.innerHTML=renderCartRows();
+  const e=document.getElementById("sumTotal"); if(e) e.textContent=fmt(cartTotal());
+}
+let _pay = "เงินสด";
+function pickPay(btn){ document.querySelectorAll("#paySeg button").forEach(function(b){ b.classList.remove("on"); }); btn.classList.add("on"); _pay=btn.textContent.trim(); }
+
+function buildText(){
+  const lines = [];
+  lines.push("🧾 ออเดอร์ใหม่ — " + SHOP.name + " (" + SHOP.branch + ")");
+  lines.push("————————");
+  Object.values(state.cart).forEach(function(c){
+    lines.push("• " + c.name + (c.variant?(" ("+c.variant+")"):"") + " x" + c.qty + " = " + (c.unit*c.qty) + "฿");
+  });
+  lines.push("————————");
+  lines.push("รวม " + cartTotal() + " บาท");
+  lines.push("");
+  lines.push("👤 ผู้สั่ง: " + (val("fName")||"-"));
+  lines.push("📍 จุดส่ง: " + (val("fLoc")||"-"));
+  lines.push("📞 โทร: " + (val("fPhone")||"-"));
+  lines.push("⏰ เวลา: " + (val("fTime")||"เร็วที่สุด"));
+  lines.push("💵 ชำระ: " + _pay);
+  if (val("fNote")) lines.push("📝 หมายเหตุ: " + val("fNote"));
+  return lines.join("\n");
+}
+function val(id){ const e=document.getElementById(id); return e?e.value.trim():""; }
+
+function validate(){
+  if (!val("fName")){ showToast("กรอกชื่อผู้สั่ง"); return false; }
+  if (!val("fLoc")){ showToast("กรอกจุดส่ง"); return false; }
+  if (!val("fPhone")){ showToast("กรอกเบอร์โทร"); return false; }
+  return true;
+}
+function sendLine(){
+  if (!validate()) return;
+  const text = buildText();
+  let url;
+  if (SHOP.lineUrl){ url = SHOP.lineUrl; copyToClipboard(text); showToast("ก๊อปออเดอร์แล้ว — วางในแชตร้านได้เลย"); }
+  else url = "https://line.me/R/share?text=" + encodeURIComponent(text);
+  window.open(url, "_blank");
+}
+function copyOrder(){ if(!validate()) return; copyToClipboard(buildText()); showToast("ก๊อปสรุปออเดอร์แล้ว ✓"); }
+function copyToClipboard(t){
+  if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).catch(function(){ fallbackCopy(t); }); }
+  else fallbackCopy(t);
+}
+function fallbackCopy(t){ const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); }catch(e){} ta.remove(); }
+
+function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
+function showToast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+
+// init
+initHero(); renderPromos(); renderCats(); renderMenu(); renderCartBar();
+</script>
+</body>
+</html>

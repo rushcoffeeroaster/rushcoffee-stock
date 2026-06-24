@@ -196,7 +196,7 @@
 </nav>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxsLohRbR-jKYJYaz6lXM6sEuo6O-5HSWexRTT9ehE-3p6CZVyHGMhS8ECo_FD5skWP/exec";
 
 const UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ฟอง", "ถุง", "ขวด"];
 const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour" };
@@ -428,11 +428,12 @@ async function submitMenu(){
   if (validIngredients.length===0){ showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ"); return; }
   try{
     for (const ing of validIngredients){
-      await apiCall("addRecipeRow", {
+      const resp = await apiCall("addRecipeRow", {
         id:uid(), menuName, sellingPrice,
         ingredientName:ing.name.trim(), ingredientQty:Number(ing.qty)||0, ingredientUnit:ing.unit,
         buyPrice:Number(ing.buyPrice)||0, packSize:Number(ing.packSize)||0, branch:state.branch,
       });
+      if (resp && resp.error) throw new Error(resp.error);
     }
     showToast(`บันทึกเมนู "${menuName}" แล้ว`);
     await loadAll();
