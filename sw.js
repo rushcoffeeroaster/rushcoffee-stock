@@ -1,6 +1,6 @@
 /* Rush Coffee · Service Worker — รองรับติดตั้งเป็นแอป (PWA) + เปิดเร็ว/ออฟไลน์เบื้องต้น
    หมายเหตุ: ไม่แคชการเรียก API (Apps Script) และรูปจาก Google Drive เพื่อให้ข้อมูลสดเสมอ */
-const CACHE = "rush-coffee-v2";
+const CACHE = "rush-coffee-v3";
 const SHELL = [
   "./", "index.html", "dashboard.html", "menu-cost.html", "attendance.html", "report.html", "bakery.html", "order.html", "order-qr.html",
   "manifest.json", "order-manifest.json", "pwa-install.js", "icon-192.png", "icon-512.png", "icon-180.png"

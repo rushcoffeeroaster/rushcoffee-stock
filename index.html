@@ -265,7 +265,9 @@ async function apiCall(action, payload){
   try{
     const body = new URLSearchParams({ action });
     if (payload) body.set("payload", JSON.stringify(payload));
-    res = await fetch(API_URL, { method:"POST", redirect:"follow",
+    // กันแคช: ผนวก timestamp ที่ URL + สั่ง no-store เพื่อให้ดึงข้อมูลสดทุกครั้ง (กัน googleusercontent cache)
+    const url = API_URL + (API_URL.indexOf("?") >= 0 ? "&" : "?") + "_cb=" + Date.now();
+    res = await fetch(url, { method:"POST", redirect:"follow", cache:"no-store",
       headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: body.toString() });
   }catch(networkErr){ throw new Error("เชื่อมต่อเครือข่ายไม่ได้: " + networkErr.message); }
   const text = await res.text();
