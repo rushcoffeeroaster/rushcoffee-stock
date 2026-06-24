@@ -343,16 +343,6 @@ function renderList(items){
   const lowCount = items.filter((it) => it.min > 0 && it.qty < it.min && it.qty > 0).length;
   const outCount = items.filter((it) => it.qty <= 0).length;
 
-  const visible = items
-    .filter((it) => state.filterCat === "all" || it.category === state.filterCat)
-    .filter((it) => (it.name || "").toLowerCase().includes(state.search.toLowerCase()))
-    .sort((a, b) => {
-      const aLow = a.qty <= 0 ? 2 : (a.min > 0 && a.qty < a.min ? 1 : 0);
-      const bLow = b.qty <= 0 ? 2 : (b.min > 0 && b.qty < b.min ? 1 : 0);
-      if (aLow !== bLow) return bLow - aLow;
-      return (a.name || "").localeCompare(b.name || "", "th");
-    });
-
   let html = `
     <div class="stat-strip">
       <div class="stat"><div class="n">${items.length}</div><div class="l">รายการทั้งหมด</div></div>
@@ -377,22 +367,34 @@ function renderList(items){
       <div class="chip ${state.filterCat === "all" ? "active" : ""}" onclick="setFilter('all')">ทั้งหมด</div>
       ${CATEGORIES.map((c) => `<div class="chip ${state.filterCat === c.id ? "active" : ""}" onclick="setFilter('${c.id}')">${c.label}</div>`).join("")}
     </div>
+    <div id="stockCards">${renderStockCards()}</div>
   `;
+  return html;
+}
 
+function renderStockCards(){
+  const items = branchItems();
+  const visible = items
+    .filter((it) => state.filterCat === "all" || it.category === state.filterCat)
+    .filter((it) => (it.name || "").toLowerCase().includes(state.search.toLowerCase()))
+    .sort((a, b) => {
+      const aLow = a.qty <= 0 ? 2 : (a.min > 0 && a.qty < a.min ? 1 : 0);
+      const bLow = b.qty <= 0 ? 2 : (b.min > 0 && b.qty < b.min ? 1 : 0);
+      if (aLow !== bLow) return bLow - aLow;
+      return (a.name || "").localeCompare(b.name || "", "th");
+    });
   if (visible.length === 0) {
-    html += `<div class="empty">
+    return `<div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21 3 16.5v-9Z"/><path d="m3 7.5 9 4.5 9-4.5M12 12v9"/></svg>
       <div>${items.length === 0 ? "ยังไม่มีวัตถุดิบ — กดเพิ่มรายการแรก" : "ไม่พบรายการที่ค้นหา"}</div>
     </div>`;
-    return html;
   }
-
-  visible.forEach((it) => {
+  return visible.map((it) => {
     const ratio = it.min > 0 ? it.qty / it.min : 1.5;
     const isLow = it.qty <= 0 || (it.min > 0 && it.qty < it.min);
     const pct = it.min > 0 ? Math.min(100, Math.round((it.qty / (it.min * 2)) * 100)) : 100;
     const color = levelColor(ratio);
-    html += `
+    return `
       <div class="card">
         <div class="bar" style="background:${color}"></div>
         <div style="flex:1; min-width:0;">
@@ -415,8 +417,7 @@ function renderList(items){
         </div>
       </div>
     `;
-  });
-  return html;
+  }).join("");
 }
 
 function renderHistory(){
@@ -439,8 +440,8 @@ function renderHistory(){
     const color = isIn ? "#2F8F5B" : isOut ? "#C7553B" : "#9A9FA8";
     const bg = isIn ? "#E9F4EE" : isOut ? "#FBEDE9" : "#EEF1F4";
     const ic = isIn
-      ? `<path d="M12 5v14M5 12l7 7 7-7"/>`
-      : isOut ? `<path d="M12 19V5M5 12l7-7 7 7"/>`
+      ? `<path d="M12 19V5M5 12l7-7 7 7"/>`
+      : isOut ? `<path d="M12 5v14M5 12l7 7 7-7"/>`
       : `<path d="M12 5v14M5 12h14"/>`;
     const timeStr = isNaN(d) ? "" : d.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
     html += `
@@ -462,7 +463,7 @@ function renderHistory(){
 }
 
 function escapeHtml(s){ const div = document.createElement("div"); div.textContent = s == null ? "" : s; return div.innerHTML; }
-function onSearch(v){ state.search = v; render(); setTimeout(() => { const el = document.getElementById("searchInput"); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 0); }
+function onSearch(v){ state.search = v; const el = document.getElementById("stockCards"); if (el) el.innerHTML = renderStockCards(); }
 function setFilter(c){ state.filterCat = c; render(); }
 
 // ----- Modal: move stock -----
@@ -592,7 +593,7 @@ function closeModal(){ document.getElementById("modalRoot").innerHTML = ""; }
 
 // ----- init -----
 loadAll();
-setInterval(() => { if (!document.getElementById("modalRoot").innerHTML) loadAll(); }, 10000);
+setInterval(() => { if (!document.getElementById("modalRoot").innerHTML && (document.activeElement||{}).id !== "searchInput") loadAll(); }, 10000);
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <script src="pwa-install.js"></script>
