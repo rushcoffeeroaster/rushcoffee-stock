@@ -452,6 +452,26 @@ function renderStats(){
     <span>ส่งทั้งหมด <b>${TS}</b></span><span>ขายได้ <b style="color:var(--green)">${TSold>0?TSold:0}</b></span>
     <span>เหลือ <b style="color:${TL>0?'var(--red)':'var(--ink-3)'}">${TL}</b></span><span>อัตราเหลือ <b>${TwastePct.toFixed(0)}%</b></span></div></div>`;
 
+  // ----- คำแนะนำจัดการของเหลือ (อิงสถิติจริง) -----
+  const leftList=Object.keys(byItem).map(function(k){
+    const s=byItem[k]; const it=itemById(k); const nDays=Object.keys(s.days).length||1;
+    return { name:it?it.name:k, ideas:it?it.leftoverIdeas:"", left:s.left, sent:s.sent, nDays:nDays, avgLeft:s.left/nDays };
+  }).filter(function(x){ return x.left>0; }).sort(function(a,b){ return b.left-a.left; });
+  html+=`<h2 style="margin-top:18px;">💡 คำแนะนำจัดการของเหลือ</h2>`;
+  if (leftList.length===0){
+    html+=`<div class="card" style="text-align:center; color:var(--green); font-weight:700;">ช่วงนี้แทบไม่มีของเหลือ — เยี่ยมมาก! 🎉</div>`;
+  } else {
+    leftList.forEach(function(x){
+      const avgSold=Math.max(0,(x.sent-x.left)/x.nDays); const suggest=Math.ceil(avgSold);
+      html+=`<div class="card">
+        <div class="stat-top"><b style="font-size:15px;">${escapeHtml(x.name)}</b><span class="badge b-red">เหลือ ~${x.avgLeft.toFixed(1)}/วัน</span></div>
+        <p style="margin:6px 0 9px; font-size:12.5px; color:var(--ink-2);">รวมเหลือ ${x.left} ชิ้น จาก ${x.nDays} วัน · ลดผลิตเหลือ ~<b>${suggest}</b>/วัน จะเหลือน้อยลง</p>
+        ${x.ideas?`<div class="idea" style="margin:0;"><b>ของเหลือ ~${Math.round(x.avgLeft)} ชิ้น/วัน เอาไปทำต่อ:</b> ${escapeHtml(x.ideas)}</div>`:`<div style="font-size:12px; color:var(--ink-3);">ยังไม่ได้ใส่ไอเดียของเหลือ — เพิ่มในแท็บ "เมนู"</div>`}
+      </div>`;
+    });
+  }
+  html+=`<h2 style="margin-top:18px;">รายละเอียดรายชนิด</h2>`;
+
   Object.keys(byItem).sort(function(a,b){return byItem[b].sent-byItem[a].sent;}).forEach(function(k){
     const s=byItem[k]; const it=itemById(k); const sold=Math.max(0,s.sent-s.left);
     const sellPct=s.sent>0?(sold/s.sent*100):0; const wastePct=s.sent>0?(s.left/s.sent*100):0;
