@@ -305,6 +305,7 @@ function setView(v){
   document.getElementById("tabList").classList.toggle("active", v === "list");
   document.getElementById("tabHistory").classList.toggle("active", v === "history");
   render();
+  loadAll(); // ดึงข้อมูลล่าสุดทุกครั้งที่สลับแท็บ (เห็นรับเข้า/ใช้ออกใหม่ทันที)
 }
 
 function showToast(msg){
