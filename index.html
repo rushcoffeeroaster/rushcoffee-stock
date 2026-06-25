@@ -185,7 +185,7 @@
         <div class="brand-tag">ระบบจัดการสต๊อกวัตถุดิบ</div>
       </div>
     </div>
-    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v4 · ซิงค์...</span>
+    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v5 · ซิงค์...</span>
   </div>
 </div>
 
@@ -205,6 +205,7 @@
   </div>
 
   <div id="errorBox"></div>
+  <div id="debugBox" style="display:none; font-size:11px; background:#FFF7E6; border:1px solid #E8C24E; border-radius:10px; padding:8px 10px; margin-bottom:8px; white-space:pre-wrap; word-break:break-all; font-family:monospace; color:#4A3B12;"></div>
   <div id="content"><div class="loading-text">กำลังโหลดข้อมูล...</div></div>
 </div>
 
@@ -281,7 +282,9 @@ async function loadAll(){
     const data = await apiCall("getAll");
     if (data.error) throw new Error(data.error);
     state.items = (data.items || []).map((it) => ({ ...it, qty: Number(it.qty) || 0, min: Number(it.min) || 0 }));
-    state.logs = (data.logs || []).sort((a, b) => {
+    const rawLogs = data.logs || [];
+    showDebug(rawLogs);
+    state.logs = rawLogs.slice().sort((a, b) => {
       const da = parseLogTime(a.time), db = parseLogTime(b.time);
       return (db ? db.getTime() : -Infinity) - (da ? da.getTime() : -Infinity);
     });
@@ -299,7 +302,23 @@ function stampSync(n){
   const el = document.getElementById("syncStamp");
   if (!el) return;
   const t = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-  el.innerHTML = '<i></i>v4 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
+  el.innerHTML = '<i></i>v5 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
+}
+
+// DEBUG ชั่วคราว: โชว์ค่าเวลา "ดิบ" ของ 4 แถวล่าสุดในชีต (แถวท้ายสุด = ใหม่สุด) + ผลแปลง
+function showDebug(rawLogs){
+  const box = document.getElementById("debugBox");
+  if (!box) return;
+  const last = rawLogs.slice(-4).reverse();
+  let s = "DEBUG · 4 แถวท้ายชีต (ใหม่สุด→เก่า) · ทั้งหมด " + rawLogs.length + " แถว\n";
+  last.forEach((l, i) => {
+    const d = parseLogTime(l.time);
+    s += (i+1) + ") time=" + JSON.stringify(l.time) + "  [" + (typeof l.time) + "]"
+       + "  →แปลง: " + (d ? d.toISOString() : "❌NULL")
+       + "  | " + (l.itemName||"") + " " + (l.type||"") + "\n";
+  });
+  box.textContent = s;
+  box.style.display = "block";
 }
 
 // ล้าง service worker + แคชทั้งหมด แล้วโหลดหน้าใหม่ (กดที่ป้ายเวอร์ชันมุมขวาบน)
