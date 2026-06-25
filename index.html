@@ -185,7 +185,7 @@
         <div class="brand-tag">ระบบจัดการสต๊อกวัตถุดิบ</div>
       </div>
     </div>
-    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v3 · ซิงค์...</span>
+    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v4 · ซิงค์...</span>
   </div>
 </div>
 
@@ -281,7 +281,10 @@ async function loadAll(){
     const data = await apiCall("getAll");
     if (data.error) throw new Error(data.error);
     state.items = (data.items || []).map((it) => ({ ...it, qty: Number(it.qty) || 0, min: Number(it.min) || 0 }));
-    state.logs = (data.logs || []).sort((a, b) => new Date(b.time) - new Date(a.time));
+    state.logs = (data.logs || []).sort((a, b) => {
+      const da = parseLogTime(a.time), db = parseLogTime(b.time);
+      return (db ? db.getTime() : -Infinity) - (da ? da.getTime() : -Infinity);
+    });
     document.getElementById("errorBox").innerHTML = "";
     stampSync(state.logs.length);
   }catch(e){
@@ -296,7 +299,7 @@ function stampSync(n){
   const el = document.getElementById("syncStamp");
   if (!el) return;
   const t = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-  el.innerHTML = '<i></i>v3 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
+  el.innerHTML = '<i></i>v4 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
 }
 
 // ล้าง service worker + แคชทั้งหมด แล้วโหลดหน้าใหม่ (กดที่ป้ายเวอร์ชันมุมขวาบน)
@@ -456,8 +459,8 @@ function renderHistory(){
   let html = "";
   let lastDay = "";
   logs.forEach((l) => {
-    const d = new Date(l.time);
-    const dayKey = isNaN(d) ? "ไม่ทราบวันที่" : d.toLocaleDateString("th-TH", { weekday:"short", day:"2-digit", month:"short", year:"numeric" });
+    const d = parseLogTime(l.time);
+    const dayKey = !d ? "ไม่ทราบวันที่" : d.toLocaleDateString("th-TH", { weekday:"short", day:"2-digit", month:"short", year:"numeric" });
     if (dayKey !== lastDay) {
       if (lastDay !== "") html += `</div>`;
       html += `<div class="date-head">${escapeHtml(dayKey)}</div><div class="hist-card">`;
@@ -471,7 +474,7 @@ function renderHistory(){
       ? `<path d="M12 19V5M5 12l7-7 7 7"/>`
       : isOut ? `<path d="M12 5v14M5 12l7 7 7-7"/>`
       : `<path d="M12 5v14M5 12h14"/>`;
-    const timeStr = isNaN(d) ? "" : d.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
+    const timeStr = !d ? "" : d.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
     html += `
       <div class="log-row">
         <div style="display:flex; gap:11px; align-items:center; min-width:0;">
@@ -488,6 +491,31 @@ function renderHistory(){
   });
   html += `</div>`;
   return html;
+}
+
+// แปลงเวลาจากหลายรูปแบบให้เป็น Date (Safari อ่าน ISO ที่มีเว้นวรรค/รูปแบบไทยไม่ออก จึงต้องแปลงเอง)
+function parseLogTime(v){
+  if (v == null || v === "") return null;
+  if (v instanceof Date) return isNaN(v) ? null : v;
+  if (typeof v === "number"){
+    if (v > 1e11) return new Date(v);                                  // epoch ms
+    return new Date(Math.round((v - 25569) * 86400000));               // เลขซีเรียลของ Google Sheets
+  }
+  let s = String(v).trim();
+  let d = new Date(s);                                                 // ISO เต็ม (...T...Z) Safari อ่านได้
+  if (!isNaN(d)) return d;
+  // "YYYY-MM-DD HH:MM[:SS]" (เว้นวรรคแทน T) — Safari อ่านไม่ออก
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +(m[6]||0));
+  // "DD/MM/YYYY[, ] HH:MM[:SS]"
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5], +(m[6]||0));
+  // เหลือแค่วันที่ "YYYY-MM-DD" หรือ "DD/MM/YYYY"
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  return null;
 }
 
 function escapeHtml(s){ const div = document.createElement("div"); div.textContent = s == null ? "" : s; return div.innerHTML; }
