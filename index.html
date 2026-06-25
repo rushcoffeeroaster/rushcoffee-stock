@@ -185,7 +185,7 @@
         <div class="brand-tag">ระบบจัดการสต๊อกวัตถุดิบ</div>
       </div>
     </div>
-    <span class="live-dot"><i></i>ซิงค์อัตโนมัติ</span>
+    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v3 · ซิงค์...</span>
   </div>
 </div>
 
@@ -283,11 +283,35 @@ async function loadAll(){
     state.items = (data.items || []).map((it) => ({ ...it, qty: Number(it.qty) || 0, min: Number(it.min) || 0 }));
     state.logs = (data.logs || []).sort((a, b) => new Date(b.time) - new Date(a.time));
     document.getElementById("errorBox").innerHTML = "";
+    stampSync(state.logs.length);
   }catch(e){
     document.getElementById("errorBox").innerHTML =
       '<div class="err-box">เชื่อมต่อข้อมูลไม่สำเร็จ: ' + escapeHtml(e.message) + '</div>';
   }
   render();
+}
+
+// แสดงเวอร์ชัน + เวลาที่ดึงข้อมูลล่าสุด (ไว้เช็กว่าโค้ดใหม่ทำงาน + ข้อมูลสดแค่ไหน)
+function stampSync(n){
+  const el = document.getElementById("syncStamp");
+  if (!el) return;
+  const t = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  el.innerHTML = '<i></i>v3 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
+}
+
+// ล้าง service worker + แคชทั้งหมด แล้วโหลดหน้าใหม่ (กดที่ป้ายเวอร์ชันมุมขวาบน)
+async function hardReload(){
+  try{
+    if ("serviceWorker" in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    if (window.caches){
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  }catch(_){}
+  location.reload(true);
 }
 
 // คัดกรองตามสาขา — รายการที่ยังไม่มีค่า branch จะแสดงในทุกสาขา เพื่อไม่ให้ข้อมูลเดิมหาย
