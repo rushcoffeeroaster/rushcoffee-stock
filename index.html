@@ -185,7 +185,7 @@
         <div class="brand-tag">ระบบจัดการสต๊อกวัตถุดิบ</div>
       </div>
     </div>
-    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v5 · ซิงค์...</span>
+    <span class="live-dot" id="syncStamp" onclick="hardReload()" style="cursor:pointer" title="แตะเพื่อล้างแคชแล้วโหลดใหม่"><i></i>v6 · ซิงค์...</span>
   </div>
 </div>
 
@@ -302,20 +302,17 @@ function stampSync(n){
   const el = document.getElementById("syncStamp");
   if (!el) return;
   const t = new Date().toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-  el.innerHTML = '<i></i>v5 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
+  el.innerHTML = '<i></i>v6 · อัปเดต ' + t + ' · ' + (n || 0) + ' รายการ';
 }
 
 // DEBUG ชั่วคราว: โชว์ค่าเวลา "ดิบ" ของ 4 แถวล่าสุดในชีต (แถวท้ายสุด = ใหม่สุด) + ผลแปลง
 function showDebug(rawLogs){
   const box = document.getElementById("debugBox");
   if (!box) return;
-  const last = rawLogs.slice(-4).reverse();
-  let s = "DEBUG · 4 แถวท้ายชีต (ใหม่สุด→เก่า) · ทั้งหมด " + rawLogs.length + " แถว\n";
+  const last = rawLogs.slice(-2).reverse();
+  let s = "DEBUG · 2 แถวท้ายชีต (ใหม่สุด) · ทั้งหมด " + rawLogs.length + " แถว\n\n";
   last.forEach((l, i) => {
-    const d = parseLogTime(l.time);
-    s += (i+1) + ") time=" + JSON.stringify(l.time) + "  [" + (typeof l.time) + "]"
-       + "  →แปลง: " + (d ? d.toISOString() : "❌NULL")
-       + "  | " + (l.itemName||"") + " " + (l.type||"") + "\n";
+    s += "แถว " + (i+1) + ": " + JSON.stringify(l) + "\n\n";
   });
   box.textContent = s;
   box.style.display = "block";
