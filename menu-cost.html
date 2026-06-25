@@ -108,6 +108,14 @@
   .gp-bar-fg{ height:100%; border-radius:6px; transition:width .4s; }
   .gp-label{ font-size:13px; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums; }
   .ingredient-list{ font-size:12px; color:var(--ink-3); margin:4px 0 0; line-height:1.5; }
+  .cat-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:18px 2px 9px; font-size:14px; font-weight:800; color:var(--ink); }
+  .cat-head:first-child{ margin-top:4px; }
+  .cat-count{ display:inline-block; font-size:11px; font-weight:800; color:var(--ink-2); background:var(--accent-soft); border-radius:999px; padding:1px 8px; margin-left:4px; vertical-align:middle; }
+  .cat-avg{ font-size:12px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .serv-badge{ display:inline-block; font-size:11.5px; font-weight:700; color:var(--accent-deep); background:var(--accent-soft); border-radius:8px; padding:3px 9px; margin:8px 0 2px; }
+  .seg{ display:flex; gap:7px; }
+  .seg-btn{ flex:1; text-align:center; padding:11px 6px; border-radius:11px; font-size:14px; font-weight:700; cursor:pointer; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2); transition:.15s; }
+  .seg-btn.active{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; box-shadow:var(--shadow-sm); }
   .menu-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:11px; padding-top:11px; border-top:1px solid var(--line); }
   .cost-summary{ display:flex; gap:18px; font-size:13px; color:var(--ink-2); }
   .cost-summary b{ font-variant-numeric:tabular-nums; color:var(--ink); display:block; margin-top:1px; }
@@ -200,10 +208,14 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxsLohRbR-jKYJYaz6lXM6s
 
 const UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ฟอง", "ถุง", "ขวด"];
 const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour" };
+const CATEGORIES = ["เครื่องดื่ม", "เบเกอรี่"];
+const CAT_ICON = { "เครื่องดื่ม":"☕", "เบเกอรี่":"🥐" };
 
-let state = { recipes:[], view:"list", branch:"rush", sort:"gp", form:{ menuName:"", sellingPrice:"", ingredients:[newIngredientRow()] } };
+let state = { recipes:[], view:"list", branch:"rush", sort:"gp", catFilter:"all",
+  form:{ menuName:"", category:"เครื่องดื่ม", servings:"1", sellingPrice:"", ingredients:[newIngredientRow()] } };
 
 function newIngredientRow(){ return { name:"", qty:"", unit:"g", buyPrice:"", packSize:"" }; }
+function blankForm(){ return { menuName:"", category:"เครื่องดื่ม", servings:"1", sellingPrice:"", ingredients:[newIngredientRow()] }; }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function fmtMoney(n){ return Number(n||0).toLocaleString("th-TH", { maximumFractionDigits:2 }); }
 function escapeHtml(s){ const div=document.createElement("div"); div.textContent = s==null?"":s; return div.innerHTML; }
@@ -236,11 +248,12 @@ async function loadAll(){
 
 function setBranch(b){ state.branch=b; render(); }
 function setSort(s){ state.sort=s; render(); }
+function setCat(c){ state.catFilter=c; render(); }
 function setView(v){
   state.view = v;
   document.getElementById("tabList").classList.toggle("active", v==="list");
   document.getElementById("tabAdd").classList.toggle("active", v==="add");
-  if (v==="add") state.form = { menuName:"", sellingPrice:"", ingredients:[newIngredientRow()] };
+  if (v==="add") state.form = blankForm();
   render();
 }
 document.getElementById("tabList").onclick = () => setView("list");
@@ -252,21 +265,26 @@ function getMenusForBranch(){
   const rows = state.recipes.filter((r) => r.branch === state.branch);
   const byMenu = {};
   rows.forEach((r) => {
-    if (!byMenu[r.menuName]) byMenu[r.menuName] = { menuName:r.menuName, sellingPrice:r.sellingPrice, ingredients:[] };
+    if (!byMenu[r.menuName]) byMenu[r.menuName] = {
+      menuName:r.menuName, category:r.category || "เครื่องดื่ม",
+      servings:Number(r.servings)>0 ? Number(r.servings) : 1,
+      sellingPrice:r.sellingPrice, ingredients:[] };
     byMenu[r.menuName].ingredients.push(r);
   });
   return Object.values(byMenu);
 }
 
 function computeCost(menu){
-  let totalCost = 0;
+  let batchCost = 0;
   menu.ingredients.forEach((ing) => {
     const unitPrice = ing.packSize>0 ? ing.buyPrice/ing.packSize : 0;
-    totalCost += unitPrice * ing.ingredientQty;
+    batchCost += unitPrice * ing.ingredientQty;
   });
-  const gpAmount = menu.sellingPrice - totalCost;
+  const servings = Number(menu.servings)>0 ? Number(menu.servings) : 1;
+  const costPerServing = batchCost / servings;          // ต้นทุนต่อเสิร์ฟ = ต้นทุนรวมสูตร ÷ จำนวนเสิร์ฟ
+  const gpAmount = menu.sellingPrice - costPerServing;  // กำไรต่อเสิร์ฟ
   const gpPercent = menu.sellingPrice>0 ? (gpAmount/menu.sellingPrice)*100 : 0;
-  return { totalCost, gpAmount, gpPercent };
+  return { batchCost, costPerServing, servings, gpAmount, gpPercent };
 }
 function gpColor(pct){ if (pct<30) return "#C7553B"; if (pct<60) return "#CF9A2B"; return "#2F8F5B"; }
 
@@ -285,6 +303,45 @@ function render(){
   document.getElementById("content").innerHTML = state.view==="list" ? renderList(menus) : renderAddForm();
 }
 
+function sortComputed(arr){
+  const s = [...arr];
+  s.sort((a,b)=>{
+    if (state.sort==="gp") return b.gpPercent-a.gpPercent;
+    if (state.sort==="profit") return b.gpAmount-a.gpAmount;
+    if (state.sort==="price") return b.menu.sellingPrice-a.menu.sellingPrice;
+    return a.menu.menuName.localeCompare(b.menu.menuName, "th");
+  });
+  return s;
+}
+
+function renderMenuCard(c){
+  const { menu, batchCost, costPerServing, servings, gpAmount, gpPercent } = c;
+  const color = gpColor(gpPercent);
+  const ingredientText = menu.ingredients.map((i)=>`${escapeHtml(i.ingredientName)} ${i.ingredientQty}${escapeHtml(i.ingredientUnit)}`).join(" · ");
+  const servLine = servings>1
+    ? `<span class="serv-badge">ทำได้ ${servings} เสิร์ฟ · ต้นทุนทั้งสูตร ${fmtMoney(batchCost)} ฿</span>` : "";
+  return `
+    <div class="menu-card">
+      <div class="menu-top">
+        <p class="menu-name">${escapeHtml(menu.menuName)}</p>
+        <span class="menu-price">ขาย ${fmtMoney(menu.sellingPrice)} ฿</span>
+      </div>
+      ${servLine}
+      <p class="ingredient-list">${ingredientText}</p>
+      <div class="gp-bar-row">
+        <div class="gp-bar-bg"><div class="gp-bar-fg" style="width:${Math.max(0,Math.min(100,gpPercent))}%; background:${color}"></div></div>
+        <span class="gp-label" style="color:${color}">GP ${gpPercent.toFixed(0)}%</span>
+      </div>
+      <div class="menu-bottom">
+        <div class="cost-summary">
+          <span>ต้นทุน/เสิร์ฟ<b>${fmtMoney(costPerServing)} ฿</b></span>
+          <span>กำไร/เสิร์ฟ<b style="color:${gpAmount>=0?"#2F8F5B":"#C7553B"}">${fmtMoney(gpAmount)} ฿</b></span>
+        </div>
+        <button class="btn-ghost btn-danger" onclick="deleteMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">ลบ</button>
+      </div>
+    </div>`;
+}
+
 function renderList(menus){
   if (menus.length===0){
     return `<div class="empty">
@@ -293,24 +350,23 @@ function renderList(menus){
   }
   const computed = menus.map((m) => ({ menu:m, ...computeCost(m) }));
 
-  // summary
+  // summary (รวมทุกหมวด)
   const avgGp = computed.reduce((s,c)=>s+c.gpPercent,0) / computed.length;
   const best = [...computed].sort((a,b)=>b.gpPercent-a.gpPercent)[0];
-  const worst = [...computed].sort((a,b)=>a.gpPercent-b.gpPercent)[0];
 
-  // sort
-  computed.sort((a,b)=>{
-    if (state.sort==="gp") return b.gpPercent-a.gpPercent;
-    if (state.sort==="profit") return b.gpAmount-a.gpAmount;
-    if (state.sort==="price") return b.menu.sellingPrice-a.menu.sellingPrice;
-    return a.menu.menuName.localeCompare(b.menu.menuName, "th");
-  });
+  // รวบรวมหมวดที่มีจริง (หมวดมาตรฐานก่อน แล้วต่อด้วยหมวดอื่นถ้ามี)
+  const cats = CATEGORIES.filter(c => computed.some(x=>x.menu.category===c));
+  computed.forEach(x=>{ if (cats.indexOf(x.menu.category)<0) cats.push(x.menu.category); });
 
   let html = `
     <div class="stat-strip">
       <div class="stat"><div class="n">${menus.length}</div><div class="l">เมนูทั้งหมด</div></div>
       <div class="stat"><div class="n" style="color:${gpColor(avgGp)}">${avgGp.toFixed(0)}%</div><div class="l">GP เฉลี่ย</div></div>
       <div class="stat"><div class="n" style="color:#2F8F5B">${best.gpPercent.toFixed(0)}%</div><div class="l">สูงสุด: ${escapeHtml(best.menu.menuName)}</div></div>
+    </div>
+    <div class="chiprow">
+      <div class="chip ${state.catFilter==="all"?"active":""}" onclick="setCat('all')">ทุกหมวด</div>
+      ${CATEGORIES.map(c=>`<div class="chip ${state.catFilter===c?"active":""}" onclick="setCat('${c}')">${CAT_ICON[c]||""} ${c}</div>`).join("")}
     </div>
     <div class="chiprow">
       <span style="font-size:12px; color:var(--ink-3); align-self:center; margin-right:2px;">เรียง:</span>
@@ -320,29 +376,16 @@ function renderList(menus){
       <div class="chip ${state.sort==="name"?"active":""}" onclick="setSort('name')">ชื่อ A-Z</div>
     </div>`;
 
-  html += computed.map(({ menu, totalCost, gpAmount, gpPercent }) => {
-    const color = gpColor(gpPercent);
-    const ingredientText = menu.ingredients.map((i)=>`${escapeHtml(i.ingredientName)} ${i.ingredientQty}${escapeHtml(i.ingredientUnit)}`).join(" · ");
-    return `
-      <div class="menu-card">
-        <div class="menu-top">
-          <p class="menu-name">${escapeHtml(menu.menuName)}</p>
-          <span class="menu-price">ขาย ${fmtMoney(menu.sellingPrice)} ฿</span>
-        </div>
-        <p class="ingredient-list">${ingredientText}</p>
-        <div class="gp-bar-row">
-          <div class="gp-bar-bg"><div class="gp-bar-fg" style="width:${Math.max(0,Math.min(100,gpPercent))}%; background:${color}"></div></div>
-          <span class="gp-label" style="color:${color}">GP ${gpPercent.toFixed(0)}%</span>
-        </div>
-        <div class="menu-bottom">
-          <div class="cost-summary">
-            <span>ต้นทุน<b>${fmtMoney(totalCost)} ฿</b></span>
-            <span>กำไร/แก้ว<b style="color:${gpAmount>=0?"#2F8F5B":"#C7553B"}">${fmtMoney(gpAmount)} ฿</b></span>
-          </div>
-          <button class="btn-ghost btn-danger" onclick="deleteMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">ลบ</button>
-        </div>
-      </div>`;
-  }).join("");
+  const visCats = state.catFilter==="all" ? cats : cats.filter(c=>c===state.catFilter);
+  if (visCats.length===0) return html + `<div class="empty"><div>ยังไม่มีเมนูในหมวดนี้</div></div>`;
+
+  visCats.forEach(cat=>{
+    const items = sortComputed(computed.filter(x=>x.menu.category===cat));
+    if (items.length===0) return;
+    const catAvg = items.reduce((s,c)=>s+c.gpPercent,0)/items.length;
+    html += `<div class="cat-head"><span>${CAT_ICON[cat]||""} ${escapeHtml(cat)} <span class="cat-count">${items.length}</span></span><span class="cat-avg" style="color:${gpColor(catAvg)}">GP เฉลี่ย ${catAvg.toFixed(0)}%</span></div>`;
+    html += items.map(renderMenuCard).join("");
+  });
   return html;
 }
 
@@ -362,22 +405,37 @@ function renderAddForm(){
   return `
     <div class="card">
       <div class="field"><label class="label">ชื่อเมนู</label>
-        <input id="formMenuName" value="${escapeHtml(state.form.menuName)}" oninput="state.form.menuName=this.value" placeholder="เช่น ลาเต้ร้อน" /></div>
-      <div class="field"><label class="label">ราคาขาย (บาท)</label>
-        <input id="formSellingPrice" type="number" inputmode="decimal" min="0" value="${state.form.sellingPrice}" oninput="state.form.sellingPrice=this.value; updateLivePreview()" placeholder="0" /></div>
+        <input id="formMenuName" value="${escapeHtml(state.form.menuName)}" oninput="state.form.menuName=this.value" placeholder="เช่น ลาเต้ร้อน / ครัวซองเนย" /></div>
 
-      <h2 style="margin:6px 0 4px;">วัตถุดิบที่ใช้</h2>
-      <p style="font-size:11.5px; color:var(--ink-3); margin:0 0 11px;">กรอก "ราคาซื้อ" และ "ขนาดที่ซื้อ" ของแพ็ก เช่น ซื้อเมล็ด 250 บาท/1000 g → ระบบหารต้นทุนต่อหน่วยให้อัตโนมัติ</p>
+      <div class="field"><label class="label">หมวด</label>
+        <div class="seg" id="catSeg">
+          ${CATEGORIES.map((c)=>`<div class="seg-btn ${state.form.category===c?"active":""}" onclick="setFormCat('${c}')">${CAT_ICON[c]||""} ${c}</div>`).join("")}
+        </div></div>
+
+      <div class="row">
+        <div class="field" style="flex:1;"><label class="label">ราคาขาย/เสิร์ฟ (บาท)</label>
+          <input id="formSellingPrice" type="number" inputmode="decimal" min="0" value="${state.form.sellingPrice}" oninput="state.form.sellingPrice=this.value; updateLivePreview()" placeholder="0" /></div>
+        <div class="field" style="flex:1;"><label class="label">ทำได้กี่เสิร์ฟ/สูตร</label>
+          <input id="formServings" type="number" inputmode="numeric" min="1" value="${state.form.servings}" oninput="state.form.servings=this.value; updateLivePreview()" placeholder="1" /></div>
+      </div>
+
+      <h2 style="margin:6px 0 4px;">วัตถุดิบที่ใช้ (ทั้งสูตร)</h2>
+      <p style="font-size:11.5px; color:var(--ink-3); margin:0 0 11px;">ใส่ปริมาณวัตถุดิบ "ทั้งสูตร" + "ราคาซื้อ" และ "ขนาดแพ็ก" เช่น แป้ง 1000 g (ซื้อ 45฿/1000 g) → ระบบหารต้นทุนต่อหน่วย แล้วหารด้วยจำนวนเสิร์ฟเป็นต้นทุนต่อชิ้นให้อัตโนมัติ</p>
       <div id="ingredientRows">${renderIngredientRows()}</div>
       <button class="btn-ghost" style="width:100%; margin-bottom:14px;" onclick="addIngredientRow()">+ เพิ่มวัตถุดิบ</button>
 
       <div class="preview-card">
         <p style="margin:0 0 4px; font-size:12px; color:var(--ink-2); font-weight:600;">ตัวอย่างผลคำนวณ</p>
-        <p id="livePreview" style="margin:0; font-weight:800; font-size:14px;"></p>
+        <p id="livePreview" style="margin:0; font-weight:800; font-size:14px; line-height:1.55;"></p>
       </div>
 
       <button class="btn-primary btn-block" onclick="submitMenu()">บันทึกเมนูนี้</button>
     </div>`;
+}
+
+function setFormCat(c){
+  state.form.category = c;
+  document.querySelectorAll("#catSeg .seg-btn").forEach((el, i) => el.classList.toggle("active", CATEGORIES[i]===c));
 }
 
 function renderIngredientRows(){
@@ -403,33 +461,39 @@ function removeIngredientRow(idx){ state.form.ingredients.splice(idx,1); documen
 
 function updateLivePreview(){
   const sellingPrice = Number(state.form.sellingPrice)||0;
-  let totalCost = 0;
+  const servings = Number(state.form.servings)>0 ? Number(state.form.servings) : 1;
+  let batchCost = 0;
   state.form.ingredients.forEach((ing)=>{
     const qty=Number(ing.qty)||0, buyPrice=Number(ing.buyPrice)||0, packSize=Number(ing.packSize)||0;
     const unitPrice = packSize>0 ? buyPrice/packSize : 0;
-    totalCost += unitPrice*qty;
+    batchCost += unitPrice*qty;
   });
-  const gpAmount = sellingPrice - totalCost;
+  const costPerServing = batchCost / servings;
+  const gpAmount = sellingPrice - costPerServing;
   const gpPercent = sellingPrice>0 ? (gpAmount/sellingPrice)*100 : 0;
   const color = gpColor(gpPercent);
   const el = document.getElementById("livePreview");
-  if (el){
-    el.innerHTML = (sellingPrice>0 || totalCost>0)
-      ? `ต้นทุน ${fmtMoney(totalCost)} ฿ &nbsp;·&nbsp; กำไร ${fmtMoney(gpAmount)} ฿ &nbsp;·&nbsp; <span style="color:${color}">GP ${gpPercent.toFixed(1)}%</span>`
-      : `<span style="color:var(--ink-3); font-weight:500;">กรอกราคาขายและวัตถุดิบเพื่อดูตัวอย่าง</span>`;
+  if (!el) return;
+  if (sellingPrice>0 || batchCost>0){
+    const servNote = servings>1 ? `ต้นทุนทั้งสูตร ${fmtMoney(batchCost)} ฿ ÷ ${servings} เสิร์ฟ<br>` : "";
+    el.innerHTML = `${servNote}ต้นทุน/เสิร์ฟ ${fmtMoney(costPerServing)} ฿ &nbsp;·&nbsp; กำไร/เสิร์ฟ ${fmtMoney(gpAmount)} ฿ &nbsp;·&nbsp; <span style="color:${color}">GP ${gpPercent.toFixed(1)}%</span>`;
+  } else {
+    el.innerHTML = `<span style="color:var(--ink-3); font-weight:500;">กรอกราคาขายและวัตถุดิบเพื่อดูตัวอย่าง</span>`;
   }
 }
 
 async function submitMenu(){
   const menuName = state.form.menuName.trim();
   const sellingPrice = Number(state.form.sellingPrice)||0;
+  const category = state.form.category || "เครื่องดื่ม";
+  const servings = Number(state.form.servings)>0 ? Number(state.form.servings) : 1;
   if (!menuName){ showToast("กรุณาใส่ชื่อเมนู"); return; }
   const validIngredients = state.form.ingredients.filter((i)=>i.name.trim());
   if (validIngredients.length===0){ showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ"); return; }
   try{
     for (const ing of validIngredients){
       const resp = await apiCall("addRecipeRow", {
-        id:uid(), menuName, sellingPrice,
+        id:uid(), menuName, category, servings, sellingPrice,
         ingredientName:ing.name.trim(), ingredientQty:Number(ing.qty)||0, ingredientUnit:ing.unit,
         buyPrice:Number(ing.buyPrice)||0, packSize:Number(ing.packSize)||0, branch:state.branch,
       });
