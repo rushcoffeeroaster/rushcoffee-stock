@@ -101,6 +101,31 @@
   .seg button.on{ background:var(--gold-grad); color:#2A2208; border-color:transparent; }
   .toast{ position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px; font-weight:600; z-index:200; box-shadow:var(--shadow-md); }
   .empty-cart{ text-align:center; color:var(--ink-3); padding:30px 0; }
+
+  /* ===== Admin editor (ฝั่งร้าน) ===== */
+  .adm{ position:fixed; inset:0; z-index:300; background:var(--bg,#EFE7D4); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .adm-top{ position:sticky; top:0; z-index:5; background:rgba(239,231,212,.92); backdrop-filter:saturate(160%) blur(12px); border-bottom:1px solid var(--line-strong); display:flex; align-items:center; justify-content:space-between; gap:8px; padding:13px 16px; }
+  .adm-top h3{ margin:0; font-size:17px; font-weight:800; }
+  .adm-x{ border:none; background:none; font-size:24px; line-height:1; color:var(--ink-2); cursor:pointer; padding:2px 6px; }
+  .adm-wrap{ max-width:620px; margin:0 auto; padding:14px 16px 120px; }
+  .adm-cat{ background:var(--surface,#fff); border:1px solid var(--line-strong); border-radius:16px; padding:13px; margin-bottom:13px; box-shadow:var(--shadow-sm); }
+  .adm-cat-head{ display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+  .adm-cat-head input{ flex:1; font-weight:800; font-size:15px; }
+  .adm-item{ border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:9px; background:var(--surface-2,#FBFAF7); }
+  .adm-r{ display:flex; gap:7px; margin-bottom:7px; }
+  .adm-r:last-child{ margin-bottom:0; }
+  .adm input, .adm textarea{ width:100%; border:1px solid var(--line-strong); border-radius:9px; padding:9px 10px; font-size:14px; font-family:inherit; background:#fff; color:var(--ink); }
+  .adm input:focus, .adm textarea:focus{ outline:none; border-color:var(--gold,#C2941A); }
+  .adm .w-price{ flex:0 0 92px; }
+  .adm .lbl{ font-size:11px; color:var(--ink-3); font-weight:700; display:block; margin:0 0 3px 2px; }
+  .adm-temp{ display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; color:var(--ink-2); white-space:nowrap; padding:0 4px; }
+  .adm-temp input{ width:18px; height:18px; }
+  .adm-del{ border:1px solid #EED2C8; background:#FBEDE9; color:#C7553B; border-radius:9px; font-weight:800; font-size:13px; padding:0 11px; cursor:pointer; white-space:nowrap; }
+  .adm-add{ border:1px dashed var(--line-strong); background:none; color:var(--ink-2); border-radius:10px; font-family:inherit; font-weight:700; font-size:13px; padding:9px; width:100%; cursor:pointer; }
+  .adm-add-cat{ border:1px solid var(--gold,#C2941A); color:var(--gold-deep,#8A6608); background:#FAF3DC; }
+  .adm-sec{ font-size:13px; font-weight:800; color:var(--ink-2); margin:20px 2px 9px; }
+  .adm-save{ position:fixed; left:0; right:0; bottom:0; z-index:6; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:rgba(239,231,212,.94); backdrop-filter:blur(10px); border-top:1px solid var(--line-strong); }
+  .adm-save .inner{ max-width:620px; margin:0 auto; }
 </style>
 </head>
 <body>
@@ -121,7 +146,13 @@
 
   <div class="cats" id="cats"></div>
   <div id="menu"></div>
+
+  <div style="text-align:center; margin:30px 0 10px;">
+    <button onclick="openAdminPin()" style="border:none; background:none; color:var(--ink-3); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;">⚙ จัดการเมนู (สำหรับร้าน)</button>
+  </div>
 </div>
+
+<div id="adminRoot"></div>
 
 <div class="cart-bar hidden" id="cartBar">
   <button class="cart-btn" onclick="openCart()">
@@ -134,7 +165,7 @@
 
 <script>
 // (ออปชั่น) วาง URL ของ order.gs เพื่อดึงเมนูจาก Google Sheet — เว้นว่าง = ใช้เมนูในไฟล์ด้านล่าง
-const ORDER_API = "";
+const ORDER_API = "https://script.google.com/macros/s/AKfycbzqSOZIzR_j47CbFr94bq-3vur9OCWDj-90GnyOZD2wksqpaaBqoskk0_x-o3yLlSJ7kg/exec";
 
 /* ====== CONFIG: เมนูในไฟล์ (ถ้าตั้ง ORDER_API จะดึงจากชีตมาทับ) — แก้ได้ที่นี่ ====== */
 let SHOP = {
@@ -306,8 +337,9 @@ function openCart(){
 
       <button class="btn-line" onclick="sendLine()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.64 2 10.13c0 4.02 3.58 7.39 8.41 8.03.33.07.78.22.89.5.1.26.07.66.03.92l-.14.87c-.04.26-.2 1.02.9.56 1.1-.46 5.93-3.49 8.09-5.98C21.6 13.4 22 11.85 22 10.13 22 5.64 17.52 2 12 2Z"/></svg>
-        ส่งออเดอร์ทาง LINE
+        ส่งเข้า LINE กลุ่มร้าน
       </button>
+      <p style="text-align:center; font-size:11.5px; color:var(--ink-3); margin:8px 2px 0;">จะเปิด LINE ให้เลือกแชต — เลือก <b>กลุ่ม Rush Hour</b> แล้วกดส่ง (ออเดอร์ใส่มาให้พร้อม)</p>
       <button class="btn-copy" onclick="copyOrder()">ก๊อปสรุปออเดอร์ (วางในแชต/โน้ตได้)</button>
     </div></div>`;
 }
@@ -349,10 +381,10 @@ function validate(){
 function sendLine(){
   if (!validate()) return;
   const text = buildText();
-  let url;
-  if (SHOP.lineUrl){ url = SHOP.lineUrl; copyToClipboard(text); showToast("ก๊อปออเดอร์แล้ว — วางในแชตร้านได้เลย"); }
-  else url = "https://line.me/R/share?text=" + encodeURIComponent(text);
-  window.open(url, "_blank");
+  copyToClipboard(text); // สำรองข้อความไว้ เผื่อบางเครื่อง share ไม่พกข้อความไปด้วย
+  // เปิด LINE → หน้าจอเลือกแชต ลูกค้าเลือก "กลุ่ม Rush Hour" แล้วกดส่ง (ออเดอร์ใส่มาให้พร้อม)
+  window.open("https://line.me/R/share?text=" + encodeURIComponent(text), "_blank");
+  showToast("เลือกแชตกลุ่ม Rush Hour แล้วกดส่งได้เลย ✓");
 }
 function copyOrder(){ if(!validate()) return; copyToClipboard(buildText()); showToast("ก๊อปสรุปออเดอร์แล้ว ✓"); }
 function copyToClipboard(t){
@@ -364,12 +396,152 @@ function fallbackCopy(t){ const ta=document.createElement("textarea"); ta.value=
 function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
 function showToast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
 
+/* ===================== จัดการเมนู (ฝั่งร้าน) — ล็อกด้วย PIN ===================== */
+let adminPin = "";
+let adm = { menu: [], promos: [] };
+function apiReady(){ return /^https:\/\/script\.google\.com/.test(ORDER_API); }
+function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
+
+function openAdminPin(){
+  if (!apiReady()){
+    alert("ยังไม่ได้เชื่อมระบบเมนู\n\nต้อง Deploy order.gs (Web app) แล้วเอาลิงก์ /exec มาวางในตัวแปร ORDER_API ของ order.html ก่อน จึงจะแก้เมนูจากในแอปได้");
+    return;
+  }
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this) closeModal()"><div class="sheet" style="max-width:360px;">
+      <div class="sheet-grab"></div>
+      <h3>จัดการเมนู · สำหรับร้าน</h3>
+      <p class="label">ใส่ PIN พนักงาน</p>
+      <input id="admPinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" style="text-align:center; letter-spacing:8px; font-size:22px;" onkeydown="if(event.key==='Enter') submitAdminPin()">
+      <button class="btn-line" style="background:var(--gold-grad); color:#2A2208; margin-top:16px;" onclick="submitAdminPin()">เข้าสู่ระบบ</button>
+    </div></div>`;
+  setTimeout(function(){ const el=document.getElementById("admPinInput"); if(el) el.focus(); }, 120);
+}
+
+async function submitAdminPin(){
+  const el = document.getElementById("admPinInput");
+  const pin = el ? el.value.trim() : "";
+  if (!pin){ showToast("ใส่ PIN ก่อน"); return; }
+  try{
+    const res = await fetch(ORDER_API, { method:"POST", redirect:"follow", cache:"no-store", headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body:"action=checkPin&payload="+encodeURIComponent(JSON.stringify({ pin:pin })) });
+    const d = JSON.parse(await res.text());
+    if (d && d.ok){ adminPin = pin; closeModal(); openAdmin(); }
+    else showToast("PIN ไม่ถูกต้อง");
+  }catch(e){ showToast("เชื่อมต่อไม่ได้: " + e.message); }
+}
+
+function openAdmin(){
+  adm.menu = deepClone(MENU).map(function(c){ return { cat:c.cat||"", items:(c.items||[]).map(function(it){
+    return { name:it.name||"", price:Number(it.price)||0, temp:!!it.temp, tag:it.tag||"", desc:it.desc||"" }; }) }; });
+  adm.promos = deepClone(PROMOS).map(function(p){ return { title:p.title||"", detail:p.detail||"" }; });
+  renderAdmin();
+}
+function closeAdmin(){ document.getElementById("adminRoot").innerHTML = ""; }
+
+function renderAdmin(){
+  const cats = adm.menu.map(function(c, ci){
+    const items = c.items.map(function(it, ii){
+      return `
+        <div class="adm-item">
+          <div class="adm-r">
+            <input value="${escapeHtml(it.name)}" placeholder="ชื่อเมนู" oninput="admItem(${ci},${ii},'name',this.value)">
+            <input class="w-price" type="number" inputmode="decimal" min="0" value="${it.price}" placeholder="ราคา" oninput="admItem(${ci},${ii},'price',this.value)">
+          </div>
+          <div class="adm-r">
+            <input value="${escapeHtml(it.tag)}" placeholder="ป้าย (เช่น ขายดี)" oninput="admItem(${ci},${ii},'tag',this.value)">
+            <label class="adm-temp"><input type="checkbox" ${it.temp?"checked":""} onchange="admItem(${ci},${ii},'temp',this.checked)">ร้อน/เย็น/ปั่น</label>
+          </div>
+          <div class="adm-r">
+            <input value="${escapeHtml(it.desc)}" placeholder="คำอธิบาย (ไม่บังคับ)" oninput="admItem(${ci},${ii},'desc',this.value)">
+            <button class="adm-del" onclick="admDelItem(${ci},${ii})">ลบ</button>
+          </div>
+        </div>`;
+    }).join("");
+    return `
+      <div class="adm-cat">
+        <div class="adm-cat-head">
+          <input value="${escapeHtml(c.cat)}" placeholder="ชื่อหมวด" oninput="admCat(${ci},this.value)">
+          <button class="adm-del" onclick="admDelCat(${ci})">ลบหมวด</button>
+        </div>
+        ${items}
+        <button class="adm-add" onclick="admAddItem(${ci})">+ เพิ่มเมนูในหมวดนี้</button>
+      </div>`;
+  }).join("");
+
+  const promos = adm.promos.map(function(p, pi){
+    return `
+      <div class="adm-item">
+        <div class="adm-r"><input value="${escapeHtml(p.title)}" placeholder="หัวข้อโปรโมชั่น" oninput="admPromo(${pi},'title',this.value)"></div>
+        <div class="adm-r">
+          <input value="${escapeHtml(p.detail)}" placeholder="รายละเอียด" oninput="admPromo(${pi},'detail',this.value)">
+          <button class="adm-del" onclick="admDelPromo(${pi})">ลบ</button>
+        </div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("adminRoot").innerHTML = `
+    <div class="adm">
+      <div class="adm-top">
+        <h3>จัดการเมนู · ร้าน</h3>
+        <button class="adm-x" onclick="closeAdmin()">✕</button>
+      </div>
+      <div class="adm-wrap">
+        <div class="adm-sec">เมนู &amp; ราคา</div>
+        ${cats}
+        <button class="adm-add adm-add-cat" onclick="admAddCat()">+ เพิ่มหมวดใหม่</button>
+        <div class="adm-sec">โปรโมชั่น</div>
+        ${promos}
+        <button class="adm-add" onclick="admAddPromo()">+ เพิ่มโปรโมชั่น</button>
+      </div>
+      <div class="adm-save"><div class="inner">
+        <button class="btn-line" style="background:var(--gold-grad); color:#2A2208;" onclick="admSave()">💾 บันทึกเมนู (อัปเดตให้ลูกค้าทันที)</button>
+      </div></div>
+    </div>`;
+}
+
+// แก้ค่าในช่อง — ไม่ re-render เพื่อไม่ให้เคอร์เซอร์หลุด
+function admCat(ci, v){ adm.menu[ci].cat = v; }
+function admItem(ci, ii, f, v){ adm.menu[ci].items[ii][f] = (f==="price") ? (Number(v)||0) : v; }
+function admPromo(pi, f, v){ adm.promos[pi][f] = v; }
+// เพิ่ม/ลบ — re-render
+function admAddItem(ci){ adm.menu[ci].items.push({ name:"", price:0, temp:false, tag:"", desc:"" }); renderAdmin(); }
+function admDelItem(ci, ii){ adm.menu[ci].items.splice(ii,1); renderAdmin(); }
+function admAddCat(){ adm.menu.push({ cat:"", items:[{ name:"", price:0, temp:false, tag:"", desc:"" }] }); renderAdmin(); }
+function admDelCat(ci){ if(!confirm("ลบทั้งหมวดนี้ใช่ไหม?")) return; adm.menu.splice(ci,1); renderAdmin(); }
+function admAddPromo(){ adm.promos.push({ title:"", detail:"" }); renderAdmin(); }
+function admDelPromo(pi){ adm.promos.splice(pi,1); renderAdmin(); }
+
+async function admSave(){
+  const menuRows = [];
+  adm.menu.forEach(function(c){
+    const cat = (c.cat||"").trim();
+    c.items.forEach(function(it){
+      if (!cat || !(it.name||"").trim()) return;
+      menuRows.push({ cat:cat, name:(it.name||"").trim(), price:Number(it.price)||0, temp:it.temp?"yes":"no", tag:(it.tag||"").trim(), desc:(it.desc||"").trim() });
+    });
+  });
+  const promoRows = adm.promos.filter(function(p){ return (p.title||"").trim(); })
+    .map(function(p){ return { title:(p.title||"").trim(), detail:(p.detail||"").trim() }; });
+  if (menuRows.length===0){ showToast("ต้องมีเมนูอย่างน้อย 1 รายการ"); return; }
+  try{
+    const res = await fetch(ORDER_API, { method:"POST", redirect:"follow", cache:"no-store", headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body:"action=saveMenu&payload="+encodeURIComponent(JSON.stringify({ pin:adminPin, menu:menuRows, promos:promoRows })) });
+    const d = JSON.parse(await res.text());
+    if (d && d.error) throw new Error(d.error);
+    showToast("บันทึกเมนูแล้ว ✓ ลูกค้าจะเห็นเมนูใหม่");
+    closeAdmin();
+    await fetchMenu();
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
+}
+
 // init — แสดงเมนูในไฟล์ก่อน แล้วถ้าตั้ง ORDER_API ค่อยดึงเมนูจากชีตมาทับ
 initHero(); renderPromos(); renderCats(); renderMenu(); renderCartBar();
 async function fetchMenu(){
   if (!/^https:\/\/script\.google\.com/.test(ORDER_API)) return;
   try{
-    const res = await fetch(ORDER_API, { method:"POST", redirect:"follow", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:"action=getMenu" });
+    const url = ORDER_API + (ORDER_API.indexOf("?")>=0?"&":"?") + "_cb=" + Date.now();
+    const res = await fetch(url, { method:"POST", redirect:"follow", cache:"no-store", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:"action=getMenu" });
     const d = JSON.parse(await res.text());
     if (d && !d.error){
       if (d.shop) SHOP = Object.assign({}, SHOP, d.shop);
