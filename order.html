@@ -210,6 +210,15 @@ let MENU = [
 ];
 /* ========================================================================= */
 
+/* ====== ตัวเลือกกาแฟ (ใช้กับเมนูในหมวด "กาแฟ") — แก้ราคา/ตัวเลือกได้ที่นี่ ====== */
+const COFFEE_CAT = "กาแฟ";
+const COFFEE_OPT_GROUPS = [
+  { key:"strength", label:"ความเข้ม", choices:[ {v:"กลาง",add:0}, {v:"เข้ม",add:0}, {v:"อ่อน",add:0} ] },
+  { key:"bean",     label:"เมล็ดกาแฟ", choices:[ {v:"ปกติ",add:0}, {v:"เกอิชา",add:20} ] },
+  { key:"milk",     label:"นม",        choices:[ {v:"ปกติ",add:0}, {v:"โอ๊ต",add:0,free:true} ] }
+];
+/* ========================================================================= */
+
 let state = { activeCat: 0, cart: {} }; // cart: key -> {name, variant, unit, qty}
 
 function fmt(n){ return "฿" + Number(n||0).toLocaleString("th-TH"); }
@@ -236,16 +245,23 @@ function setCat(i){ state.activeCat=i; renderCats(); renderMenu(); window.scroll
 
 function renderMenu(){
   const c = MENU[state.activeCat]; if(!c) return;
+  const isCoffee = c.cat === COFFEE_CAT;
   document.getElementById("menu").innerHTML = c.items.map(function(it){
     const inCart = Object.keys(state.cart).filter(function(k){ return state.cart[k].name===it.name; })
       .reduce(function(s,k){ return s+state.cart[k].qty; }, 0);
-    const right = inCart>0 && !it.temp
+    const hasOpts = it.temp || isCoffee; // มีตัวเลือก → กดแล้วเปิดหน้าต่างเลือก (ไม่ใช้ปุ่ม +/- ลัด)
+    const right = inCart>0 && !hasOpts
       ? `<div class="qty-ctl"><button onclick="changeQty('${escapeHtml(key(it.name,""))}',-1)">−</button><b>${inCart}</b><button onclick="addItem('${escapeHtml(it.name)}')">+</button></div>`
       : `<button class="add-btn" onclick="addItem('${escapeHtml(it.name)}')">+</button>`;
+    const parts = [];
+    if (it.temp) parts.push(`ร้อน / เย็น +${SHOP.icedFee} / ปั่น +${SHOP.blendFee}`);
+    else if (it.desc) parts.push(escapeHtml(it.desc));
+    if (isCoffee) parts.push("ปรับเข้ม/กลาง/อ่อน · เกอิชา +20 · โอ๊ตฟรี");
+    const descHtml = parts.length ? `<p class="item-desc">${parts.join(" · ")}</p>` : "";
     return `<div class="item">
       <div class="item-info">
         <p class="item-name">${escapeHtml(it.name)}${it.tag?`<span class="tag">${escapeHtml(it.tag)}</span>`:""}</p>
-        ${it.desc?`<p class="item-desc">${escapeHtml(it.desc)}</p>`:it.temp?`<p class="item-desc">ร้อน / เย็น +${SHOP.icedFee} / ปั่น +${SHOP.blendFee}</p>`:""}
+        ${descHtml}
       </div>
       <span class="item-price">${fmt(it.price)}</span>
       ${right}
@@ -254,14 +270,14 @@ function renderMenu(){
 }
 
 function findItem(name){
-  for (const c of MENU){ for (const it of c.items){ if (it.name===name) return it; } }
+  for (const c of MENU){ for (const it of c.items){ if (it.name===name) return { it:it, cat:c.cat }; } }
   return null;
 }
 
 function addItem(name){
-  const it = findItem(name); if(!it) return;
-  if (it.temp){ openTempPicker(it); return; }
-  bump(key(name,""), name, "", it.price, 1);
+  const f = findItem(name); if(!f) return;
+  if (f.it.temp || f.cat === COFFEE_CAT){ openItemOptions(f.it, f.cat); return; }
+  bump(key(name,""), name, "", f.it.price, 1);
 }
 function bump(k, name, variant, unit, delta){
   if (!state.cart[k]) state.cart[k] = { name:name, variant:variant, unit:unit, qty:0 };
@@ -271,27 +287,53 @@ function bump(k, name, variant, unit, delta){
 }
 function changeQty(k, delta){ if (state.cart[k]) bump(k, state.cart[k].name, state.cart[k].variant, state.cart[k].unit, delta); }
 
-function openTempPicker(it){
+// สร้างกลุ่มตัวเลือกของเมนูนี้: แบบ (ร้อน/เย็น/ปั่น) + ตัวเลือกกาแฟ (เข้ม/เกอิชา/โอ๊ต)
+function optionGroupsFor(it, cat){
+  const groups = [];
+  if (it.temp) groups.push({ key:"temp", label:"แบบ", choices:[
+    { v:"ร้อน", add:0 }, { v:"เย็น", add:SHOP.icedFee }, { v:"ปั่น", add:SHOP.blendFee }
+  ]});
+  if (cat === COFFEE_CAT) COFFEE_OPT_GROUPS.forEach(function(g){ groups.push(g); });
+  return groups;
+}
+
+let _optGroups = [], _optBase = 0, _opts = {};
+function openItemOptions(it, cat){
+  _optGroups = optionGroupsFor(it, cat);
+  _optBase = Number(it.price) || 0;
+  _opts = {};
+  _optGroups.forEach(function(g){ _opts[g.key] = { v:g.choices[0].v, add:Number(g.choices[0].add)||0 }; });
+  const groupsHtml = _optGroups.map(function(g){
+    return `
+      <p class="label" style="margin-top:14px;">${escapeHtml(g.label)}</p>
+      <div class="seg opt-seg" data-group="${g.key}">
+        ${g.choices.map(function(ch, idx){
+          const extra = ch.add>0 ? ` +${ch.add}` : (ch.free ? " (ฟรี)" : "");
+          return `<button class="${idx===0?'on':''}" data-add="${Number(ch.add)||0}" data-v="${escapeHtml(ch.v)}" onclick="pickOpt(this)">${escapeHtml(ch.v)}${extra}</button>`;
+        }).join("")}
+      </div>`;
+  }).join("");
   document.getElementById("modalRoot").innerHTML = `
     <div class="overlay" onclick="if(event.target===this) closeModal()"><div class="sheet" style="max-width:560px;">
       <div class="sheet-grab"></div>
       <h3>${escapeHtml(it.name)}</h3>
-      <p class="label">เลือกแบบ</p>
-      <div class="seg" id="tempSeg">
-        <button class="on" data-v="ร้อน" data-add="0" onclick="pickTemp(this)">ร้อน ${fmt(it.price)}</button>
-        <button data-v="เย็น" data-add="${SHOP.icedFee}" onclick="pickTemp(this)">เย็น ${fmt(it.price+SHOP.icedFee)}</button>
-        <button data-v="ปั่น" data-add="${SHOP.blendFee}" onclick="pickTemp(this)">ปั่น ${fmt(it.price+SHOP.blendFee)}</button>
-      </div>
-      <button class="btn-line" style="background:var(--gold-grad); color:#2A2208; margin-top:18px;" onclick="confirmTemp('${escapeHtml(it.name)}', ${it.price})">เพิ่มลงตะกร้า</button>
+      ${groupsHtml}
+      <button class="btn-line" style="background:var(--gold-grad); color:#2A2208; margin-top:20px;" onclick="confirmOptions('${escapeHtml(it.name).replace(/'/g,"\\'")}')">เพิ่มลงตะกร้า · <span id="optTotal">${fmt(_optBase)}</span></button>
     </div></div>`;
 }
-let _temp = { v:"ร้อน", add:0 };
-function pickTemp(btn){
-  document.querySelectorAll("#tempSeg button").forEach(function(b){ b.classList.remove("on"); });
-  btn.classList.add("on"); _temp = { v: btn.dataset.v, add: Number(btn.dataset.add) };
+function pickOpt(btn){
+  const seg = btn.parentNode; const gk = seg.getAttribute("data-group");
+  seg.querySelectorAll("button").forEach(function(b){ b.classList.remove("on"); });
+  btn.classList.add("on");
+  _opts[gk] = { v: btn.getAttribute("data-v"), add: Number(btn.getAttribute("data-add"))||0 };
+  let add = 0; _optGroups.forEach(function(g){ add += _opts[g.key].add; });
+  const el = document.getElementById("optTotal"); if (el) el.textContent = fmt(_optBase + add);
 }
-function confirmTemp(name, price){
-  bump(key(name, _temp.v), name, _temp.v, price + _temp.add, 1);
+function confirmOptions(name){
+  let add = 0; const parts = [];
+  _optGroups.forEach(function(g){ const sel = _opts[g.key]; add += sel.add; if (sel.v && sel.v !== "ปกติ") parts.push(sel.v); });
+  const variant = parts.join(" · ");
+  bump(key(name, variant), name, variant, _optBase + add, 1);
   closeModal();
 }
 
