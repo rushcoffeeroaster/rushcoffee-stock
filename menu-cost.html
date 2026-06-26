@@ -337,7 +337,10 @@ function renderMenuCard(c){
           <span>ต้นทุน/เสิร์ฟ<b>${fmtMoney(costPerServing)} ฿</b></span>
           <span>กำไร/เสิร์ฟ<b style="color:${gpAmount>=0?"#2F8F5B":"#C7553B"}">${fmtMoney(gpAmount)} ฿</b></span>
         </div>
-        <button class="btn-ghost btn-danger" onclick="deleteMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">ลบ</button>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-ghost" onclick="editMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">แก้ไข</button>
+          <button class="btn-ghost btn-danger" onclick="deleteMenu('${escapeHtml(menu.menuName).replace(/'/g, "\\'")}')">ลบ</button>
+        </div>
       </div>
     </div>`;
 }
@@ -400,10 +403,39 @@ async function deleteMenu(menuName){
   }catch(e){ showToast("ลบไม่สำเร็จ: " + e.message); }
 }
 
+// ----- แก้ไขสูตรที่บันทึกไว้แล้ว -----
+function editMenu(menuName){
+  const m = getMenusForBranch().find((x) => x.menuName === menuName);
+  if (!m){ showToast("ไม่พบเมนูนี้"); return; }
+  state.form = {
+    editingName: menuName,                 // ชื่อเดิม ไว้ลบของเก่าตอนบันทึก
+    menuName: m.menuName,
+    category: m.category || "เครื่องดื่ม",
+    servings: String(m.servings || 1),
+    sellingPrice: String(m.sellingPrice || ""),
+    ingredients: (m.ingredients || []).map((i) => ({
+      name: i.ingredientName || "", qty: String(i.ingredientQty || ""),
+      unit: i.ingredientUnit || "g", buyPrice: String(i.buyPrice || ""), packSize: String(i.packSize || "")
+    }))
+  };
+  if (state.form.ingredients.length === 0) state.form.ingredients = [newIngredientRow()];
+  state.view = "add";
+  document.getElementById("tabList").classList.remove("active");
+  document.getElementById("tabAdd").classList.add("active");
+  render();
+  updateLivePreview();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 // ----- Add form -----
 function renderAddForm(){
+  const editing = !!state.form.editingName;
   return `
     <div class="card">
+      ${editing ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:var(--accent-soft); border-radius:11px; padding:10px 13px; margin-bottom:14px;">
+        <span style="font-size:13px; font-weight:800; color:var(--accent-deep);">✏️ กำลังแก้ไข: ${escapeHtml(state.form.editingName)}</span>
+        <button class="btn-ghost" style="padding:6px 12px; font-size:12.5px;" onclick="setView('list')">ยกเลิก</button>
+      </div>` : ""}
       <div class="field"><label class="label">ชื่อเมนู</label>
         <input id="formMenuName" value="${escapeHtml(state.form.menuName)}" oninput="state.form.menuName=this.value" placeholder="เช่น ลาเต้ร้อน / ครัวซองเนย" /></div>
 
@@ -429,7 +461,7 @@ function renderAddForm(){
         <p id="livePreview" style="margin:0; font-weight:800; font-size:14px; line-height:1.55;"></p>
       </div>
 
-      <button class="btn-primary btn-block" onclick="submitMenu()">บันทึกเมนูนี้</button>
+      <button class="btn-primary btn-block" onclick="submitMenu()">${editing ? "บันทึกการแก้ไข" : "บันทึกเมนูนี้"}</button>
     </div>`;
 }
 
@@ -490,7 +522,13 @@ async function submitMenu(){
   if (!menuName){ showToast("กรุณาใส่ชื่อเมนู"); return; }
   const validIngredients = state.form.ingredients.filter((i)=>i.name.trim());
   if (validIngredients.length===0){ showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ"); return; }
+  const editingName = state.form.editingName;
   try{
+    // ถ้าแก้ไข: ลบสูตรเดิม (ตามชื่อเดิม) ก่อน แล้วเขียนใหม่ทั้งชุด
+    if (editingName){
+      const del = await apiCall("deleteRecipeMenu", { menuName: editingName, branch: state.branch });
+      if (del && del.error) throw new Error(del.error);
+    }
     for (const ing of validIngredients){
       const resp = await apiCall("addRecipeRow", {
         id:uid(), menuName, category, servings, sellingPrice,
@@ -499,7 +537,7 @@ async function submitMenu(){
       });
       if (resp && resp.error) throw new Error(resp.error);
     }
-    showToast(`บันทึกเมนู "${menuName}" แล้ว`);
+    showToast(editingName ? `แก้ไขเมนู "${menuName}" แล้ว` : `บันทึกเมนู "${menuName}" แล้ว`);
     await loadAll();
     setView("list");
   }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
