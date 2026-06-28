@@ -293,14 +293,20 @@ async function loadAll(){
   render();
 }
 
-// คัดกรองตามสาขา — รายการที่ยังไม่มีค่า branch จะแสดงในทุกสาขา เพื่อไม่ให้ข้อมูลเดิมหาย
+// คัดกรองตามสาขา — ข้อมูลเก่าที่ "ไม่มีค่าสาขา" นับเป็นของ Rush (ร้านเริ่มจาก Rush)
+// → Rush เห็นทั้งของ rush + ของเก่าไม่มีสาขา · Rush Hour เห็นเฉพาะของ rushhour จริงๆ
+function inBranch(b){
+  if (state.branch === "all") return true;
+  if (state.branch === "rush") return !b || b === "rush";
+  return b === state.branch; // rushhour: ต้องตรงเป๊ะ
+}
 function branchItems(){
   if (state.branch === "all") return state.items;
-  return state.items.filter((it) => !it.branch || it.branch === state.branch);
+  return state.items.filter((it) => inBranch(it.branch));
 }
 function branchLogs(){
   if (state.branch === "all") return state.logs;
-  return state.logs.filter((l) => !l.branch || l.branch === state.branch);
+  return state.logs.filter((l) => inBranch(l.branch));
 }
 
 function setBranch(b){ state.branch = b; render(); }
