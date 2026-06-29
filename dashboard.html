@@ -145,6 +145,9 @@
   .list-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:4px 14px; }
   .log-row{ display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); align-items:center; gap:10px; }
   .log-row:last-child{ border-bottom:none; }
+  .day-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:18px 2px 8px; font-size:12.5px; font-weight:800; color:var(--ink-2); }
+  .day-head:first-child{ margin-top:2px; }
+  .day-net{ font-size:12px; font-weight:800; font-variant-numeric:tabular-nums; }
   .insight{ display:flex; gap:9px; align-items:flex-start; background:var(--accent-soft); border-radius:var(--radius-sm); padding:11px 13px; font-size:12.5px; color:var(--accent-deep); margin-bottom:8px; font-weight:500; }
   .insight svg{ width:17px; height:17px; flex-shrink:0; margin-top:1px; }
 
@@ -621,6 +624,26 @@ async function submitExpense(){
 }
 
 // ---------- List ----------
+function dayHeadLabel(dateStr){
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr || "ไม่ทราบวันที่";
+  return d.toLocaleDateString("th-TH", { weekday:"short", day:"2-digit", month:"short", year:"numeric" });
+}
+
+function txRowHtml(r){
+  return `
+    <div class="log-row">
+      <div style="min-width:0;">
+        <p style="margin:0; font-size:14px; font-weight:600;">${escapeHtml(r.label)} <span style="font-weight:500; color:var(--ink-3); font-size:12px;">${r.type==="income"?"รายรับ":"รายจ่าย"}${state.branch==="all"?" · "+(BRANCH_LABEL[r.branch]||""):""}</span></p>
+        ${r.note?`<p style="margin:1px 0 0; font-size:12px; color:var(--ink-3); overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.note)}</p>`:""}
+      </div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <span style="font-variant-numeric:tabular-nums; font-weight:800; color:${r.type==="income"?"var(--green)":"var(--red)"};">${r.type==="income"?"+":"−"}${fmtMoney(r.amount)}</span>
+        <button class="del-btn" onclick="deleteRecord('${r.type}','${r.id}')">✕</button>
+      </div>
+    </div>`;
+}
+
 function renderList(){
   const bd = getBranchData();
   const all = [
@@ -628,17 +651,27 @@ function renderList(){
     ...bd.expense.map((r)=>({ ...r, type:"expense", label:EXPENSE_CATEGORIES.find((c)=>c.id===r.category)?.label || r.category })),
   ].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if (all.length===0) return `<div class="empty">ยังไม่มีรายการ — ไปที่แท็บ "บันทึกรายการ" เพื่อเริ่มบันทึก</div>`;
-  return `<div class="list-card">` + all.map((r)=>`
-    <div class="log-row">
-      <div style="min-width:0;">
-        <p style="margin:0; font-size:14px; font-weight:600;">${escapeHtml(r.label)} <span style="font-weight:500; color:var(--ink-3); font-size:12px;">${r.type==="income"?"รายรับ":"รายจ่าย"}${state.branch==="all"?" · "+(BRANCH_LABEL[r.branch]||""):""}</span></p>
-        <p style="margin:1px 0 0; font-size:12px; color:var(--ink-3); overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.note||"")}${r.note?" · ":""}${escapeHtml(r.date||"")}</p>
-      </div>
-      <div style="display:flex; align-items:center; gap:4px;">
-        <span style="font-variant-numeric:tabular-nums; font-weight:800; color:${r.type==="income"?"var(--green)":"var(--red)"};">${r.type==="income"?"+":"−"}${fmtMoney(r.amount)}</span>
-        <button class="del-btn" onclick="deleteRecord('${r.type}','${r.id}')">✕</button>
-      </div>
-    </div>`).join("") + `</div>`;
+
+  // จัดกลุ่มเป็นกล่องแยกตามวัน + สรุปสุทธิของแต่ละวัน
+  let html = "";
+  let dayRows = [], lastDay = null;
+  function flush(){
+    if (!dayRows.length) return;
+    const inc = dayRows.reduce((s,r)=>s+(r.type==="income"?r.amount:0), 0);
+    const exp = dayRows.reduce((s,r)=>s+(r.type==="expense"?r.amount:0), 0);
+    const net = inc - exp;
+    const netColor = net>=0 ? "var(--green)" : "var(--red)";
+    html += `<div class="day-head"><span>${escapeHtml(dayHeadLabel(lastDay))}</span>`
+      + `<span class="day-net" style="color:${netColor}">สุทธิ ${net>=0?"+":"−"}${fmtMoney(Math.abs(net))} ฿</span></div>`;
+    html += `<div class="list-card">` + dayRows.map(txRowHtml).join("") + `</div>`;
+    dayRows = [];
+  }
+  all.forEach((r)=>{
+    if (r.date !== lastDay){ flush(); lastDay = r.date; }
+    dayRows.push(r);
+  });
+  flush();
+  return html;
 }
 
 async function deleteRecord(type, id){
