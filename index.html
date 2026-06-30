@@ -107,6 +107,11 @@
   .btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:10px;
     padding:10px 16px; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); transition:.12s; }
   .btn-primary:active{ transform:scale(.97); }
+  .scan-fab{ position:fixed; right:16px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:55; display:inline-flex; align-items:center; gap:8px; background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:999px; padding:13px 18px; font-family:inherit; font-size:14px; font-weight:800; box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.3); cursor:pointer; }
+  .scan-fab:active{ transform:scale(.96); }
+  .scan-fab svg{ width:20px; height:20px; }
+  #reader{ min-height:240px; }
+  #reader video{ border-radius:14px; }
 
   .chip{ border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:13px; background:var(--surface); cursor:pointer; white-space:nowrap; color:var(--ink-2); font-weight:600; transition:.15s; }
   .chip.active{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; box-shadow:var(--shadow-sm); }
@@ -210,6 +215,11 @@
 
 <div id="modalRoot"></div>
 
+<button class="scan-fab" onclick="openScanner()" aria-label="สแกนรับสินค้า">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/></svg>
+  สแกนรับสินค้า
+</button>
+
 <nav class="bottom-nav">
   <div class="nav-inner">
     <a class="nav-item active" href="index.html">
@@ -238,6 +248,8 @@
 <script>
 // ===== ตั้งค่า: URL ของ Google Apps Script (สต๊อก) — คงเดิมเพื่อให้เชื่อมต่อข้อมูลเดิมได้ =====
 const API_URL = "https://script.google.com/macros/s/AKfycbzRGIVn3Vz6doKwYY6ltuEQIhrs9YYtvyiqXJBnckQh9705ZePIYZcOgFwQ5j5LtMoo/exec";
+// backend บัญชี (dashboard) — ใช้ยิงรายจ่ายตอนสแกนรับสินค้า
+const ACCT_API = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
 
 const UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ถุง", "ขวด", "กล่อง"];
 const CATEGORIES = [
@@ -628,6 +640,200 @@ async function submitDelete(itemId){
 }
 
 function closeModal(){ document.getElementById("modalRoot").innerHTML = ""; }
+
+/* ===================== สแกนบาร์โค้ดรับสินค้า → เข้าสต๊อก + ลงรายจ่ายพร้อมกัน ===================== */
+function todayISO(){ const d = new Date(), p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
+function moneyTH(n){ return Number(n || 0).toLocaleString("th-TH", { maximumFractionDigits: 2 }); }
+
+// ยิงไป backend "บัญชี" (คนละตัวกับสต๊อก) เพื่อบันทึกรายจ่าย
+async function acctCall(action, payload){
+  const url = ACCT_API + (ACCT_API.indexOf("?") >= 0 ? "&" : "?") + "_cb=" + Date.now();
+  const body = new URLSearchParams({ action });
+  if (payload) body.set("payload", JSON.stringify(payload));
+  const res = await fetch(url, { method:"POST", redirect:"follow", cache:"no-store", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: body.toString() });
+  const text = await res.text();
+  try{ return JSON.parse(text); }catch(e){ throw new Error("บัญชีตอบกลับผิดรูปแบบ: " + text.slice(0, 120)); }
+}
+
+let _scanner = null, _scanBusy = false;
+function ensureScannerLib(cb){
+  if (window.Html5Qrcode){ cb(); return; }
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js";
+  s.onload = cb;
+  s.onerror = function(){ const h = document.getElementById("scanHint"); if (h) h.textContent = "โหลดตัวสแกนไม่สำเร็จ — เช็กเน็ต หรือพิมพ์เลขเอง"; };
+  document.head.appendChild(s);
+}
+
+function openScanner(){
+  _scanBusy = false;
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this){ stopScanner(); }">
+      <div class="sheet" style="max-width:460px;">
+        <h2>สแกนบาร์โค้ดรับสินค้า</h2>
+        <p style="font-size:12.5px; color:var(--ink-2); margin:2px 0 12px;">หันกล้องให้เห็นบาร์โค้ด/QR ของสินค้า — ระบบจะเข้าสต๊อก + ลงรายจ่ายให้พร้อมกัน</p>
+        <div id="reader"></div>
+        <div id="scanHint" style="font-size:12px; color:var(--ink-3); text-align:center; margin:10px 0 4px;">กำลังเปิดกล้อง...</div>
+        <div class="field" style="margin-top:10px;">
+          <label class="label">หรือพิมพ์เลขบาร์โค้ดเอง (ถ้ากล้องอ่านไม่ติด)</label>
+          <div class="row" style="margin-bottom:0;">
+            <input id="manualCode" inputmode="numeric" placeholder="เช่น 8851234567890" style="flex:1;" />
+            <button class="btn-primary" onclick="submitManualCode()">ค้นหา</button>
+          </div>
+        </div>
+        <button class="chip" style="width:100%; margin-top:12px; text-align:center; padding:11px;" onclick="stopScanner()">ปิด</button>
+      </div>
+    </div>`;
+  ensureScannerLib(startScan);
+}
+
+function startScan(){
+  if (!window.Html5Qrcode) return;
+  try{
+    _scanner = new Html5Qrcode("reader", { verbose:false });
+    _scanner.start({ facingMode:"environment" }, { fps:10, qrbox:{ width:260, height:170 } },
+      function(decoded){ onScanSuccess(decoded); }, function(){}
+    ).then(function(){ const h = document.getElementById("scanHint"); if (h) h.textContent = "เล็งบาร์โค้ดให้อยู่ในกรอบ"; })
+     .catch(function(){ const h = document.getElementById("scanHint"); if (h) h.textContent = "เปิดกล้องไม่ได้ — อนุญาตสิทธิ์กล้อง หรือพิมพ์เลขเอง"; });
+  }catch(e){ const h = document.getElementById("scanHint"); if (h) h.textContent = "เปิดกล้องไม่ได้ — พิมพ์เลขเอง"; }
+}
+
+function onScanSuccess(decoded){
+  if (_scanBusy) return; _scanBusy = true;
+  const code = String(decoded || "").trim();
+  stopScanner(function(){ handleScan(code); });
+}
+
+function stopScanner(after){
+  const done = function(){ if (typeof after === "function") after(); else closeModal(); };
+  if (_scanner){
+    const sc = _scanner; _scanner = null;
+    sc.stop().then(function(){ try{ sc.clear(); }catch(e){} done(); }).catch(function(){ done(); });
+  } else { done(); }
+}
+
+function submitManualCode(){
+  const el = document.getElementById("manualCode");
+  const code = el ? el.value.trim() : "";
+  if (!code){ showToast("ใส่เลขบาร์โค้ดก่อน"); return; }
+  stopScanner(function(){ handleScan(code); });
+}
+
+function handleScan(code){
+  code = String(code || "").trim();
+  if (!code){ showToast("ไม่พบบาร์โค้ด"); return; }
+  const item = state.items.find(function(it){ return String(it.barcode || "").trim() === code; });
+  openReceiveModal(code, item || null);
+}
+
+let _recv = null;
+function openReceiveModal(code, item){
+  _recv = { code: code, item: item };
+  const branch = item ? (item.branch || "rush") : (state.branch === "all" ? "rush" : state.branch);
+  const itemsForLink = state.items.filter(function(it){ return inBranch(it.branch); });
+  const known = !!item;
+  const defCost = item ? (item.cost || 0) : 0;
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <h2>${known ? "รับเข้า — " + escapeHtml(item.name) : "บาร์โค้ดใหม่ — รับเข้า"}</h2>
+        <p style="font-size:12.5px; color:var(--ink-2); margin:2px 0 14px;">บาร์โค้ด ${escapeHtml(code)}${known ? ` · คงเหลือ ${item.qty} ${escapeHtml(item.unit || "")}` : ""}</p>
+        ${known ? "" : `
+        <div class="field">
+          <label class="label">สินค้านี้คือ</label>
+          <select id="rcLink" onchange="toggleRecvNew()">
+            <option value="">➕ สร้างสินค้าใหม่</option>
+            ${itemsForLink.map(function(it){ return `<option value="${it.id}">${escapeHtml(it.name)} (คงเหลือ ${it.qty})</option>`; }).join("")}
+          </select>
+        </div>
+        <div id="rcNewFields">
+          <div class="field"><label class="label">ชื่อสินค้า</label><input id="rcName" placeholder="เช่น นมสดโฟร์โมสต์" /></div>
+          <div class="row">
+            <div class="field" style="flex:1;"><label class="label">หน่วย</label><select id="rcUnit">${UNITS.map(function(u){ return `<option value="${u}">${u}</option>`; }).join("")}</select></div>
+            <div class="field" style="flex:1;"><label class="label">หมวด</label><select id="rcCat">${CATEGORIES.map(function(c){ return `<option value="${c.id}">${c.label}</option>`; }).join("")}</select></div>
+          </div>
+          <div class="field"><label class="label">สาขา</label>
+            <select id="rcBranch"><option value="rush" ${branch === "rush" ? "selected" : ""}>Rush</option><option value="rushhour" ${branch === "rushhour" ? "selected" : ""}>Rush Hour</option></select></div>
+        </div>`}
+        <div class="row">
+          <div class="field" style="flex:1;"><label class="label">จำนวนรับเข้า</label>
+            <input id="rcQty" type="number" inputmode="decimal" min="0" value="1" oninput="updateRecvTotal()" /></div>
+          <div class="field" style="flex:1;"><label class="label">ราคาทุน/หน่วย (฿)</label>
+            <input id="rcCost" type="number" inputmode="decimal" min="0" value="${defCost || ""}" oninput="updateRecvTotal()" placeholder="0" /></div>
+        </div>
+        <div style="background:var(--accent-soft); border-radius:11px; padding:11px 13px; margin-bottom:14px; font-weight:800; font-size:14px;">
+          ยอดจ่ายวันนี้ <span id="rcTotal" style="color:var(--accent-deep);">฿0</span>
+          <span style="display:block; font-size:11px; font-weight:600; color:var(--ink-3); margin-top:2px;">ลงรายจ่ายหมวด "วัตถุดิบ/สต๊อก" วันที่ ${todayISO()}</span>
+        </div>
+        <div class="row" style="margin-bottom:0;">
+          <button class="chip" style="flex:1; text-align:center; padding:11px;" onclick="closeModal()">ยกเลิก</button>
+          <button class="btn-primary" style="flex:1;" onclick="confirmReceive()">รับเข้า + ลงรายจ่าย</button>
+        </div>
+      </div>
+    </div>`;
+  updateRecvTotal();
+}
+
+function toggleRecvNew(){
+  const sel = document.getElementById("rcLink");
+  const box = document.getElementById("rcNewFields");
+  if (sel && box) box.style.display = sel.value ? "none" : "block";
+  if (sel && sel.value){
+    const it = state.items.find(function(i){ return i.id === sel.value; });
+    const c = document.getElementById("rcCost");
+    if (it && c && !c.value) c.value = it.cost || "";
+  }
+  updateRecvTotal();
+}
+
+function updateRecvTotal(){
+  const q = Number((document.getElementById("rcQty") || {}).value) || 0;
+  const c = Number((document.getElementById("rcCost") || {}).value) || 0;
+  const el = document.getElementById("rcTotal"); if (el) el.textContent = "฿" + moneyTH(q * c);
+}
+
+async function confirmReceive(){
+  const qty = Number((document.getElementById("rcQty") || {}).value) || 0;
+  const cost = Number((document.getElementById("rcCost") || {}).value) || 0;
+  if (qty <= 0){ showToast("ใส่จำนวนรับเข้า"); return; }
+  const code = _recv.code;
+  let itemId, itemName, itemUnit, branch;
+  try{
+    if (_recv.item){
+      const it = _recv.item; itemId = it.id; itemName = it.name; itemUnit = it.unit || ""; branch = it.branch || state.branch;
+      if (cost > 0) await apiCall("updateItemMeta", { id: itemId, barcode: code, cost: cost });
+    } else {
+      const linkSel = document.getElementById("rcLink");
+      const linkId = linkSel ? linkSel.value : "";
+      if (linkId){
+        const it = state.items.find(function(i){ return i.id === linkId; });
+        itemId = linkId; itemName = it.name; itemUnit = it.unit || ""; branch = it.branch || state.branch;
+        await apiCall("updateItemMeta", { id: itemId, barcode: code, cost: cost });
+      } else {
+        const name = ((document.getElementById("rcName") || {}).value || "").trim();
+        if (!name){ showToast("ใส่ชื่อสินค้า"); return; }
+        const unit = (document.getElementById("rcUnit") || {}).value;
+        const category = (document.getElementById("rcCat") || {}).value;
+        branch = (document.getElementById("rcBranch") || {}).value;
+        itemId = uid(); itemName = name; itemUnit = unit;
+        await apiCall("saveItem", { id: itemId, name: name, unit: unit, category: category, qty: 0, min: 1, branch: branch, barcode: code, cost: cost });
+      }
+    }
+    closeModal();
+    // 1) เข้าสต๊อก (รับเข้า)
+    await apiCall("moveStock", { itemId: itemId, itemName: itemName, type: "in", amount: qty, note: "สแกนรับเข้า (บาร์โค้ด " + code + ")", branch: branch });
+    // 2) ลงรายจ่ายวันนี้ (backend บัญชี)
+    let acctOk = true, acctErr = "";
+    try{
+      const r = await acctCall("addExpense", { id: uid(), date: todayISO(), category: "stock", amount: Math.round(qty * cost * 100) / 100, note: "สแกนรับ " + itemName, branch: branch, itemName: itemName, itemQty: qty, itemUnit: itemUnit });
+      if (r && r.error){ acctOk = false; acctErr = r.error; }
+    }catch(e){ acctOk = false; acctErr = e.message; }
+    showToast(acctOk
+      ? "รับเข้า " + itemName + " +" + qty + " · ลงรายจ่าย " + moneyTH(qty * cost) + "฿ ✓"
+      : "รับเข้าสต๊อกแล้ว ✓ แต่ลงรายจ่ายไม่สำเร็จ: " + acctErr);
+    await loadAll();
+  }catch(e){ showToast("ไม่สำเร็จ: " + e.message); }
+}
 
 // ----- init -----
 loadAll();
