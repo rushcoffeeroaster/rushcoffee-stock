@@ -435,7 +435,12 @@ function renderEditor(){
     const items=c.items.map((it,ii)=>`<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;background:var(--surface-2);">
       <div class="seg" style="margin-bottom:7px;"><input value="${esc(it.name)}" placeholder="ชื่อเมนู" oninput="admI(${ci},${ii},'name',this.value)"><input style="flex:0 0 90px;" type="number" value="${it.price}" placeholder="ราคา" oninput="admI(${ci},${ii},'price',this.value)"></div>
       <div class="seg" style="margin-bottom:7px;"><input value="${esc(it.tag)}" placeholder="ป้าย (ขายดี)" oninput="admI(${ci},${ii},'tag',this.value)"><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap;padding:0 4px;"><input type="checkbox" style="width:18px;height:18px;" ${it.temp?"checked":""} onchange="admI(${ci},${ii},'temp',this.checked)">ร้อน/เย็น</label></div>
-      <input value="${esc(it.img)}" placeholder="ลิงก์รูปเมนู (https://...)" oninput="admI(${ci},${ii},'img',this.value)" style="margin-bottom:7px;">
+      <div class="seg" style="margin-bottom:7px;align-items:center;">
+        <div style="flex:0 0 44px;width:44px;height:44px;border-radius:9px;overflow:hidden;background:#fff;border:1px solid var(--line);display:grid;place-items:center;">${it.img?`<img src="${esc(it.img)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`:`<span style="font-size:18px;">📷</span>`}</div>
+        <button type="button" class="btn-ghost" style="margin-top:0;flex:1;" onclick="admPickImg(${ci},${ii})">${it.img?"เปลี่ยนรูป":"เลือกรูปเมนู"}</button>
+        <input type="file" accept="image/*" id="admFile_${ci}_${ii}" style="display:none;" onchange="admUploadImg(${ci},${ii},this)">
+      </div>
+      <input value="${esc(it.img)}" placeholder="หรือวางลิงก์รูปเอง (https://...)" oninput="admI(${ci},${ii},'img',this.value)" style="margin-bottom:7px;font-size:12px;">
       <div class="seg"><input value="${esc(it.desc)}" placeholder="คำอธิบาย" oninput="admI(${ci},${ii},'desc',this.value)"><button class="act-cancel" style="flex:0 0 auto;" onclick="admDelI(${ci},${ii})">ลบ</button></div>
     </div>`).join("");
     return `<div style="background:#fff;border:1px solid var(--line-strong);border-radius:16px;padding:12px;margin-bottom:12px;">
@@ -457,6 +462,35 @@ function renderEditor(){
 }
 function admC(ci,v){ adm.menu[ci].cat=v; }
 function admI(ci,ii,f,v){ adm.menu[ci].items[ii][f]=(f==="price")?(Number(v)||0):v; }
+function admPickImg(ci,ii){ const el=document.getElementById('admFile_'+ci+'_'+ii); if(el) el.click(); }
+function admUploadImg(ci,ii,input){
+  const file = input.files && input.files[0]; if(!file) return;
+  if(!/^image\//.test(file.type)){ toast("เลือกไฟล์รูปภาพเท่านั้น"); input.value=""; return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = async function(){
+      const maxW = 900;
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      const base64 = cv.toDataURL("image/jpeg", 0.78).split(",")[1];
+      toast("กำลังอัปโหลดรูป...");
+      try{
+        const r = await api("uploadMenuImage", { pin: adminPin, mime: "image/jpeg", base64 });
+        if(r && r.error) throw new Error(r.error);
+        adm.menu[ci].items[ii].img = r.url;
+        renderEditor();
+        toast("อัปโหลดรูปแล้ว ✓");
+      }catch(err){ toast("อัปโหลดไม่สำเร็จ: " + err.message); }
+    };
+    img.onerror = function(){ toast("อ่านไฟล์รูปไม่สำเร็จ"); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value = "";
+}
 function admP(pi,f,v){ adm.promos[pi][f]=v; }
 function admAddI(ci){ adm.menu[ci].items.push({name:"",price:0,temp:false,tag:"",desc:"",img:""}); renderEditor(); }
 function admDelI(ci,ii){ adm.menu[ci].items.splice(ii,1); renderEditor(); }
