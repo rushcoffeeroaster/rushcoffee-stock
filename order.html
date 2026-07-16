@@ -207,13 +207,13 @@ function renderMenu(){
   const isCoffee = c.cat==="กาแฟ" || c.cat==="ไม่ใช่กาแฟ";
   document.getElementById("menu").innerHTML = c.items.map(it=>{
     const inCart = Object.keys(state.cart).filter(k=>state.cart[k].name===it.name).reduce((s,k)=>s+state.cart[k].qty,0);
-    const hasOpts = it.temp || isCoffee;
+    const hasOpts = it.temp || isCoffee || (Array.isArray(it.opts) && it.opts.length>0);
     const right = inCart>0 && !hasOpts
       ? `<div class="qty-ctl"><button onclick="changeQty('${esc(key(it.name,""))}',-1)">−</button><b>${inCart}</b><button onclick="addItem('${esc(it.name)}')">+</button></div>`
       : `<button class="add-btn" onclick="addItem('${esc(it.name)}')">+</button>`;
     const img = it.img ? `<img class="item-img" src="${esc(it.img)}" alt="" loading="lazy" onerror="this.style.display='none'">`
       : `<div class="item-img ph"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/></svg></div>`;
-    const sub = it.desc ? esc(it.desc) : (it.temp ? "ร้อน/เย็น · ปรับหวานได้" : "");
+    const sub = it.desc ? esc(it.desc) : (it.temp ? "ร้อน/เย็น · ปรับหวานได้" : ((Array.isArray(it.opts)&&it.opts.length) ? "มีตัวเลือกเพิ่มเติม" : ""));
     return `<div class="item">${img}
       <div class="item-info"><p class="item-name">${esc(it.name)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</p>${sub?`<p class="item-desc">${sub}</p>`:""}</div>
       <span class="item-price">${fmt(it.price)}</span>${right}</div>`;
@@ -226,36 +226,82 @@ let _opt = null;
 function addItem(name){
   const f = findItem(name); if(!f) return;
   const isCoffee = f.cat==="กาแฟ" || f.cat==="ไม่ใช่กาแฟ";
-  if (f.it.temp || isCoffee){ openOptions(f.it, isCoffee); return; }
+  const hasOpts = Array.isArray(f.it.opts) && f.it.opts.length>0;
+  if (f.it.temp || isCoffee || hasOpts){ openOptions(f.it, isCoffee); return; }
   bump(key(name,""), name, "", f.it.price, 1);
 }
 function openOptions(it, isCoffee){
-  _opt = { name:it.name, base:it.price, temp:it.temp?"ร้อน":"", sweet:isCoffee?"หวานปกติ":"", qty:1, isCoffee, hasTemp:it.temp };
+  _opt = { name:it.name, base:it.price, temp:it.temp?"ร้อน":"", sweet:isCoffee?"หวานปกติ":"", qty:1, isCoffee, hasTemp:it.temp, opts:Array.isArray(it.opts)?it.opts:[] };
   const tempSeg = it.temp ? `<label class="label">อุณหภูมิ</label><div class="seg" id="segTemp">
      <button class="on" data-v="ร้อน" data-add="0" onclick="pickOpt('temp',this)">ร้อน</button>
      <button data-v="เย็น" data-add="${SHOP.icedFee}" onclick="pickOpt('temp',this)">เย็น${SHOP.icedFee?` +${SHOP.icedFee}`:""}</button>
      <button data-v="ปั่น" data-add="${SHOP.blendFee}" onclick="pickOpt('temp',this)">ปั่น +${SHOP.blendFee}</button></div>` : "";
   const sweetSeg = isCoffee ? `<label class="label">ความหวาน</label><div class="seg" id="segSweet">
      ${SWEET.map((s,i)=>`<button class="${i===0?'on':''}" data-v="${s}" onclick="pickOpt('sweet',this)">${s}</button>`).join("")}</div>` : "";
+  const groupsHtml = _opt.opts.map((g,gi)=>{
+    const isMulti = !!g.multi;
+    const handler = isMulti ? "pickGroupMulti" : (g.required ? "pickGroupReq" : "pickGroupOpt");
+    const btns = (g.choices||[]).map((c,chi)=>{
+      const preOn = (!isMulti && g.required && chi===0);
+      return `<button class="${preOn?'on':''}" data-v="${esc(c.label)}" data-add="${c.price||0}" onclick="${handler}(${gi},this)">${esc(c.label)}${c.price?" +"+c.price:""}</button>`;
+    }).join("");
+    const hint = g.required ? (isMulti?"* เลือกอย่างน้อย 1 อย่าง":"* จำเป็นต้องเลือก") : (isMulti?"(เลือกได้หลายอย่าง)":"(ไม่บังคับ)");
+    return `<label class="label">${esc(g.name)} <span style="font-weight:600;color:${g.required?'var(--red)':'var(--ink-3)'};">${hint}</span></label><div class="seg" id="segG${gi}">${btns}</div>`;
+  }).join("");
   document.getElementById("modalRoot").innerHTML = `
     <div class="overlay" onclick="if(event.target===this) closeModal()"><div class="sheet">
       <div class="sheet-grab"></div><h3>${esc(it.name)}</h3>
-      ${tempSeg}${sweetSeg}
+      ${tempSeg}${sweetSeg}${groupsHtml}
       <label class="label">จำนวน</label>
       <div class="step"><button onclick="optQty(-1)">−</button><b id="optQty">1</b><button onclick="optQty(1)">+</button></div>
       <button class="btn-line" onclick="confirmOpt()">ใส่ตะกร้า · <span id="optTotal">${fmt(it.price)}</span></button>
     </div></div>`;
+  updateOptTotal();
 }
 function pickOpt(kind, btn){
   const seg = btn.parentNode; seg.querySelectorAll("button").forEach(b=>b.classList.remove("on")); btn.classList.add("on");
   if(kind==="temp") _opt.temp = btn.dataset.v; else _opt.sweet = btn.dataset.v;
   updateOptTotal();
 }
+function pickGroupReq(gi, btn){
+  const seg = btn.parentNode; seg.querySelectorAll("button").forEach(b=>b.classList.remove("on")); btn.classList.add("on");
+  updateOptTotal();
+}
+function pickGroupOpt(gi, btn){
+  const already = btn.classList.contains("on");
+  const seg = btn.parentNode; seg.querySelectorAll("button").forEach(b=>b.classList.remove("on"));
+  if(!already) btn.classList.add("on");
+  updateOptTotal();
+}
+function pickGroupMulti(gi, btn){
+  btn.classList.toggle("on");
+  updateOptTotal();
+}
 function optQty(d){ _opt.qty=Math.max(1,_opt.qty+d); document.getElementById("optQty").textContent=_opt.qty; updateOptTotal(); }
-function optAdd(){ let a=0; if(_opt.hasTemp){ const b=document.querySelector("#segTemp button.on"); a=Number(b&&b.dataset.add||0); } return a; }
+function optAdd(){
+  let a=0;
+  if(_opt.hasTemp){ const b=document.querySelector("#segTemp button.on"); a+=Number(b&&b.dataset.add||0); }
+  (_opt.opts||[]).forEach((g,gi)=>{
+    const seg=document.getElementById("segG"+gi);
+    if(seg) seg.querySelectorAll("button.on").forEach(b=>{ a+=Number(b.dataset.add||0); });
+  });
+  return a;
+}
 function updateOptTotal(){ const el=document.getElementById("optTotal"); if(el) el.textContent=fmt((_opt.base+optAdd())*_opt.qty); }
 function confirmOpt(){
+  for(let gi=0; gi<(_opt.opts||[]).length; gi++){
+    const g=_opt.opts[gi];
+    if(g.required && g.multi){
+      const seg=document.getElementById("segG"+gi);
+      if(!seg || seg.querySelectorAll("button.on").length===0){ toast("กรุณาเลือก: "+g.name); return; }
+    }
+  }
   const parts=[]; if(_opt.temp) parts.push(_opt.temp); if(_opt.sweet && _opt.sweet!=="หวานปกติ") parts.push(_opt.sweet);
+  (_opt.opts||[]).forEach((g,gi)=>{
+    const seg=document.getElementById("segG"+gi); if(!seg) return;
+    const vals=[]; seg.querySelectorAll("button.on").forEach(b=>vals.push(b.dataset.v));
+    if(vals.length) parts.push(vals.join("/"));
+  });
   const variant = parts.join(" · ");
   bump(key(_opt.name, variant), _opt.name, variant, _opt.base+optAdd(), _opt.qty);
   closeModal();
@@ -426,13 +472,33 @@ async function setStatus(id,status){
 /* ===================== MENU EDITOR (PIN) ===================== */
 let adm={ menu:[], promos:[] };
 function openMenuEditor(){
-  adm.menu = JSON.parse(JSON.stringify(MENU)).map(c=>({cat:c.cat,items:(c.items||[]).map(it=>({name:it.name||"",price:Number(it.price)||0,temp:!!it.temp,tag:it.tag||"",desc:it.desc||"",img:it.img||""}))}));
+  adm.menu = JSON.parse(JSON.stringify(MENU)).map(c=>({cat:c.cat,items:(c.items||[]).map(it=>({name:it.name||"",price:Number(it.price)||0,temp:!!it.temp,tag:it.tag||"",desc:it.desc||"",img:it.img||"",opts:admCloneOpts(it.opts)}))}));
   adm.promos = JSON.parse(JSON.stringify(PROMOS)).map(p=>({title:p.title||"",detail:p.detail||""}));
   renderEditor();
 }
+function admCloneOpts(opts){
+  return (Array.isArray(opts)?opts:[]).map(g=>({name:g.name||"",required:!!g.required,multi:!!g.multi,choices:(Array.isArray(g.choices)?g.choices:[]).map(c=>({label:c.label||"",price:Number(c.price)||0}))}));
+}
 function renderEditor(){
   const cats=adm.menu.map((c,ci)=>{
-    const items=c.items.map((it,ii)=>`<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;background:var(--surface-2);">
+    const items=c.items.map((it,ii)=>{
+      const groups=(it.opts||[]).map((g,gi)=>{
+        const choices=(g.choices||[]).map((ch,chi)=>`<div class="seg" style="margin-bottom:5px;">
+            <input value="${esc(ch.label)}" placeholder="ชื่อตัวเลือก เช่น ไซส์ L" oninput="admGC(${ci},${ii},${gi},${chi},'label',this.value)">
+            <input style="flex:0 0 76px;" type="number" value="${ch.price}" placeholder="+ราคา" oninput="admGC(${ci},${ii},${gi},${chi},'price',this.value)">
+            <button class="act-cancel" style="flex:0 0 auto;" onclick="admDelGC(${ci},${ii},${gi},${chi})">✕</button>
+          </div>`).join("");
+        return `<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:7px;">
+          <div class="seg" style="margin-bottom:6px;"><input value="${esc(g.name)}" placeholder="ชื่อส่วนเสริม เช่น ไซส์ / ท็อปปิ้ง" oninput="admG(${ci},${ii},${gi},'name',this.value)"><button class="act-cancel" style="flex:0 0 auto;" onclick="admDelG(${ci},${ii},${gi})">ลบส่วนนี้</button></div>
+          <div class="seg" style="margin-bottom:7px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--ink-2);white-space:nowrap;"><input type="checkbox" style="width:16px;height:16px;" ${g.required?"checked":""} onchange="admG(${ci},${ii},${gi},'required',this.checked)">จำเป็นต้องเลือก</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--ink-2);white-space:nowrap;"><input type="checkbox" style="width:16px;height:16px;" ${g.multi?"checked":""} onchange="admG(${ci},${ii},${gi},'multi',this.checked)">เลือกได้หลายอย่าง</label>
+          </div>
+          ${choices}
+          <button type="button" class="btn-ghost" style="margin-top:0;padding:8px;font-size:12.5px;" onclick="admAddGC(${ci},${ii},${gi})">+ เพิ่มตัวเลือก</button>
+        </div>`;
+      }).join("");
+      return `<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;background:var(--surface-2);">
       <div class="seg" style="margin-bottom:7px;"><input value="${esc(it.name)}" placeholder="ชื่อเมนู" oninput="admI(${ci},${ii},'name',this.value)"><input style="flex:0 0 90px;" type="number" value="${it.price}" placeholder="ราคา" oninput="admI(${ci},${ii},'price',this.value)"></div>
       <div class="seg" style="margin-bottom:7px;"><input value="${esc(it.tag)}" placeholder="ป้าย (ขายดี)" oninput="admI(${ci},${ii},'tag',this.value)"><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap;padding:0 4px;"><input type="checkbox" style="width:18px;height:18px;" ${it.temp?"checked":""} onchange="admI(${ci},${ii},'temp',this.checked)">ร้อน/เย็น</label></div>
       <div class="seg" style="margin-bottom:7px;align-items:center;">
@@ -442,7 +508,13 @@ function renderEditor(){
       </div>
       <input value="${esc(it.img)}" placeholder="หรือวางลิงก์รูปเอง (https://...)" oninput="admI(${ci},${ii},'img',this.value)" style="margin-bottom:7px;font-size:12px;">
       <div class="seg"><input value="${esc(it.desc)}" placeholder="คำอธิบาย" oninput="admI(${ci},${ii},'desc',this.value)"><button class="act-cancel" style="flex:0 0 auto;" onclick="admDelI(${ci},${ii})">ลบ</button></div>
-    </div>`).join("");
+      <div style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-strong);">
+        <div style="font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px;">ส่วนเสริม (ตัวเลือกเพิ่มเติม เช่น ไซส์ / ท็อปปิ้ง)</div>
+        ${groups}
+        <button type="button" class="btn-ghost" style="margin-top:0;padding:8px;font-size:12.5px;" onclick="admAddG(${ci},${ii})">+ เพิ่มส่วนเสริม</button>
+      </div>
+    </div>`;
+    }).join("");
     return `<div style="background:#fff;border:1px solid var(--line-strong);border-radius:16px;padding:12px;margin-bottom:12px;">
       <div class="seg" style="margin-bottom:9px;"><input value="${esc(c.cat)}" placeholder="ชื่อหมวด" style="font-weight:800;" oninput="admC(${ci},this.value)"><button class="act-cancel" style="flex:0 0 auto;" onclick="admDelC(${ci})">ลบหมวด</button></div>
       ${items}<button class="btn-ghost" style="margin-top:0;" onclick="admAddI(${ci})">+ เพิ่มเมนูในหมวดนี้</button></div>`;
@@ -453,7 +525,9 @@ function renderEditor(){
   document.getElementById("modalRoot").innerHTML=`
     <div class="overlay"><div class="sheet" style="max-height:94vh;">
       <div class="sheet-grab"></div><h3>จัดการเมนู</h3>
-      <div class="label">เมนู &amp; ราคา &amp; รูป</div>${cats}
+      <div class="label">เมนู &amp; ราคา &amp; รูป</div>
+      <button class="btn-line" style="margin-top:0;margin-bottom:12px;" onclick="admAddTop()">+ เพิ่มเมนูใหม่</button>
+      ${cats}
       <button class="btn-ghost" onclick="admAddC()">+ เพิ่มหมวดใหม่</button>
       <div class="label">โปรโมชั่น</div>${promos}<button class="btn-ghost" onclick="admAddP()">+ เพิ่มโปรโมชั่น</button>
       <button class="btn-line" onclick="admSave()">💾 บันทึกเมนู (ลูกค้าเห็นทันที)</button>
@@ -462,6 +536,12 @@ function renderEditor(){
 }
 function admC(ci,v){ adm.menu[ci].cat=v; }
 function admI(ci,ii,f,v){ adm.menu[ci].items[ii][f]=(f==="price")?(Number(v)||0):v; }
+function admG(ci,ii,gi,f,v){ const g=adm.menu[ci].items[ii].opts[gi]; g[f]=(f==="required"||f==="multi")?!!v:v; }
+function admGC(ci,ii,gi,chi,f,v){ const c=adm.menu[ci].items[ii].opts[gi].choices[chi]; c[f]=(f==="price")?(Number(v)||0):v; }
+function admAddG(ci,ii){ if(!adm.menu[ci].items[ii].opts) adm.menu[ci].items[ii].opts=[]; adm.menu[ci].items[ii].opts.push({name:"",required:false,multi:false,choices:[{label:"",price:0}]}); renderEditor(); }
+function admDelG(ci,ii,gi){ adm.menu[ci].items[ii].opts.splice(gi,1); renderEditor(); }
+function admAddGC(ci,ii,gi){ adm.menu[ci].items[ii].opts[gi].choices.push({label:"",price:0}); renderEditor(); }
+function admDelGC(ci,ii,gi,chi){ adm.menu[ci].items[ii].opts[gi].choices.splice(chi,1); renderEditor(); }
 function admPickImg(ci,ii){ const el=document.getElementById('admFile_'+ci+'_'+ii); if(el) el.click(); }
 function admUploadImg(ci,ii,input){
   const file = input.files && input.files[0]; if(!file) return;
@@ -492,14 +572,20 @@ function admUploadImg(ci,ii,input){
   input.value = "";
 }
 function admP(pi,f,v){ adm.promos[pi][f]=v; }
-function admAddI(ci){ adm.menu[ci].items.push({name:"",price:0,temp:false,tag:"",desc:"",img:""}); renderEditor(); }
+function admAddI(ci){ adm.menu[ci].items.push({name:"",price:0,temp:false,tag:"",desc:"",img:"",opts:[]}); renderEditor(); }
 function admDelI(ci,ii){ adm.menu[ci].items.splice(ii,1); renderEditor(); }
-function admAddC(){ adm.menu.push({cat:"",items:[{name:"",price:0,temp:false,tag:"",desc:"",img:""}]}); renderEditor(); }
+function admAddC(){ adm.menu.push({cat:"",items:[{name:"",price:0,temp:false,tag:"",desc:"",img:"",opts:[]}]}); renderEditor(); }
 function admDelC(ci){ if(confirm("ลบทั้งหมวด?")){ adm.menu.splice(ci,1); renderEditor(); } }
+function admAddTop(){
+  if(!adm.menu.length) adm.menu.push({cat:"",items:[]});
+  adm.menu[adm.menu.length-1].items.push({name:"",price:0,temp:false,tag:"",desc:"",img:"",opts:[]});
+  renderEditor();
+}
 function admAddP(){ adm.promos.push({title:"",detail:""}); renderEditor(); }
 function admDelP(pi){ adm.promos.splice(pi,1); renderEditor(); }
 async function admSave(){
-  const menu=[]; adm.menu.forEach(c=>{ const cat=(c.cat||"").trim(); c.items.forEach(it=>{ if(cat&&(it.name||"").trim()) menu.push({cat,name:it.name.trim(),price:Number(it.price)||0,temp:it.temp?"yes":"no",tag:(it.tag||"").trim(),desc:(it.desc||"").trim(),img:(it.img||"").trim()}); }); });
+  const cleanOpts=opts=>(opts||[]).map(g=>({name:(g.name||"").trim(),required:!!g.required,multi:!!g.multi,choices:(g.choices||[]).map(c=>({label:(c.label||"").trim(),price:Number(c.price)||0})).filter(c=>c.label)})).filter(g=>g.name&&g.choices.length);
+  const menu=[]; adm.menu.forEach(c=>{ const cat=(c.cat||"").trim(); c.items.forEach(it=>{ if(cat&&(it.name||"").trim()) menu.push({cat,name:it.name.trim(),price:Number(it.price)||0,temp:it.temp?"yes":"no",tag:(it.tag||"").trim(),desc:(it.desc||"").trim(),img:(it.img||"").trim(),opts:cleanOpts(it.opts)}); }); });
   const promos=adm.promos.filter(p=>(p.title||"").trim()).map(p=>({title:p.title.trim(),detail:(p.detail||"").trim()}));
   if(menu.length===0){ toast("ต้องมีเมนูอย่างน้อย 1"); return; }
   try{ const r=await api("saveMenu",{ pin:adminPin, menu, promos }); if(r&&r.error) throw new Error(r.error); toast("บันทึกเมนูแล้ว ✓"); closeModal(); await fetchMenu(); }
