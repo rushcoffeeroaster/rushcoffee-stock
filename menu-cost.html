@@ -262,16 +262,23 @@ document.getElementById("tabAdd").onclick = () => setView("add");
 function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
 
 function getMenusForBranch(){
-  const rows = state.recipes.filter((r) => r.branch === state.branch);
+  const rows = state.recipes.filter((r) => String(r.branch||"").trim() === state.branch);
   const byMenu = {};
   rows.forEach((r) => {
-    if (!byMenu[r.menuName]) byMenu[r.menuName] = {
-      menuName:r.menuName, category:r.category || "เครื่องดื่ม",
+    const key = String(r.menuName||"").trim(); // ★ กันชื่อเดียวกันแต่มีช่องว่างท้ายแตกเป็น 2 เมนู
+    if (!byMenu[key]) byMenu[key] = {
+      menuName:key, category:r.category || "เครื่องดื่ม",
       servings:Number(r.servings)>0 ? Number(r.servings) : 1,
       sellingPrice:r.sellingPrice, ingredients:[] };
-    byMenu[r.menuName].ingredients.push(r);
+    byMenu[key].ingredients.push(r);
   });
   return Object.values(byMenu);
+}
+// ★ ตรวจวัตถุดิบชื่อซ้ำในเมนู (สัญญาณว่าข้อมูลเบิ้ลจากเซฟชนกัน) — ไว้โชว์เตือนบนการ์ด
+function dupIngredientNames(menu){
+  const cnt = {};
+  (menu.ingredients||[]).forEach((i)=>{ const n=String(i.ingredientName||"").trim(); if(n) cnt[n]=(cnt[n]||0)+1; });
+  return Object.keys(cnt).filter((n)=>cnt[n]>1);
 }
 
 function computeCost(menu){
@@ -328,6 +335,7 @@ function renderMenuCard(c){
       </div>
       ${servLine}
       <p class="ingredient-list">${ingredientText}</p>
+      ${dupIngredientNames(menu).length ? `<p style="font-size:11.5px; font-weight:800; color:#C7553B; margin:2px 0 6px;">⚠️ มีวัตถุดิบซ้ำ (${dupIngredientNames(menu).map(escapeHtml).join(", ")}) — เปิดแก้ไขแล้วลบแถวซ้ำ ต้นทุนถึงจะถูกต้อง</p>` : ""}
       <div class="gp-bar-row">
         <div class="gp-bar-bg"><div class="gp-bar-fg" style="width:${Math.max(0,Math.min(100,gpPercent))}%; background:${color}"></div></div>
         <span class="gp-label" style="color:${color}">GP ${gpPercent.toFixed(0)}%</span>
@@ -514,7 +522,9 @@ function updateLivePreview(){
   }
 }
 
+let _saving = false;
 async function submitMenu(){
+  if (_saving) return; // ★ กันกดบันทึกซ้ำตอนเน็ตช้า → เคยทำให้วัตถุดิบเบิ้ล 2 ชุด ต้นทุนดีดขึ้น
   const menuName = state.form.menuName.trim();
   const sellingPrice = Number(state.form.sellingPrice)||0;
   const category = state.form.category || "เครื่องดื่ม";
@@ -523,24 +533,34 @@ async function submitMenu(){
   const validIngredients = state.form.ingredients.filter((i)=>i.name.trim());
   if (validIngredients.length===0){ showToast("กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ"); return; }
   const editingName = state.form.editingName;
+  // รวมวัตถุดิบทั้งหมดเป็นชุดเดียว แล้วส่งครั้งเดียว (เร็วกว่าเดิมมาก)
+  const ingredients = validIngredients.map((ing)=>({
+    id:uid(), ingredientName:ing.name.trim(), ingredientQty:Number(ing.qty)||0,
+    ingredientUnit:ing.unit, buyPrice:Number(ing.buyPrice)||0, packSize:Number(ing.packSize)||0
+  }));
+  _saving = true;
+  const _btn = document.querySelector(".btn-primary.btn-block");
+  if (_btn){ _btn.disabled = true; _btn.textContent = "กำลังบันทึก..."; }
+  showToast("กำลังบันทึก...");
   try{
-    // ถ้าแก้ไข: ลบสูตรเดิม (ตามชื่อเดิม) ก่อน แล้วเขียนใหม่ทั้งชุด
-    if (editingName){
-      const del = await apiCall("deleteRecipeMenu", { menuName: editingName, branch: state.branch });
-      if (del && del.error) throw new Error(del.error);
-    }
-    for (const ing of validIngredients){
-      const resp = await apiCall("addRecipeRow", {
-        id:uid(), menuName, category, servings, sellingPrice,
-        ingredientName:ing.name.trim(), ingredientQty:Number(ing.qty)||0, ingredientUnit:ing.unit,
-        buyPrice:Number(ing.buyPrice)||0, packSize:Number(ing.packSize)||0, branch:state.branch,
-      });
-      if (resp && resp.error) throw new Error(resp.error);
-    }
-    showToast(editingName ? `แก้ไขเมนู "${menuName}" แล้ว` : `บันทึกเมนู "${menuName}" แล้ว`);
+    const payload = { menuName, category, servings, sellingPrice, branch:state.branch, ingredients };
+    if (editingName != null) payload.replaceMenu = editingName; // แก้ไข → ลบของเดิมในครั้งเดียว
+    const resp = await apiCall("saveRecipe", payload);
+    if (resp && resp.error && /unknown action/i.test(resp.error)){
+      // หลังบ้านยังไม่ได้อัปเดต (ยังไม่มี saveRecipe) → ใช้วิธีเดิมเป็น fallback
+      if (editingName){ const d = await apiCall("deleteRecipeMenu", { menuName:editingName, branch:state.branch }); if (d && d.error) throw new Error(d.error); }
+      for (const g of ingredients){
+        const r = await apiCall("addRecipeRow", { id:g.id, menuName, category, servings, sellingPrice,
+          ingredientName:g.ingredientName, ingredientQty:g.ingredientQty, ingredientUnit:g.ingredientUnit,
+          buyPrice:g.buyPrice, packSize:g.packSize, branch:state.branch });
+        if (r && r.error) throw new Error(r.error);
+      }
+    } else if (resp && resp.error){ throw new Error(resp.error); }
+    showToast(editingName ? `แก้ไขเมนู "${menuName}" แล้ว ✓` : `บันทึกเมนู "${menuName}" แล้ว ✓`);
     await loadAll();
     setView("list");
   }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
+  finally{ _saving = false; const b = document.querySelector(".btn-primary.btn-block"); if (b){ b.disabled = false; b.textContent = state.form.editingName ? "บันทึกการแก้ไข" : "บันทึกเมนูนี้"; } }
 }
 
 loadAll();

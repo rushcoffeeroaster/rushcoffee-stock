@@ -722,35 +722,52 @@ function submitManualCode(){
 function handleScan(code){
   code = String(code || "").trim();
   if (!code){ showToast("ไม่พบบาร์โค้ด"); return; }
-  const item = state.items.find(function(it){ return String(it.barcode || "").trim() === code; });
-  openReceiveModal(code, item || null);
+  // ★ หาเฉพาะ "สาขาที่กำลังใช้งาน" ก่อน — กันสแกนของ Rush Hour แล้วไปลงร้าน Rush
+  const matches = state.items.filter(function(it){ return String(it.barcode || "").trim() === code; });
+  let item = null;
+  if (state.branch === "all"){
+    item = matches.length === 1 ? matches[0] : null; // มีหลายสาขา → ให้เลือกเองในหน้าถัดไป
+  } else {
+    item = matches.find(function(it){ return inBranch(it.branch); }) || null;
+  }
+  openReceiveModal(code, item, matches);
 }
 
 let _recv = null;
-function openReceiveModal(code, item){
+function openReceiveModal(code, item, matches){
+  matches = matches || [];
   _recv = { code: code, item: item };
   const branch = item ? (item.branch || "rush") : (state.branch === "all" ? "rush" : state.branch);
   const itemsForLink = state.items.filter(function(it){ return inBranch(it.branch); });
   const known = !!item;
-  const defCost = item ? (item.cost || 0) : 0;
+  const other = (!known && matches.length) ? matches[0] : null; // บาร์โค้ดนี้มีอยู่ในสาขาอื่น/หลายรายการ
+  const defCost = item ? (item.cost || 0) : (other ? (other.cost || 0) : 0);
+  const preLink = (!known && state.branch === "all" && other) ? other.id : "";
+  const branchNote = known
+    ? `<p style="font-size:12.5px; font-weight:800; color:var(--accent-deep); margin:-8px 0 14px;">⬇ ลงสต๊อกสาขา ${BRANCH_LABEL[branch] || branch}</p>`
+    : "";
+  const otherNote = (!known && other)
+    ? `<p style="font-size:12px; color:var(--amber, #CF9A2B); font-weight:700; margin:-8px 0 12px;">⚠️ บาร์โค้ดนี้มีอยู่แล้ว: ${escapeHtml(other.name)} (สาขา ${BRANCH_LABEL[other.branch || "rush"] || other.branch})${state.branch === "all" ? " — เลือกจากรายการด้านล่างให้ตรงสาขา" : ` — รับเข้าครั้งนี้จะเป็นของสาขา ${BRANCH_LABEL[branch] || branch} แยกกัน`}</p>`
+    : "";
   document.getElementById("modalRoot").innerHTML = `
     <div class="overlay" onclick="if(event.target===this) closeModal()">
       <div class="sheet">
         <h2>${known ? "รับเข้า — " + escapeHtml(item.name) : "บาร์โค้ดใหม่ — รับเข้า"}</h2>
         <p style="font-size:12.5px; color:var(--ink-2); margin:2px 0 14px;">บาร์โค้ด ${escapeHtml(code)}${known ? ` · คงเหลือ ${item.qty} ${escapeHtml(item.unit || "")}` : ""}</p>
+        ${branchNote}${otherNote}
         ${known ? "" : `
         <div class="field">
           <label class="label">สินค้านี้คือ</label>
           <select id="rcLink" onchange="toggleRecvNew()">
             <option value="">➕ สร้างสินค้าใหม่</option>
-            ${itemsForLink.map(function(it){ return `<option value="${it.id}">${escapeHtml(it.name)} (คงเหลือ ${it.qty})</option>`; }).join("")}
+            ${itemsForLink.map(function(it){ return `<option value="${it.id}" ${it.id === preLink ? "selected" : ""}>${escapeHtml(it.name)} (${BRANCH_LABEL[it.branch || "rush"] || it.branch} · คงเหลือ ${it.qty})</option>`; }).join("")}
           </select>
         </div>
-        <div id="rcNewFields">
-          <div class="field"><label class="label">ชื่อสินค้า</label><input id="rcName" placeholder="เช่น นมสดโฟร์โมสต์" /></div>
+        <div id="rcNewFields" ${preLink ? 'style="display:none;"' : ""}>
+          <div class="field"><label class="label">ชื่อสินค้า</label><input id="rcName" placeholder="เช่น นมสดโฟร์โมสต์" value="${other ? escapeHtml(other.name) : ""}" /></div>
           <div class="row">
-            <div class="field" style="flex:1;"><label class="label">หน่วย</label><select id="rcUnit">${UNITS.map(function(u){ return `<option value="${u}">${u}</option>`; }).join("")}</select></div>
-            <div class="field" style="flex:1;"><label class="label">หมวด</label><select id="rcCat">${CATEGORIES.map(function(c){ return `<option value="${c.id}">${c.label}</option>`; }).join("")}</select></div>
+            <div class="field" style="flex:1;"><label class="label">หน่วย</label><select id="rcUnit">${UNITS.map(function(u){ return `<option value="${u}" ${other && other.unit === u ? "selected" : ""}>${u}</option>`; }).join("")}</select></div>
+            <div class="field" style="flex:1;"><label class="label">หมวด</label><select id="rcCat">${CATEGORIES.map(function(c){ return `<option value="${c.id}" ${other && other.category === c.id ? "selected" : ""}>${c.label}</option>`; }).join("")}</select></div>
           </div>
           <div class="field"><label class="label">สาขา</label>
             <select id="rcBranch"><option value="rush" ${branch === "rush" ? "selected" : ""}>Rush</option><option value="rushhour" ${branch === "rushhour" ? "selected" : ""}>Rush Hour</option></select></div>
@@ -792,31 +809,37 @@ function updateRecvTotal(){
   const el = document.getElementById("rcTotal"); if (el) el.textContent = "฿" + moneyTH(q * c);
 }
 
+let _recvBusy = false;
 async function confirmReceive(){
+  if (_recvBusy) return; // ★ กันกดซ้ำ → สร้างสินค้า/ลงรายจ่ายเบิ้ล
   const qty = Number((document.getElementById("rcQty") || {}).value) || 0;
   const cost = Number((document.getElementById("rcCost") || {}).value) || 0;
   if (qty <= 0){ showToast("ใส่จำนวนรับเข้า"); return; }
   const code = _recv.code;
+  const fallbackBranch = state.branch === "all" ? "rush" : state.branch;
   let itemId, itemName, itemUnit, branch;
+  _recvBusy = true;
+  const btn = event && event.target; if (btn){ btn.disabled = true; btn.textContent = "กำลังบันทึก..."; }
   try{
     if (_recv.item){
-      const it = _recv.item; itemId = it.id; itemName = it.name; itemUnit = it.unit || ""; branch = it.branch || state.branch;
+      const it = _recv.item; itemId = it.id; itemName = it.name; itemUnit = it.unit || ""; branch = it.branch || fallbackBranch;
       if (cost > 0) await apiCall("updateItemMeta", { id: itemId, barcode: code, cost: cost });
     } else {
       const linkSel = document.getElementById("rcLink");
       const linkId = linkSel ? linkSel.value : "";
       if (linkId){
         const it = state.items.find(function(i){ return i.id === linkId; });
-        itemId = linkId; itemName = it.name; itemUnit = it.unit || ""; branch = it.branch || state.branch;
+        itemId = linkId; itemName = it.name; itemUnit = it.unit || ""; branch = it.branch || fallbackBranch;
         await apiCall("updateItemMeta", { id: itemId, barcode: code, cost: cost });
       } else {
         const name = ((document.getElementById("rcName") || {}).value || "").trim();
-        if (!name){ showToast("ใส่ชื่อสินค้า"); return; }
+        if (!name){ showToast("ใส่ชื่อสินค้า"); _recvBusy = false; if (btn){ btn.disabled = false; btn.textContent = "รับเข้า + ลงรายจ่าย"; } return; }
         const unit = (document.getElementById("rcUnit") || {}).value;
         const category = (document.getElementById("rcCat") || {}).value;
         branch = (document.getElementById("rcBranch") || {}).value;
         itemId = uid(); itemName = name; itemUnit = unit;
-        await apiCall("saveItem", { id: itemId, name: name, unit: unit, category: category, qty: 0, min: 1, branch: branch, barcode: code, cost: cost });
+        const sv = await apiCall("saveItem", { id: itemId, name: name, unit: unit, category: category, qty: 0, min: 1, branch: branch, barcode: code, cost: cost });
+        if (sv && sv.id) itemId = sv.id; // ★ หลังบ้านเจอบาร์โค้ดเดิมในสาขาเดียวกัน → ใช้ตัวเดิม ไม่สร้างซ้ำ
       }
     }
     closeModal();
@@ -829,10 +852,11 @@ async function confirmReceive(){
       if (r && r.error){ acctOk = false; acctErr = r.error; }
     }catch(e){ acctOk = false; acctErr = e.message; }
     showToast(acctOk
-      ? "รับเข้า " + itemName + " +" + qty + " · ลงรายจ่าย " + moneyTH(qty * cost) + "฿ ✓"
+      ? "รับเข้า " + itemName + " (" + (BRANCH_LABEL[branch] || branch) + ") +" + qty + " · ลงรายจ่าย " + moneyTH(qty * cost) + "฿ ✓"
       : "รับเข้าสต๊อกแล้ว ✓ แต่ลงรายจ่ายไม่สำเร็จ: " + acctErr);
     await loadAll();
-  }catch(e){ showToast("ไม่สำเร็จ: " + e.message); }
+  }catch(e){ showToast("ไม่สำเร็จ: " + e.message); if (btn){ btn.disabled = false; btn.textContent = "รับเข้า + ลงรายจ่าย"; } }
+  finally{ _recvBusy = false; }
 }
 
 // ----- init -----
