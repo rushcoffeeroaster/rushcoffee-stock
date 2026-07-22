@@ -146,6 +146,15 @@
   .daynav-btn:disabled{ opacity:.35; cursor:default; }
   .daynav-today{ flex:0 0 auto; border:none; background:var(--accent-grad); color:var(--on-accent); font-size:12.5px;
     font-weight:800; padding:0 12px; height:40px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+
+  /* ---------- Custom date range (กำหนดช่วงวันที่เอง) ---------- */
+  .daterange{ display:flex; align-items:center; gap:8px; }
+  .daterange input[type="date"]{ flex:1; min-width:0; }
+  .daterange-sep{ color:var(--ink-3); font-weight:700; flex:0 0 auto; }
+  .quickrange{ display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; }
+  .quickrange-btn{ flex:0 0 auto; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2);
+    font-size:12px; font-weight:700; padding:7px 11px; border-radius:999px; cursor:pointer; white-space:nowrap; }
+  .quickrange-btn:active{ background:var(--accent-soft); }
   .del-btn{ background:none; border:none; color:#C4B9AC; font-size:17px; cursor:pointer; padding:4px 8px; border-radius:8px; }
   .del-btn:active{ background:var(--red-bg); color:var(--red); }
   .empty{ text-align:center; padding:40px 16px; color:var(--ink-3); font-size:14px; }
@@ -250,11 +259,18 @@ const CHANNELS = [
 ];
 const DELIVERY_CHANNEL_IDS = ["grab", "shopee", "lineman", "delivery"];
 const CHANNEL_COLORS = { store:"#3C4450", grab:"#00B14F", shopee:"#EE4D2D", lineman:"#00B300", delivery:"#CF9A2B" };
+// ★ ช่องทางที่ผูกกับสาขาตายตัว (LINE MAN = Rush Hour เท่านั้น) — เลือกช่องทางนี้แล้วระบบล็อกสาขาให้อัตโนมัติ กันบันทึกผิดสาขา
+const CHANNEL_BRANCH_LOCK = { lineman: "rushhour" };
 const STOCK_UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ถุง", "ขวด", "กล่อง"];
 const CAT_COLORS = { stock:"#C7553B", rent:"#A9744F", commission:"#CF9A2B", other:"#9AA0A8" };
 const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"รวมทั้งสองสาขา" };
 
-let state = { income:[], expense:[], view:"dash", period:"week", selectedDate: todayStr(), branch:"all" };
+let state = {
+  income:[], expense:[], view:"dash", period:"week", selectedDate: todayStr(), branch:"all",
+  // ★ ช่วงวันที่กำหนดเอง (สำหรับแท็บ "กำหนดช่วงวันที่") — ค่าเริ่มต้น 7 วันล่าสุด
+  rangeStart: (()=>{ const d=new Date(); d.setDate(d.getDate()-6); return toLocalDateStr(d); })(),
+  rangeEnd: todayStr(),
+};
 let chartInstance = null;
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -314,6 +330,23 @@ function getRangeStart(period){
 }
 function filterByPeriod(arr, period){ const start=getRangeStart(period); return arr.filter((r)=>{ const d=new Date(r.date); return !isNaN(d) && d>=start; }); }
 function filterByDay(arr, dateStr){ return arr.filter((r)=>r.date===dateStr); }
+// ★ กรองตามช่วงวันที่กำหนดเอง (รวมวันแรกและวันสุดท้าย) — เช่น 1-5, 5-12
+function filterByRange(arr, startStr, endStr){
+  if (!startStr || !endStr) return [];
+  const s = startStr <= endStr ? startStr : endStr, e = startStr <= endStr ? endStr : startStr;
+  return arr.filter((r)=> r.date && r.date>=s && r.date<=e);
+}
+function dateRangeDays(startStr, endStr){
+  const a = new Date(startStr+"T00:00:00"), b = new Date(endStr+"T00:00:00");
+  if (isNaN(a) || isNaN(b)) return 1;
+  return Math.max(1, Math.round(Math.abs(b-a)/86400000)+1);
+}
+// ★ ดึงรายรับ/รายจ่ายตามโหมดที่กำลังดูอยู่ (รายวัน/สัปดาห์/เดือน/ทั้งหมด/ช่วงที่กำหนดเอง) — ใช้จุดเดียวทั้งหน้า dashboard และกราฟ
+function getFilteredIncomeExpense(bd){
+  if (state.period==="day") return { incomeF: filterByDay(bd.income, state.selectedDate), expenseF: filterByDay(bd.expense, state.selectedDate) };
+  if (state.period==="range") return { incomeF: filterByRange(bd.income, state.rangeStart, state.rangeEnd), expenseF: filterByRange(bd.expense, state.rangeStart, state.rangeEnd) };
+  return { incomeF: filterByPeriod(bd.income, state.period), expenseF: filterByPeriod(bd.expense, state.period) };
+}
 
 function getBranchData(){
   if (state.branch === "all") return { income: state.income, expense: state.expense };
@@ -349,8 +382,20 @@ function toggleStockFields(){
 }
 
 // ---------- Dashboard ----------
-function periodDays(){ return state.period==="week"?7 : state.period==="month"?30 : null; }
-function periodLabel(){ return state.period==="day"?"วันที่เลือก" : state.period==="week"?"7 วันล่าสุด" : state.period==="month"?"30 วันล่าสุด" : "ทั้งหมด"; }
+function periodDays(){
+  if (state.period==="week") return 7;
+  if (state.period==="month") return 30;
+  if (state.period==="range") return dateRangeDays(state.rangeStart, state.rangeEnd);
+  return null;
+}
+function fmtShortThaiDate(s){ const d=new Date(s+"T00:00:00"); if (isNaN(d)) return s; return d.toLocaleDateString("th-TH",{ day:"2-digit", month:"short" }); }
+function periodLabel(){
+  if (state.period==="day") return "วันที่เลือก";
+  if (state.period==="week") return "7 วันล่าสุด";
+  if (state.period==="month") return "30 วันล่าสุด";
+  if (state.period==="range") return fmtShortThaiDate(state.rangeStart) + " – " + fmtShortThaiDate(state.rangeEnd);
+  return "ทั้งหมด";
+}
 
 function renderDash(){
   let html = `
@@ -358,6 +403,7 @@ function renderDash(){
       <div class="chip ${state.period==="day"?"active":""}" onclick="setPeriod('day')">รายวัน</div>
       <div class="chip ${state.period==="week"?"active":""}" onclick="setPeriod('week')">7 วันล่าสุด</div>
       <div class="chip ${state.period==="month"?"active":""}" onclick="setPeriod('month')">30 วันล่าสุด</div>
+      <div class="chip ${state.period==="range"?"active":""}" onclick="setPeriod('range')">กำหนดช่วงวันที่</div>
       <div class="chip ${state.period==="all"?"active":""}" onclick="setPeriod('all')">ทั้งหมด</div>
     </div>`;
 
@@ -374,9 +420,24 @@ function renderDash(){
     </div>`;
   }
 
+  if (state.period==="range"){
+    html += `<div class="field" style="margin-bottom:14px;">
+      <label class="label">กำหนดช่วงวันที่เอง — เช่น วันที่ 1-5 หรือ 5-12</label>
+      <div class="daterange">
+        <input type="date" value="${state.rangeStart}" max="${todayStr()}" onchange="setRangeStart(this.value)" />
+        <span class="daterange-sep">–</span>
+        <input type="date" value="${state.rangeEnd}" max="${todayStr()}" onchange="setRangeEnd(this.value)" />
+      </div>
+      <div class="quickrange">
+        <button type="button" class="quickrange-btn" onclick="setQuickRange(6)">7 วันล่าสุด</button>
+        <button type="button" class="quickrange-btn" onclick="setQuickRange(13)">14 วันล่าสุด</button>
+        <button type="button" class="quickrange-btn" onclick="setMonthToDate()">ตั้งแต่ต้นเดือนนี้</button>
+      </div>
+    </div>`;
+  }
+
   const bd = getBranchData();
-  const incomeF = state.period==="day" ? filterByDay(bd.income, state.selectedDate) : filterByPeriod(bd.income, state.period);
-  const expenseF = state.period==="day" ? filterByDay(bd.expense, state.selectedDate) : filterByPeriod(bd.expense, state.period);
+  const { incomeF, expenseF } = getFilteredIncomeExpense(bd);
 
   const totalIncome = incomeF.reduce((s,r)=>s+r.amount,0);
   const totalExpense = expenseF.reduce((s,r)=>s+r.amount,0);
@@ -540,17 +601,23 @@ function renderStockSummary(expenseF){
 }
 
 function buildDailySeries(incomeF, expenseF, period){
-  const days = period==="week"?7:30;
-  const labels=[], keys=[], storeArr=[], deliveryArr=[], expenseArr=[];
-  for (let i=days-1;i>=0;i--){
-    const d=new Date(); d.setDate(d.getDate()-i);
-    const key=toLocalDateStr(d);
-    keys.push(key);
-    labels.push(d.toLocaleDateString("th-TH",{ day:"2-digit", month:"2-digit" }));
-    storeArr.push(incomeF.filter((r)=>r.date===key && r.channel==="store").reduce((s,r)=>s+r.amount,0));
-    deliveryArr.push(incomeF.filter((r)=>r.date===key && DELIVERY_CHANNEL_IDS.includes(r.channel)).reduce((s,r)=>s+r.amount,0)); // รวมทุกแพลตฟอร์ม delivery
-    expenseArr.push(expenseF.filter((r)=>r.date===key).reduce((s,r)=>s+r.amount,0));
+  const keys = [];
+  if (period==="range"){
+    // ★ ช่วงที่กำหนดเอง — ไล่ทีละวันตั้งแต่ rangeStart ถึง rangeEnd (รวมวันแรก/สุดท้าย) แทนย้อนหลังตายตัว 7/30 วัน
+    const s0 = state.rangeStart <= state.rangeEnd ? state.rangeStart : state.rangeEnd;
+    const e0 = state.rangeStart <= state.rangeEnd ? state.rangeEnd : state.rangeStart;
+    const s = new Date(s0+"T00:00:00"), e = new Date(e0+"T00:00:00");
+    if (!isNaN(s) && !isNaN(e)){
+      for (let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) keys.push(toLocalDateStr(d));
+    }
+  } else {
+    const days = period==="week"?7:30;
+    for (let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); keys.push(toLocalDateStr(d)); }
   }
+  const labels = keys.map((key)=>{ const d=new Date(key+"T00:00:00"); return d.toLocaleDateString("th-TH",{ day:"2-digit", month:"2-digit" }); });
+  const storeArr = keys.map((key)=>incomeF.filter((r)=>r.date===key && r.channel==="store").reduce((s,r)=>s+r.amount,0));
+  const deliveryArr = keys.map((key)=>incomeF.filter((r)=>r.date===key && DELIVERY_CHANNEL_IDS.includes(r.channel)).reduce((s,r)=>s+r.amount,0)); // รวมทุกแพลตฟอร์ม delivery
+  const expenseArr = keys.map((key)=>expenseF.filter((r)=>r.date===key).reduce((s,r)=>s+r.amount,0));
   return { labels, keys, storeArr, deliveryArr, expenseArr };
 }
 
@@ -573,10 +640,32 @@ function shiftDay(delta){
   render();
 }
 
+// ★ กำหนดช่วงวันที่เอง (แท็บ "กำหนดช่วงวันที่") — พิมพ์/เลือกวันเริ่ม-สิ้นสุดได้อิสระ เช่น 1-5, 5-12
+function setRangeStart(v){
+  state.rangeStart = v;
+  if (state.rangeStart > state.rangeEnd) state.rangeEnd = state.rangeStart; // กันช่วงกลับด้าน (เริ่มหลังจบ)
+  render();
+}
+function setRangeEnd(v){
+  state.rangeEnd = v;
+  if (state.rangeEnd < state.rangeStart) state.rangeStart = state.rangeEnd; // กันช่วงกลับด้าน (จบก่อนเริ่ม)
+  render();
+}
+function setQuickRange(daysBack){
+  const e = new Date(); const s = new Date(); s.setDate(s.getDate()-daysBack);
+  state.rangeStart = toLocalDateStr(s); state.rangeEnd = toLocalDateStr(e);
+  render();
+}
+function setMonthToDate(){
+  const now = new Date();
+  state.rangeStart = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+  state.rangeEnd = todayStr();
+  render();
+}
+
 function drawChart(){
   const bd = getBranchData();
-  const incomeF = state.period==="day" ? filterByDay(bd.income, state.selectedDate) : filterByPeriod(bd.income, state.period);
-  const expenseF = state.period==="day" ? filterByDay(bd.expense, state.selectedDate) : filterByPeriod(bd.expense, state.period);
+  const { incomeF, expenseF } = getFilteredIncomeExpense(bd);
   const primary = state.branch==="rush" ? "#6E7884" : state.branch==="rushhour" ? "#C2941A" : "#3C4450";
   const secondary = state.branch==="rush" ? "#B6BEC8" : state.branch==="rushhour" ? "#E6C24E" : "#8A93A0";
 
@@ -624,7 +713,8 @@ function renderAdd(){
       <div class="field"><label class="label">สาขา</label>
         <select id="incBranch"><option value="rush" ${defaultBranch==="rush"?"selected":""}>Rush (เงิน)</option><option value="rushhour" ${defaultBranch==="rushhour"?"selected":""}>Rush Hour (ทอง)</option></select></div>
       <div class="field"><label class="label">วันที่</label><input id="incDate" type="date" value="${todayStr()}" /></div>
-      <div class="field"><label class="label">ช่องทาง</label><select id="incChannel">${CHANNELS.map((c)=>`<option value="${c.id}">${c.label}</option>`).join("")}</select></div>
+      <div class="field"><label class="label">ช่องทาง</label><select id="incChannel" onchange="onIncomeChannelChange()">${CHANNELS.map((c)=>`<option value="${c.id}">${c.label}</option>`).join("")}</select>
+        <p style="font-size:11px; color:var(--ink-3); margin:5px 2px 0;">* LINE MAN เป็นของสาขา Rush Hour เท่านั้น — เลือกแล้วระบบจะสลับสาขาให้อัตโนมัติ</p></div>
       <div class="field"><label class="label">จำนวนเงิน (บาท)</label><input id="incAmount" type="number" inputmode="decimal" min="0" placeholder="0" /></div>
       <div class="field"><label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label><input id="incNote" placeholder="เช่น ยอดขายกะเช้า" /></div>
       <button class="btn-primary btn-income btn-block" onclick="submitIncome()">+ บันทึกรายรับ</button>
@@ -649,10 +739,31 @@ function renderAdd(){
     </div>`;
 }
 
+// ★ ช่องทางบางอย่างผูกกับสาขาตายตัว (เช่น LINE MAN = Rush Hour เท่านั้น) — สลับสาขาให้อัตโนมัติเมื่อเลือกช่องทางนั้น
+function onIncomeChannelChange(){
+  const channelEl = document.getElementById("incChannel"), branchEl = document.getElementById("incBranch");
+  if (!channelEl || !branchEl) return;
+  const lockBranch = CHANNEL_BRANCH_LOCK[channelEl.value];
+  if (lockBranch){
+    branchEl.value = lockBranch;
+    branchEl.disabled = true;
+  } else {
+    branchEl.disabled = false;
+  }
+}
+
 async function submitIncome(){
-  const branch=document.getElementById("incBranch").value, date=document.getElementById("incDate").value,
-    channel=document.getElementById("incChannel").value, amount=Number(document.getElementById("incAmount").value),
+  const branchEl=document.getElementById("incBranch"), channel=document.getElementById("incChannel").value,
+    date=document.getElementById("incDate").value, amount=Number(document.getElementById("incAmount").value),
     note=document.getElementById("incNote").value;
+  let branch=branchEl.value;
+  // ★ เซฟตี้เน็ต: ถ้าช่องทางนี้ถูกล็อกสาขาไว้ (เช่น lineman → rushhour) แต่ไม่ตรง ให้บังคับแก้ก่อนบันทึกเสมอ
+  const lockBranch = CHANNEL_BRANCH_LOCK[channel];
+  if (lockBranch && branch !== lockBranch){
+    branch = lockBranch;
+    branchEl.value = lockBranch;
+    showToast(`${CHANNELS.find((c)=>c.id===channel)?.label || channel} เป็นของสาขา Rush Hour — ปรับสาขาให้อัตโนมัติ`);
+  }
   if (!amount || amount<=0){ showToast("กรุณาใส่จำนวนเงิน"); return; }
   try{
     await apiCall("addIncome", { id:uid(), date, channel, amount, note, branch });
