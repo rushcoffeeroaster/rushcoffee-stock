@@ -135,6 +135,17 @@
   .split-fg{ height:100%; border-radius:6px; transition:width .4s; }
 
   .chart-wrap{ position:relative; height:230px; margin:2px 0 6px; }
+  .chart-hint{ font-size:11.5px; color:var(--ink-3); margin:-4px 0 8px; }
+
+  /* ---------- Day nav (เลือกวันย้อนหลัง/ถัดไปทีละวัน) ---------- */
+  .daynav{ display:flex; align-items:center; gap:8px; }
+  .daynav input[type="date"]{ flex:1; }
+  .daynav-btn{ flex:0 0 auto; width:40px; height:40px; border-radius:10px; border:1px solid var(--line-strong);
+    background:var(--surface); font-size:18px; font-weight:800; color:var(--ink-2); cursor:pointer; display:grid; place-items:center; }
+  .daynav-btn:active{ background:var(--accent-soft); }
+  .daynav-btn:disabled{ opacity:.35; cursor:default; }
+  .daynav-today{ flex:0 0 auto; border:none; background:var(--accent-grad); color:var(--on-accent); font-size:12.5px;
+    font-weight:800; padding:0 12px; height:40px; border-radius:10px; cursor:pointer; white-space:nowrap; }
   .del-btn{ background:none; border:none; color:#C4B9AC; font-size:17px; cursor:pointer; padding:4px 8px; border-radius:8px; }
   .del-btn:active{ background:var(--red-bg); color:var(--red); }
   .empty{ text-align:center; padding:40px 16px; color:var(--ink-3); font-size:14px; }
@@ -229,7 +240,16 @@ const EXPENSE_CATEGORIES = [
   { id: "commission", label: "ค่าคอมมิชชั่น delivery" },
   { id: "other", label: "อื่นๆ" },
 ];
-const CHANNELS = [ { id:"store", label:"หน้าร้าน" }, { id:"delivery", label:"Delivery" } ];
+// ★ แยกช่องทาง Delivery เป็นรายแพลตฟอร์ม (Grab/Shopee/LINE MAN) — "delivery" เดิมเก็บไว้รองรับรายการเก่าก่อนแยก
+const CHANNELS = [
+  { id:"store", label:"หน้าร้าน" },
+  { id:"grab", label:"Grab" },
+  { id:"shopee", label:"Shopee Food" },
+  { id:"lineman", label:"LINE MAN" },
+  { id:"delivery", label:"Delivery (เก่า/ไม่ระบุแพลตฟอร์ม)" },
+];
+const DELIVERY_CHANNEL_IDS = ["grab", "shopee", "lineman", "delivery"];
+const CHANNEL_COLORS = { store:"#3C4450", grab:"#00B14F", shopee:"#EE4D2D", lineman:"#00B300", delivery:"#CF9A2B" };
 const STOCK_UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ถุง", "ขวด", "กล่อง"];
 const CAT_COLORS = { stock:"#C7553B", rent:"#A9744F", commission:"#CF9A2B", other:"#9AA0A8" };
 const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"รวมทั้งสองสาขา" };
@@ -342,9 +362,16 @@ function renderDash(){
     </div>`;
 
   if (state.period==="day"){
-    html += `<div class="field" style="max-width:230px; margin-bottom:14px;">
-      <label class="label">เลือกวันที่ดู</label>
-      <input type="date" value="${state.selectedDate}" onchange="setSelectedDate(this.value)" /></div>`;
+    const isToday = state.selectedDate >= todayStr();
+    html += `<div class="field" style="max-width:340px; margin-bottom:14px;">
+      <label class="label">เลือกวันที่ดู — เลื่อนทีละวัน หรือกำหนดวันที่เองได้เลย</label>
+      <div class="daynav">
+        <button type="button" class="daynav-btn" onclick="shiftDay(-1)" aria-label="วันก่อนหน้า">‹</button>
+        <input type="date" value="${state.selectedDate}" max="${todayStr()}" onchange="setSelectedDate(this.value)" />
+        <button type="button" class="daynav-btn" onclick="shiftDay(1)" aria-label="วันถัดไป" ${isToday?"disabled":""}>›</button>
+      </div>
+      ${!isToday ? `<button type="button" class="daynav-today" style="margin-top:8px;" onclick="setSelectedDate(todayStr())">« กลับไปวันนี้</button>` : ""}
+    </div>`;
   }
 
   const bd = getBranchData();
@@ -413,8 +440,13 @@ function renderDash(){
   if (topCat && topCat.amt>0){
     insights.push(`รายจ่ายสูงสุดมาจากหมวด <b>${topCat.label}</b> รวม <b>${fmtMoney(topCat.amt)} ฿</b> (${totalExpense>0?(topCat.amt/totalExpense*100).toFixed(0):0}% ของรายจ่าย)`);
   }
-  if (byChannel.delivery>0 && totalIncome>0){
-    insights.push(`ยอด Delivery คิดเป็น <b>${(byChannel.delivery/totalIncome*100).toFixed(0)}%</b> ของรายรับ — ค่าคอมฯ ที่จ่ายไป <b>${fmtMoney(byCat.commission||0)} ฿</b>`);
+  const deliveryTotalAmt = DELIVERY_CHANNEL_IDS.reduce((s,id)=>s+(byChannel[id]||0),0);
+  if (deliveryTotalAmt>0 && totalIncome>0){
+    insights.push(`ยอด Delivery รวมทุกแพลตฟอร์มคิดเป็น <b>${(deliveryTotalAmt/totalIncome*100).toFixed(0)}%</b> ของรายรับ — ค่าคอมฯ ที่จ่ายไป <b>${fmtMoney(byCat.commission||0)} ฿</b>`);
+  }
+  const bestPlatform = DELIVERY_CHANNEL_IDS.filter(id=>id!=="delivery").map(id=>({ id, amt:byChannel[id]||0 })).sort((a,b)=>b.amt-a.amt)[0];
+  if (bestPlatform && bestPlatform.amt>0){
+    insights.push(`แพลตฟอร์ม Delivery ที่ขายดีสุดคือ <b>${CHANNELS.find(c=>c.id===bestPlatform.id).label}</b> ทำยอด <b>${fmtMoney(bestPlatform.amt)} ฿</b>`);
   }
   if (insights.length){
     html += `<h2>สรุปเชิงลึก</h2>`;
@@ -442,14 +474,16 @@ function renderDash(){
       </div>`;
   }
 
-  // Channel split
-  const chTotal = (byChannel.store||0) + (byChannel.delivery||0);
+  // Channel split — ★ แยก Delivery เป็นรายแพลตฟอร์ม (Grab/Shopee/LINE MAN) แทนที่จะรวมเป็นก้อนเดียว
+  const chTotal = CHANNELS.reduce((s,c)=>s+(byChannel[c.id]||0),0);
   html += `<h2>รายรับแยกตามช่องทาง</h2><div class="card">`;
   CHANNELS.forEach((c)=>{
-    const v = byChannel[c.id]||0; const pct = chTotal>0 ? (v/chTotal*100) : 0;
-    const col = c.id==="store" ? "var(--accent)" : "#CF9A2B";
+    const v = byChannel[c.id]||0;
+    if (v<=0 && c.id==="delivery") return; // ซ่อนแถว "เก่า/ไม่ระบุ" ถ้าไม่มีข้อมูลค้าง
+    const pct = chTotal>0 ? (v/chTotal*100) : 0;
+    const col = CHANNEL_COLORS[c.id] || "var(--accent)";
     html += `<div class="split-row">
-      <div class="split-top"><span>${c.label} <span style="color:var(--ink-3)">${pct.toFixed(0)}%</span></span><b>${fmtMoney(v)} ฿</b></div>
+      <div class="split-top"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${col};margin-right:6px;"></span>${c.label} <span style="color:var(--ink-3)">${pct.toFixed(0)}%</span></span><b>${fmtMoney(v)} ฿</b></div>
       <div class="split-bg"><div class="split-fg" style="width:${pct}%; background:${col}"></div></div>
     </div>`;
   });
@@ -459,7 +493,7 @@ function renderDash(){
   html += `<h2>แนวโน้มรายวัน</h2>`;
   html += state.period==="day"
     ? `<p style="color:var(--ink-3); font-size:13px; margin-top:-4px;">สลับไปแท็บ "7 วันล่าสุด" หรือ "30 วันล่าสุด" เพื่อดูแนวโน้มเทียบหลายวัน</p>`
-    : `<div class="card"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>`;
+    : `<p class="chart-hint">แตะแท่งกราฟวันไหน เพื่อดูยอดขายวันนั้นแบบละเอียด</p><div class="card"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>`;
 
   // Expense by category
   html += `<h2>รายจ่ายแยกตามหมวด</h2>`;
@@ -507,16 +541,36 @@ function renderStockSummary(expenseF){
 
 function buildDailySeries(incomeF, expenseF, period){
   const days = period==="week"?7:30;
-  const labels=[], storeArr=[], deliveryArr=[], expenseArr=[];
+  const labels=[], keys=[], storeArr=[], deliveryArr=[], expenseArr=[];
   for (let i=days-1;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i);
     const key=toLocalDateStr(d);
+    keys.push(key);
     labels.push(d.toLocaleDateString("th-TH",{ day:"2-digit", month:"2-digit" }));
     storeArr.push(incomeF.filter((r)=>r.date===key && r.channel==="store").reduce((s,r)=>s+r.amount,0));
-    deliveryArr.push(incomeF.filter((r)=>r.date===key && r.channel==="delivery").reduce((s,r)=>s+r.amount,0));
+    deliveryArr.push(incomeF.filter((r)=>r.date===key && DELIVERY_CHANNEL_IDS.includes(r.channel)).reduce((s,r)=>s+r.amount,0)); // รวมทุกแพลตฟอร์ม delivery
     expenseArr.push(expenseF.filter((r)=>r.date===key).reduce((s,r)=>s+r.amount,0));
   }
-  return { labels, storeArr, deliveryArr, expenseArr };
+  return { labels, keys, storeArr, deliveryArr, expenseArr };
+}
+
+// ★ กดแท่งกราฟ/จุดในกราฟแนวโน้ม → กระโดดไปดูวันนั้นแบบละเอียด (โหมด "รายวัน")
+function jumpToDay(dateKey){
+  if (!dateKey) return;
+  state.period = "day";
+  state.selectedDate = dateKey;
+  render();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+// ★ เลื่อนดูวันก่อนหน้า/ถัดไปทีละวัน จากวันที่กำลังดูอยู่ (ไปอนาคตเกินวันนี้ไม่ได้)
+function shiftDay(delta){
+  const d = new Date(state.selectedDate + "T00:00:00");
+  const base = isNaN(d) ? new Date() : d;
+  base.setDate(base.getDate() + delta);
+  const next = toLocalDateStr(base);
+  if (next > todayStr()) return;
+  state.selectedDate = next;
+  render();
 }
 
 function drawChart(){
@@ -528,7 +582,7 @@ function drawChart(){
 
   const trendCanvas = document.getElementById("trendChart");
   if (trendCanvas && state.period!=="day"){
-    const { labels, storeArr, deliveryArr, expenseArr } = buildDailySeries(incomeF, expenseF, state.period);
+    const { labels, keys, storeArr, deliveryArr, expenseArr } = buildDailySeries(incomeF, expenseF, state.period);
     if (chartInstance) chartInstance.destroy();
     chartInstance = new Chart(trendCanvas, {
       type:"bar",
@@ -538,6 +592,8 @@ function drawChart(){
         { label:"รายจ่าย", data:expenseArr, type:"line", borderColor:"#C7553B", backgroundColor:"#C7553B", tension:.35, pointRadius:2, borderWidth:2 },
       ]},
       options:{ responsive:true, maintainAspectRatio:false,
+        onClick:(evt, elements)=>{ if (elements.length) jumpToDay(keys[elements[0].index]); },
+        onHover:(evt, elements)=>{ evt.native.target.style.cursor = elements.length ? "pointer" : "default"; },
         scales:{ x:{ stacked:true, grid:{ display:false } }, y:{ stacked:true, beginAtZero:true, grid:{ color:"#EEEBE3" } } },
         plugins:{ legend:{ position:"bottom", labels:{ font:{ size:11 }, usePointStyle:true, pointStyle:"circle" } } } },
     });
