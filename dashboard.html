@@ -176,6 +176,36 @@
   .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border-radius:13px; color:var(--ink-3); font-size:9.5px; font-weight:700; text-decoration:none; white-space:nowrap; transition:.15s; }
   .nav-item svg{ width:22px; height:22px; }
   .nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
+
+  /* ---------- ใบสรุปยอดรายวัน (Bill) ---------- */
+  .bill-actions{ display:flex; gap:8px; margin-bottom:14px; }
+  .bill-back{ flex:0 0 auto; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2); border-radius:10px; padding:0 16px; font-size:14px; font-weight:700; cursor:pointer; }
+  .bill-paper{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:22px 20px; }
+  .bill-head{ text-align:center; padding-bottom:14px; margin-bottom:14px; border-bottom:1.5px dashed var(--line-strong); }
+  .bill-shop{ font-weight:800; font-size:17px; letter-spacing:.4px; }
+  .bill-branch{ font-size:13px; color:var(--ink-2); margin-top:4px; font-weight:600; }
+  .bill-date{ font-size:12.5px; color:var(--ink-3); margin-top:2px; }
+  .bill-sub{ font-size:11.5px; color:var(--ink-3); margin-top:6px; text-transform:uppercase; letter-spacing:.6px; }
+  .bill-section{ margin-bottom:16px; }
+  .bill-section-title{ font-size:12.5px; font-weight:800; color:var(--ink-2); margin-bottom:8px; }
+  .bill-row{ display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
+  .bill-row:last-of-type{ border-bottom:none; }
+  .bill-row-label{ min-width:0; }
+  .bill-row-note{ font-size:11.5px; color:var(--ink-3); margin-top:1px; }
+  .bill-row-amt{ font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap; }
+  .bill-empty{ font-size:12.5px; color:var(--ink-3); padding:6px 0; }
+  .bill-subtotal{ display:flex; justify-content:space-between; padding-top:9px; margin-top:3px; border-top:1px solid var(--line-strong); font-size:13.5px; font-weight:800; }
+  .bill-net{ display:flex; justify-content:space-between; align-items:center; padding:14px 0 4px; margin-top:4px; border-top:1.5px dashed var(--line-strong); font-size:16px; font-weight:800; color:var(--green); }
+  .bill-net.neg{ color:var(--red); }
+  .bill-foot{ text-align:center; font-size:11px; color:var(--ink-3); margin-top:16px; }
+
+  @media print{
+    body *{ visibility:hidden; }
+    .bill-print-area, .bill-print-area *{ visibility:visible; }
+    .bill-print-area{ position:absolute; left:0; top:0; width:100%; box-shadow:none; border:none; padding:0; }
+    .no-print{ display:none !important; }
+    body{ background:#fff; padding-bottom:0; }
+  }
 </style>
 </head>
 <body class="theme-all" id="bodyEl">
@@ -371,9 +401,85 @@ function render(){
   const content = document.getElementById("content");
   if (state.view==="dash") content.innerHTML = renderDash();
   else if (state.view==="add") content.innerHTML = renderAdd();
+  else if (state.view==="bill") content.innerHTML = renderBill();
   else content.innerHTML = renderList();
   if (state.view==="dash") setTimeout(drawChart, 0);
   if (state.view==="add") setTimeout(toggleStockFields, 0);
+}
+
+// ---------- ใบสรุปยอดรายวัน (Bill) ----------
+// ★ กดจากมุมมอง "รายวัน" — สรุปทุกรายการรายรับ/รายจ่ายของวันนั้นเป็นใบพร้อมพิมพ์/เซฟ PDF ให้ลูกน้องปิดยอดได้เลย
+function openBill(){
+  state.view = "bill";
+  render();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+function closeBill(){
+  state.view = "dash";
+  render();
+}
+function billIncomeRowHtml(r){
+  const label = CHANNELS.find((c)=>c.id===r.channel)?.label || r.channel;
+  const branchTag = state.branch==="all" ? ` · ${BRANCH_LABEL[r.branch]||""}` : "";
+  return `<div class="bill-row">
+    <div class="bill-row-label">
+      <div>${escapeHtml(label)}<span style="color:var(--ink-3); font-weight:500;">${branchTag}</span></div>
+      ${r.note ? `<div class="bill-row-note">${escapeHtml(r.note)}</div>` : ""}
+    </div>
+    <div class="bill-row-amt" style="color:var(--green);">+${fmtMoney(r.amount)}</div>
+  </div>`;
+}
+function billExpenseRowHtml(r){
+  const label = EXPENSE_CATEGORIES.find((c)=>c.id===r.category)?.label || r.category;
+  const branchTag = state.branch==="all" ? ` · ${BRANCH_LABEL[r.branch]||""}` : "";
+  const stockDetail = r.category==="stock" && r.itemName
+    ? `${escapeHtml(r.itemName)}${r.itemQty ? ` (${r.itemQty}${escapeHtml(r.itemUnit||"")})` : ""}${r.note ? " — " : ""}`
+    : "";
+  const noteText = stockDetail + (r.note||"");
+  return `<div class="bill-row">
+    <div class="bill-row-label">
+      <div>${escapeHtml(label)}<span style="color:var(--ink-3); font-weight:500;">${branchTag}</span></div>
+      ${noteText ? `<div class="bill-row-note">${escapeHtml(noteText)}</div>` : ""}
+    </div>
+    <div class="bill-row-amt" style="color:var(--red);">−${fmtMoney(r.amount)}</div>
+  </div>`;
+}
+function renderBill(){
+  const bd = getBranchData();
+  const incomeF = filterByDay(bd.income, state.selectedDate);
+  const expenseF = filterByDay(bd.expense, state.selectedDate);
+  const totalIncome = incomeF.reduce((s,r)=>s+r.amount,0);
+  const totalExpense = expenseF.reduce((s,r)=>s+r.amount,0);
+  const net = totalIncome - totalExpense;
+  const branchLabel = BRANCH_LABEL[state.branch] || "รวมทั้งสองสาขา";
+
+  return `
+    <div class="bill-actions no-print">
+      <button type="button" class="bill-back" onclick="closeBill()">‹ กลับ</button>
+      <button type="button" class="btn-primary btn-block" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+    </div>
+    <div class="bill-print-area bill-paper">
+      <div class="bill-head">
+        <div class="bill-shop">RUSH COFFEE</div>
+        <div class="bill-branch">สาขา ${escapeHtml(branchLabel)}</div>
+        <div class="bill-date">${escapeHtml(dayHeadLabel(state.selectedDate))}</div>
+        <div class="bill-sub">ใบสรุปยอดประจำวัน</div>
+      </div>
+      <div class="bill-section">
+        <div class="bill-section-title">รายรับ (${incomeF.length} รายการ)</div>
+        ${incomeF.length ? incomeF.map(billIncomeRowHtml).join("") : `<div class="bill-empty">ไม่มีรายการรายรับ</div>`}
+        <div class="bill-subtotal"><span>รวมรายรับ</span><span style="color:var(--green);">+${fmtMoney(totalIncome)} ฿</span></div>
+      </div>
+      <div class="bill-section">
+        <div class="bill-section-title">รายจ่าย (${expenseF.length} รายการ)</div>
+        ${expenseF.length ? expenseF.map(billExpenseRowHtml).join("") : `<div class="bill-empty">ไม่มีรายการรายจ่าย</div>`}
+        <div class="bill-subtotal"><span>รวมรายจ่าย</span><span style="color:var(--red);">−${fmtMoney(totalExpense)} ฿</span></div>
+      </div>
+      <div class="bill-net ${net>=0?"":"neg"}">
+        <span>กำไรสุทธิ</span><span>${net>=0?"+":"−"}${fmtMoney(Math.abs(net))} ฿</span>
+      </div>
+      <div class="bill-foot">พิมพ์เมื่อ ${escapeHtml(new Date().toLocaleString("th-TH"))}</div>
+    </div>`;
 }
 
 function toggleStockFields(){
@@ -417,6 +523,7 @@ function renderDash(){
         <button type="button" class="daynav-btn" onclick="shiftDay(1)" aria-label="วันถัดไป" ${isToday?"disabled":""}>›</button>
       </div>
       ${!isToday ? `<button type="button" class="daynav-today" style="margin-top:8px;" onclick="setSelectedDate(todayStr())">« กลับไปวันนี้</button>` : ""}
+      <button type="button" class="btn-primary btn-block" style="margin-top:10px;" onclick="openBill()">🧾 ออกบิลสรุปยอดวันนี้</button>
     </div>`;
   }
 
