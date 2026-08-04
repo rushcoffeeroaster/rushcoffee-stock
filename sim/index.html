@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>จำลองขยายสาขา · Rush Hour</title>
+<meta name="theme-color" content="#F4F3EF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="จำลองสาขา">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== Rush Coffee · Modern Silver & Gold (Light Luxe) — shared design system ===== */
+:root{
+  --bg:#F4F3EF;
+  --bg-grad: radial-gradient(135% 110% at 50% -10%, #FCFBF9 0%, #F4F3EF 55%, #ECEAE3 100%);
+  --surface:#FFFFFF; --surface-2:#FBFAF7;
+  --line:#EAE7DF; --line-strong:#DDD9CF;
+  --ink:#1E232A; --ink-2:#5D646E; --ink-3:#9A9FA8;
+  --green:#2F8F5B; --green-bg:#E9F4EE; --red:#C7553B; --red-bg:#FBEDE9; --amber:#CF9A2B; --amber-bg:#FAF2DD;
+  --shadow-sm:0 1px 2px rgba(28,28,36,.04), 0 2px 8px rgba(28,28,36,.05);
+  --shadow-md:0 6px 22px rgba(28,28,36,.09);
+  --radius:16px; --radius-sm:11px;
+  --accent:#6E7884; --accent-deep:#3E4651; --accent-soft:#EEF1F4;
+  --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%);
+  --metal-grad:linear-gradient(120deg,#737C88 0%,#C7CDD5 48%,#6A7280 100%);
+  --on-accent:#FFFFFF;
+}
+body.theme-rush{ --accent:#6E7884; --accent-deep:#3A424D; --accent-soft:#EDF0F3;
+  --accent-grad:linear-gradient(135deg,#8C95A1 0%,#69727E 100%);
+  --metal-grad:linear-gradient(120deg,#737C88 0%,#CBD1D8 48%,#6A7280 100%); --on-accent:#FFFFFF; }
+body.theme-rushhour{ --accent:#B5870F; --accent-deep:#8A6608; --accent-soft:#FAF3DC;
+  --accent-grad:linear-gradient(135deg,#E3BE4A 0%,#C2941A 100%);
+  --metal-grad:linear-gradient(120deg,#A6800E 0%,#EBC955 48%,#9A7110 100%); --on-accent:#3A2C04; }
+body.theme-all{ --accent:#3C4450; --accent-deep:#262C35; --accent-soft:#ECEEF1;
+  --accent-grad:linear-gradient(135deg,#4A5360 0%,#2E343D 100%);
+  --metal-grad:linear-gradient(120deg,#4A5360 0%,#8A93A0 48%,#3A424D 100%); --on-accent:#FFFFFF; }
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; }
+body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--ink); padding-bottom:88px; -webkit-font-smoothing:antialiased; }
+.wrap{ max-width:560px; margin:0 auto; padding:14px 16px 8px; }
+
+.appbar{ position:sticky; top:0; z-index:40; background:rgba(244,243,239,.86); backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line); padding-top:env(safe-area-inset-top); }
+.appbar-inner{ max-width:560px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+.logo{ width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--accent-grad); box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.35); flex-shrink:0; }
+.logo svg{ width:21px; height:21px; }
+.wordmark{ font-weight:800; font-size:15px; letter-spacing:.4px; line-height:1; background:var(--metal-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.brand-tag{ font-size:11px; color:var(--ink-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.appbar .mini-act{ font-size:12px; font-weight:700; color:var(--accent-deep); background:var(--accent-soft); border:none; border-radius:999px; padding:7px 13px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+
+h1{ font-size:20px; font-weight:800; margin:6px 0 2px; letter-spacing:.2px; }
+h2{ font-size:15px; font-weight:800; margin:18px 0 10px; }
+.sub{ color:var(--ink-2); font-size:12.5px; margin:0 0 14px; }
+
+.card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
+.card.tight{ padding:13px 14px; }
+
+input,select{ width:100%; border:1px solid var(--line-strong); border-radius:10px; padding:10px 11px; font-size:14px; background:var(--surface); color:var(--ink); font-family:inherit; transition:.15s; }
+input:focus,select:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+input[type=range]{ border:none; padding:0; background:transparent; accent-color:#B5870F; height:30px; }
+input[type=checkbox]{ width:auto; accent-color:#B5870F; }
+.label{ font-size:12px; color:var(--ink-2); margin-bottom:5px; display:block; font-weight:600; }
+.field{ margin-bottom:13px; }
+.btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:10px; padding:10px 16px; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); transition:.12s; font-family:inherit; }
+.btn-primary:active{ transform:scale(.97); }
+.btn-block{ width:100%; padding:13px; }
+.btn-ghost{ background:var(--surface); color:var(--ink-2); border:1px solid var(--line-strong); border-radius:10px; padding:9px 14px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+.chip{ border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:13px; background:var(--surface); cursor:pointer; white-space:nowrap; color:var(--ink-2); font-weight:600; transition:.15s; font-family:inherit; }
+.chip.active{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; box-shadow:var(--shadow-sm); }
+.chiprow{ display:flex; gap:7px; overflow-x:auto; padding-bottom:11px; scrollbar-width:none; }
+.chiprow::-webkit-scrollbar{ display:none; }
+.toast{ position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px; font-weight:600; z-index:120; box-shadow:var(--shadow-md); white-space:nowrap; }
+.empty{ text-align:center; padding:42px 16px; color:var(--ink-3); font-size:14px; }
+
+.bottom-nav{ position:fixed; left:0; right:0; bottom:0; z-index:60; background:rgba(255,255,255,.9); backdrop-filter:saturate(160%) blur(14px); border-top:1px solid var(--line); padding:7px 6px calc(7px + env(safe-area-inset-bottom)); }
+.nav-inner{ display:flex; max-width:560px; margin:0 auto; gap:2px; }
+.nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border-radius:13px; color:var(--ink-3); font-size:10px; font-weight:700; text-decoration:none; white-space:nowrap; transition:.15s; cursor:pointer; background:none; border:none; font-family:inherit; }
+.nav-item svg{ width:21px; height:21px; }
+.nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
+
+/* ===== app-specific ===== */
+.hero{ border-radius:var(--radius); padding:16px 16px 15px; margin-bottom:11px; color:#3A2C04;
+  background:linear-gradient(150deg,#F7E7B4 0%,#EBC955 55%,#D2A722 100%); box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.5); }
+.hero .q{ font-size:11.5px; font-weight:700; opacity:.72; letter-spacing:.2px; }
+.hero .big{ font-size:31px; font-weight:800; line-height:1.15; margin:4px 0 1px; letter-spacing:-.5px; }
+.hero .big span{ font-size:16px; font-weight:700; }
+.hero .cap{ font-size:12.5px; font-weight:600; opacity:.8; }
+.hero .verdict{ display:inline-block; margin-top:9px; font-size:12.5px; font-weight:800; border-radius:999px; padding:5px 12px; background:rgba(255,255,255,.62); }
+.hero .verdict.bad{ background:rgba(199,85,59,.16); color:#8E3A26; }
+
+.kpis{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:11px; }
+.kpi{ border:1px solid var(--line); border-radius:13px; background:var(--surface); padding:11px 12px; box-shadow:var(--shadow-sm); }
+.kpi .lb{ font-size:11px; color:var(--ink-3); font-weight:600; line-height:1.35; }
+.kpi .v{ font-size:20px; font-weight:800; margin-top:2px; letter-spacing:-.3px; }
+.kpi .d{ font-size:11px; color:var(--ink-3); margin-top:1px; }
+.kpi.good .v{ color:var(--green); } .kpi.bad .v{ color:var(--red); }
+
+.srow{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid var(--line); }
+.srow:last-child{ border-bottom:none; }
+.srow .k{ color:var(--ink-2); }
+.srow .v{ font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+.slide .top{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:1px; }
+.slide .nm{ font-size:12.5px; color:var(--ink-2); font-weight:600; }
+.slide .val{ font-size:12.5px; font-weight:800; color:var(--accent-deep); text-align:right; font-variant-numeric:tabular-nums; }
+.slide{ margin-bottom:9px; }
+.sect{ font-size:12px; font-weight:800; color:var(--ink-3); letter-spacing:.6px; text-transform:uppercase; margin:16px 2px 7px; }
+.togline{ display:flex; align-items:center; gap:9px; margin-bottom:8px; }
+.togline b{ font-size:13.5px; }
+.note{ font-size:11.5px; color:var(--ink-3); line-height:1.55; margin-top:8px; }
+
+.strip{ position:sticky; top:calc(56px + env(safe-area-inset-top)); z-index:30; margin:0 -16px 12px; padding:10px 16px;
+  background:rgba(250,243,220,.94); backdrop-filter:saturate(160%) blur(12px); border-bottom:1px solid var(--line);
+  display:flex; gap:14px; }
+.strip div{ flex:1; min-width:0; }
+.strip .l{ font-size:10.5px; color:#8A6608; font-weight:700; }
+.strip .n{ font-size:16px; font-weight:800; color:#3A2C04; letter-spacing:-.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+svg.chart{ width:100%; height:auto; display:block; }
+.tick{ font-size:8.5px; fill:var(--ink-3); }
+.lblg{ font-size:9px; font-weight:700; fill:var(--green); }
+.lblr{ font-size:9px; font-weight:700; fill:var(--red); }
+.lbla{ font-size:9px; font-weight:700; fill:#8A6608; }
+.legend{ display:flex; flex-wrap:wrap; gap:12px; margin-top:9px; font-size:11.5px; color:var(--ink-2); }
+.legend i{ display:inline-block; width:16px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
+
+table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+th{ font-weight:700; color:var(--ink-2); border-bottom:1.5px solid var(--line-strong); padding:6px 4px; text-align:left; font-size:11.5px; }
+td{ padding:7px 4px; border-bottom:1px solid var(--line); }
+td.n,th.n{ text-align:right; font-variant-numeric:tabular-nums; }
+tr.exist td{ background:var(--amber-bg); }
+tr.star td{ background:var(--green-bg); font-weight:700; }
+.tag{ font-size:10px; border-radius:999px; padding:1px 7px; white-space:nowrap; font-weight:700; }
+.tag-g{ background:var(--amber-bg); color:#8A6608; }
+.tag-b{ background:#E8EEF6; color:#1c569c; }
+.tag-n{ background:var(--accent-soft); color:var(--ink-2); }
+.tag-ok{ background:var(--green-bg); color:var(--green); }
+
+.saveitem{ border:1px solid var(--line); border-radius:13px; background:var(--surface); padding:12px 13px; margin-bottom:9px; box-shadow:var(--shadow-sm); }
+.saveitem .hd{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.saveitem .nm{ font-size:14px; font-weight:800; }
+.saveitem .mt{ font-size:11px; color:var(--ink-3); }
+.saveitem .bd{ font-size:12px; color:var(--ink-2); margin-top:6px; line-height:1.6; }
+.saveitem .acts{ display:flex; gap:7px; margin-top:10px; }
+.saveitem .acts button{ flex:1; }
+.del{ background:var(--red-bg); color:var(--red); border:1px solid #EED2C8; }
+
+.warnbox{ background:var(--red-bg); color:#8E3A26; border:1px solid #EED2C8; border-radius:11px; padding:10px 12px; font-size:12.5px; font-weight:600; margin-bottom:11px; line-height:1.55; }
+.infobox{ background:var(--amber-bg); color:#7A5C0D; border:1px solid #EADFC0; border-radius:11px; padding:10px 12px; font-size:12px; margin-bottom:11px; line-height:1.6; }
+ul.caveat{ margin:2px 0 0; padding:0; list-style:none; }
+ul.caveat li{ padding-left:16px; position:relative; margin:8px 0; font-size:12.5px; color:var(--ink-2); line-height:1.6; }
+ul.caveat li::before{ content:""; position:absolute; left:2px; top:.62em; width:5px; height:5px; border-radius:2px; background:var(--accent); }
+</style>
+</head>
+<body class="theme-rushhour" id="bodyEl">
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.4c-.5.7-.5 1.5 0 2.2M11 3.4c-.5.7-.5 1.5 0 2.2"/></svg></div>
+      <div><div class="wordmark">RUSH HOUR</div><div class="brand-tag">จำลองขยายสาขา · ประชาชื่น</div></div>
+    </div>
+    <button class="mini-act" id="saveBtn">เซฟ</button>
+  </div>
+</div>
+
+<div class="wrap"><div id="content"></div></div>
+
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <button class="nav-item active" data-tab="sum"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="13.5" width="3" height="4.5" rx="1"/></svg>สรุป</button>
+    <button class="nav-item" data-tab="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>ปรับค่า</button>
+    <button class="nav-item" data-tab="chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m6.5 14.5 4-4.5 3.2 3 4.3-6"/></svg>กราฟ</button>
+    <button class="nav-item" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.2-1.3-2 1.3-2-1.3-2 1.3L6 21V3Z"/><path d="M9 8h6M9 12h6"/></svg>แผน</button>
+    <button class="nav-item" data-tab="save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5V4Z"/><path d="M8 4v6h7V4M8 20v-6h8v6"/></svg>เซฟไว้</button>
+  </div>
+</nav>
+
+<script>
+"use strict";
+/* ==========================================================================
+   Rush Hour — Prachachuen expansion simulator (offline mobile app)
+   Pure client-side maths, no backend. Scenarios persist in device storage.
+   ========================================================================== */
+
+/* ---------- storage: localStorage when available, memory otherwise -------- */
+var MEM = {};
+var STORE = (function(){
+  try{
+    var k="__rh_probe__";
+    window.localStorage.setItem(k,"1");
+    window.localStorage.removeItem(k);
+    return {
+      get:function(k){ try{ return window.localStorage.getItem(k); }catch(e){ return MEM[k]||null; } },
+      set:function(k,v){ try{ window.localStorage.setItem(k,v); }catch(e){ MEM[k]=v; } },
+      ok:true
+    };
+  }catch(e){
+    return { get:function(k){ return MEM[k]||null; }, set:function(k,v){ MEM[k]=v; }, ok:false };
+  }
+})();
+var K_SET="rh_sim_settings_v1", K_SAVE="rh_sim_scenarios_v1";
+
+/* ---------- helpers ------------------------------------------------------- */
+var nf=new Intl.NumberFormat("en-US");
+function fmt(n){ return nf.format(Math.round(n)); }
+function fmtC(n){                                  // compact for hero numbers
+  var a=Math.abs(n);
+  if(a>=1000000) return (n/1000000).toFixed(2).replace(/\.00$/,"")+" ล้าน";
+  if(a>=100000)  return Math.round(n/1000)+"k";
+  return fmt(n);
+}
+function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+function el(id){ return document.getElementById(id); }
+function toast(m){ var t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+
+var TH_M=["ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค.","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย."];
+function monthLabel(m){ var i=(m-1)%12, y=69+Math.floor((m-1+6)/12); return TH_M[i]+" "+y; }
+
+/* ---------- model --------------------------------------------------------- */
+// Prachachuen profit: full for operating months 1-3, −d1 for 4-6,
+// then −d2 further from that level, flat afterwards.
+function pccProfit(base,d1,d2,k){
+  if(k<1) return 0;
+  if(k<=3) return base;
+  if(k<=6) return base*(1-d1);
+  return base*(1-d1)*(1-d2);
+}
+function streamVal(s,m){
+  if(m<s.start) return 0;
+  if(s.grow===undefined) return s.p;
+  var rev=Math.min(s.cap, s.rev0*Math.pow(1+s.grow, m-s.start));
+  return Math.max(0, rev*s.gp - s.fix);
+}
+// Deals: 1 Rush PHS + 2 Rush Hour Central already open, 3 MiNCE (stream),
+// 4 = ประชาชื่น forced open at month pM, 5+ opened from the pool when affordable.
+// Investment is FULL business capital; equity only scales the profit you keep.
+function simulate(c){
+  var streams=c.streams||[];
+  var branches=[
+    {p:c.pA,open:0,t:"O",eq:c.eq1,deal:1},
+    {p:c.pB,open:0,t:"C",eq:c.eq2,deal:2}
+  ];
+  var cash=c.seed, lastOpen=-99, series=[], opens=[], nAuto=0, pcc=null;
+  for(var m=1;m<=c.months;m++){
+    var inc=0, incFull=0;
+    for(var i=0;i<branches.length;i++){
+      var b=branches[i], k=m-b.open, val;
+      if(b.t==="P")        val=pccProfit(b.p,c.d1,c.d2,k);
+      else if(b.open===0)  val=b.p;
+      else if(k<=0)        val=0;
+      else                 val=b.p*((c.ramp>0&&k<=c.ramp)?k/c.ramp:1);
+      incFull+=val; inc+=val*b.eq;
+    }
+    for(var s=0;s<streams.length;s++){
+      var full=streamVal(streams[s],m);
+      incFull+=full;
+      inc+=full*(streams[s].eq===undefined?1:streams[s].eq);
+    }
+    cash+=inc*c.keep;
+    var peak=cash;
+
+    if(m===c.pM && !pcc){                       // forced Prachachuen opening
+      var short=cash<c.invP ? c.invP-cash : 0;
+      cash-=c.invP;
+      branches.push({p:c.pP,open:m,t:"P",eq:c.eqP,deal:4});
+      pcc={m:m,inv:c.invP,cashBefore:peak,cashAfter:cash,shortfall:short};
+      lastOpen=m;
+      opens.push({m:m,t:"P",deal:4,eq:c.eqP,p:c.pP,inv:c.invP});
+    }
+    if(c.auto && pcc){                          // snowball openings, deal 5+
+      while(true){
+        var t=(nAuto%2===0)?"O":"C";
+        var need=(t==="C")?c.invC:c.invO;
+        if(cash>=need && (c.gap===0 || m-lastOpen>=c.gap)){
+          cash-=need;
+          var p=c.pB*c.pct*(t==="O"?c.outRel:1);
+          branches.push({p:p,open:m,t:t,eq:c.eq5,deal:5+nAuto});
+          opens.push({m:m,t:t,deal:5+nAuto,eq:c.eq5,p:p,inv:need});
+          lastOpen=m; nAuto++;
+          if(c.gap>0) break;
+        } else break;
+      }
+    }
+    series.push({m:m,inc:inc,incFull:incFull,n:branches.length,cash:cash,peak:peak});
+  }
+  var rr=0, rrFull=0;
+  for(var j=0;j<branches.length;j++){
+    var b2=branches[j];
+    var v2=(b2.t==="P") ? pccProfit(b2.p,c.d1,c.d2,c.months-b2.open) : b2.p;
+    rrFull+=v2; rr+=v2*b2.eq;
+  }
+  for(var s2=0;s2<streams.length;s2++){
+    var fe=streamVal(streams[s2],c.months);
+    rrFull+=fe; rr+=fe*(streams[s2].eq===undefined?1:streams[s2].eq);
+  }
+  return {branches:branches,series:series,opens:opens,runrate:rr,runrateFull:rrFull,cash:cash,pcc:pcc};
+}
+
+/* ---------- settings ------------------------------------------------------ */
+var DEF={
+  pM:9, invP:700000, eqP:50, goal:1000000,
+  pP:200000, d1:20, d2:10, hor:24,
+  seed:200000, pA:50000, pB:76000, pct:70, outRel:100,
+  invC:700000, invO:500000, ramp:2, keep:100, gap:1, auto:1,
+  mnOn:1, mnRev:350000, mnSt:3,
+  wsOn:1, wsRev:100000, wsG:10, wsCap:500000, wsGp:25, wsFix:20000, wsSt:2,
+  eq1:40, eq2:30, eq3:40, eq5:100, eqR:100
+};
+var S={};
+(function loadSettings(){
+  var raw=STORE.get(K_SET), got={};
+  if(raw){ try{ got=JSON.parse(raw)||{}; }catch(e){ got={}; } }
+  for(var k in DEF) S[k]=(typeof got[k]==="number")?got[k]:DEF[k];
+})();
+function persist(){ STORE.set(K_SET, JSON.stringify(S)); }
+
+function mnProfit(rev){ return Math.max(0, rev*0.74 - 84000); }
+function wsStream(){ return {grow:S.wsG/100, rev0:S.wsRev, cap:S.wsCap, gp:S.wsGp/100, fix:S.wsFix, start:S.wsSt, eq:S.eqR/100}; }
+function streamsOf(){
+  var st=[];
+  if(S.mnOn) st.push({p:mnProfit(S.mnRev), start:S.mnSt, eq:S.eq3/100});
+  if(S.wsOn) st.push(wsStream());
+  return st;
+}
+function cfg(over){
+  var c={ seed:S.seed, pM:S.pM, invP:S.invP, eqP:S.eqP/100, pP:S.pP, d1:S.d1/100, d2:S.d2/100,
+    pA:S.pA, pB:S.pB, pct:S.pct/100, invC:S.invC, invO:S.invO, outRel:S.outRel/100,
+    ramp:S.ramp, keep:S.keep/100, gap:S.gap, auto:!!S.auto, months:S.hor,
+    streams:streamsOf(), eq1:S.eq1/100, eq2:S.eq2/100, eq5:S.eq5/100 };
+  if(over) for(var k in over) c[k]=over[k];
+  return c;
+}
+function results(){
+  var r=simulate(cfg());
+  var hit=null;
+  for(var i=0;i<r.series.length;i++){ if(r.series[i].peak>=S.goal){ hit=r.series[i]; break; } }
+  var mx=0; r.series.forEach(function(s){ if(s.peak>mx) mx=s.peak; });
+  return {r:r, hit:hit, peakMax:mx};
+}
+
+/* ---------- tabs ---------------------------------------------------------- */
+var TAB="sum";
+function setTab(t){
+  TAB=t;
+  Array.prototype.forEach.call(document.querySelectorAll(".nav-item"),function(b){
+    b.classList.toggle("active", b.getAttribute("data-tab")===t);
+  });
+  render();
+  window.scrollTo(0,0);
+}
+function render(){
+  var c=el("content");
+  if(TAB==="sum")        c.innerHTML=viewSummary();
+  else if(TAB==="set")   { c.innerHTML=viewSettings(); wireSettings(); }
+  else if(TAB==="chart") c.innerHTML=viewCharts();
+  else if(TAB==="plan")  c.innerHTML=viewPlan();
+  else                   { c.innerHTML=viewSaved(); wireSaved(); }
+}
+
+/* ---------- view: summary ------------------------------------------------- */
+function viewSummary(){
+  var R=results(), r=R.r, pcc=r.pcc, h="";
+  var t1=S.pP, t2=S.pP*(1-S.d1/100), t3=t2*(1-S.d2/100), eq=S.eqP/100;
+
+  if(!pcc){
+    h+='<div class="warnbox">เดือนเปิดประชาชื่น (เดือนที่ '+S.pM+') อยู่นอกช่วงจำลอง '+S.hor+' เดือน — ไปที่แท็บ “ปรับค่า” แล้วยืดระยะเวลาจำลองออก</div>';
+    return h;
+  }
+  h+='<div class="hero">';
+  h+='<div class="q">เปิดประชาชื่น '+monthLabel(S.pM)+' · หลังจ่ายค่าเปิด '+fmt(pcc.inv)+' ฿ จะเหลือ</div>';
+  h+='<div class="big">'+fmtC(pcc.cashAfter)+' <span>฿</span></div>';
+  h+='<div class="cap">ก่อนจ่ายมีในกอง '+fmt(pcc.cashBefore)+' ฿</div>';
+  h+= pcc.shortfall>0
+    ? '<div class="verdict bad">⚠ เงินไม่พอ ขาดอีก '+fmt(pcc.shortfall)+' ฿</div>'
+    : '<div class="verdict">✓ เงินพอ เปิดได้ตามแผน</div>';
+  h+='</div>';
+
+  var goalOk=!!R.hit;
+  h+='<div class="card tight"><div class="srow"><span class="k">เป้าเงินในกอง</span><span class="v">'+fmt(S.goal)+' ฿</span></div>';
+  if(goalOk){
+    h+='<div class="srow"><span class="k">แตะเป้าครั้งแรก</span><span class="v" style="color:var(--green)">เดือน '+R.hit.m+' · '+monthLabel(R.hit.m)+'</span></div>';
+    h+='<div class="srow"><span class="k">ตอนนั้นมีในกอง</span><span class="v">'+fmt(R.hit.peak)+' ฿</span></div>';
+    h+='<div class="srow"><span class="k">เทียบกับวันเปิดประชาชื่น</span><span class="v">'+(R.hit.m<S.pM?('ก่อน '+(S.pM-R.hit.m)+' เดือน'):(R.hit.m===S.pM?'เดือนเดียวกัน':('หลัง '+(R.hit.m-S.pM)+' เดือน')))+'</span></div>';
+  }else{
+    h+='<div class="srow"><span class="k">แตะเป้าครั้งแรก</span><span class="v" style="color:var(--red)">ยังไม่ถึงใน '+S.hor+' เดือน</span></div>';
+    h+='<div class="srow"><span class="k">สูงสุดที่ทำได้</span><span class="v">'+fmt(R.peakMax)+' ฿</span></div>';
+    h+='<div class="srow"><span class="k">ยังขาดอีก</span><span class="v" style="color:var(--red)">'+fmt(S.goal-R.peakMax)+' ฿</span></div>';
+  }
+  h+='</div>';
+
+  var nC=0,nO=0,nP=0;
+  r.branches.forEach(function(b){ if(b.t==="C")nC++; else if(b.t==="P")nP++; else nO++; });
+  h+='<div class="kpis">';
+  h+='<div class="kpi"><div class="lb">กำไรส่วนคุณ ปลายช่วง</div><div class="v">'+fmtC(r.runrate)+'</div><div class="d">฿/เดือน · เต็มกิจการ '+fmtC(r.runrateFull)+'</div></div>';
+  h+='<div class="kpi"><div class="lb">สาขากาแฟ ณ เดือน '+S.hor+'</div><div class="v">'+r.branches.length+'</div><div class="d">ห้าง '+nC+' · นอกห้าง '+nO+' · ประชาชื่น '+nP+'</div></div>';
+  h+='<div class="kpi '+(goalOk?"good":"bad")+'"><div class="lb">เงินในกองสูงสุด</div><div class="v">'+fmtC(R.peakMax)+'</div><div class="d">฿ ในช่วง '+S.hor+' เดือน</div></div>';
+  h+='<div class="kpi"><div class="lb">เงินในกองสิ้นช่วง</div><div class="v">'+fmtC(r.cash)+'</div><div class="d">฿ (รอสาขาถัดไป)</div></div>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="label" style="margin-bottom:8px">กำไรประชาชื่นส่วนคุณ ('+S.eqP+'% ของกำไรร้าน)</div>';
+  h+=curveSvg(t1,t2,t3,eq);
+  h+='<div class="srow"><span class="k">3 เดือนแรก</span><span class="v">'+fmt(t1)+' → คุณ '+fmt(t1*eq)+' ฿</span></div>';
+  h+='<div class="srow"><span class="k">เดือน 4–6 (−'+S.d1+'%)</span><span class="v">'+fmt(t2)+' → คุณ '+fmt(t2*eq)+' ฿</span></div>';
+  h+='<div class="srow"><span class="k">เดือน 7+ (−'+S.d2+'% คงที่)</span><span class="v">'+fmt(t3)+' → คุณ '+fmt(t3*eq)+' ฿</span></div>';
+  h+='</div>';
+
+  h+='<div class="infobox"><b>สมมติฐานที่ควรระวัง</b> — กำไร '+fmt(S.pP)+' ฿/เดือนตั้งแต่เดือนแรก คือ '+(S.pP/S.pB).toFixed(1)+' เท่าของสาขาเซ็นทรัลพิษณุโลกที่พิสูจน์แล้ว ('+fmt(S.pB)+' ฿) และไม่มีช่วงรันอินเลย · '+
+   'อีกข้อ: โมเดลหักค่าเปิด '+fmt(S.invP)+' ฿ จากกองคุณเต็มจำนวน แต่กำไรเข้าคุณแค่ '+S.eqP+'% — ถ้าดาราออกเงินด้วย ให้ลดงบลงตามสัดส่วน</div>';
+
+  h+='<h2>ข้อจำกัดของโมเดล</h2><div class="card"><ul class="caveat">'+
+     '<li>กำไร Rush PHS ตั้งไว้ '+fmt(S.pA)+' ฿/เดือนเป็นค่าเริ่มต้นชั่วคราว — รายงานภาค 1–4 ยืนยันตัวเลขเฉพาะสาขาเซ็นทรัลพิษณุโลก ลากให้ตรงของจริงก่อนตัดสินใจ</li>'+
+     '<li>ยังไม่รวมเงินทุนหมุนเวียน 1–2 เดือนแรก (สต๊อก เงินเดือน ค่าเช่าล่วงหน้า) ที่มักต้องเตรียมเพิ่มอีก ~15–20% ของงบเปิด</li>'+
+     '<li>กำไรไหลเข้ากองทันทีในเดือนที่เกิด — ของจริงมีเครดิตเทอมและรอบปิดบัญชี ควรเผื่อเวลาอีก 1–2 เดือน</li>'+
+     '<li>ยังไม่หักภาษี ค่าแรงเจ้าของ และเผื่อดีลที่ไม่รอด · ดีลกับคนดังควรมีข้อตกลงเรื่องระยะผูกพัน/ค่าตัว/สิทธิ์ใช้ชื่อ เป็นลายลักษณ์อักษร</li>'+
+     '<li>หุ้นส่วนในดีล 1–3 อาจดึงกำไรส่วนของเขาออกหรือสมทบเพิ่ม ซึ่งจะเปลี่ยนภาพนี้ทั้งหมด</li>'+
+     '</ul></div>';
+  return h;
+}
+
+function curveSvg(t1,t2,t3,eq){
+  var W=328,H=96,L=6,R=6,T=16,B=20, pw=W-L-R, ph=H-T-B;
+  var mx=Math.max(t1,1)*1.18;
+  var y=function(v){ return T+(1-v/mx)*ph; };
+  var seg=[[0,3,t1,"#B5870F"],[3,6,t2,"#CFA542"],[6,12,t3,"#E0C583"]];
+  var p='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="เส้นกำไรประชาชื่น">';
+  seg.forEach(function(s){
+    var x1=L+pw*(s[0]/12), x2=L+pw*(s[1]/12);
+    p+='<rect x="'+x1.toFixed(1)+'" y="'+y(s[2]).toFixed(1)+'" width="'+(x2-x1).toFixed(1)+'" height="'+(T+ph-y(s[2])).toFixed(1)+'" fill="'+s[3]+'" opacity=".2"/>';
+    p+='<line x1="'+x1.toFixed(1)+'" y1="'+y(s[2]).toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y(s[2]).toFixed(1)+'" stroke="'+s[3]+'" stroke-width="2.4"/>';
+    p+='<text x="'+((x1+x2)/2).toFixed(1)+'" y="'+(y(s[2])-4).toFixed(1)+'" text-anchor="middle" class="lbla">'+fmt(s[2]*eq/1000)+'k</text>';
+  });
+  p+='<line x1="'+L+'" y1="'+(T+ph)+'" x2="'+(W-R)+'" y2="'+(T+ph)+'" stroke="#DDD9CF" stroke-width="1"/>';
+  p+='<text x="'+(L+pw*0.125)+'" y="'+(H-6)+'" text-anchor="middle" class="tick">ด.1–3</text>';
+  p+='<text x="'+(L+pw*0.375)+'" y="'+(H-6)+'" text-anchor="middle" class="tick">ด.4–6</text>';
+  p+='<text x="'+(L+pw*0.75)+'" y="'+(H-6)+'" text-anchor="middle" class="tick">ด.7 เป็นต้นไป</text>';
+  p+='</svg>';
+  return p;
+}
+
+/* ---------- view: settings ------------------------------------------------ */
+function sl(key,label,min,max,step){
+  return '<div class="slide"><div class="top"><span class="nm">'+label+'</span><span class="val" id="lb_'+key+'"></span></div>'+
+         '<input type="range" id="sl_'+key+'" data-k="'+key+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+S[key]+'"></div>';
+}
+function viewSettings(){
+  var h='<div class="strip"><div><div class="l">เหลือหลังเปิดประชาชื่น</div><div class="n" id="st_a">–</div></div>'+
+        '<div><div class="l">แตะเป้า '+fmtC(S.goal)+'</div><div class="n" id="st_b">–</div></div></div>';
+
+  h+='<div class="chiprow">'+
+     '<button class="chip" data-preset="base">ค่าฐาน</button>'+
+     '<button class="chip" data-preset="hold">หยุดที่ประชาชื่น</button>'+
+     '<button class="chip" data-preset="soon">เปิด ธ.ค. 69</button>'+
+     '<button class="chip" data-preset="hard">ตกแรง 30/20</button>'+
+     '<button class="chip" data-preset="half">ดาราออกครึ่ง</button>'+
+     '<button class="chip" data-preset="real">กำไรจริง 130k</button>'+
+     '</div>';
+
+  h+='<div class="sect">ประชาชื่น (ดีลกับดารา)</div><div class="card">'+
+     sl("pM","เปิดเดือนที่ (ล็อกไว้)",1,36,1)+
+     sl("invP","งบเปิด (฿)",300000,1500000,50000)+
+     sl("eqP","หุ้นคุณในประชาชื่น (%)",0,100,5)+
+     sl("pP","กำไรเดือน 1–3 เต็ม 100% (฿)",50000,400000,10000)+
+     sl("d1","เดือน 4–6 ตกลง (%)",0,50,5)+
+     sl("d2","เดือน 7+ ตกเพิ่มอีก (%)",0,50,5)+
+     '</div>';
+
+  h+='<div class="sect">เป้าหมาย &amp; ระยะเวลา</div><div class="card">'+
+     sl("goal","เป้าเงินในกอง (฿)",500000,5000000,100000)+
+     sl("hor","ระยะเวลาจำลอง (เดือน)",12,36,6)+
+     sl("seed","เงินเก็บส่วนตัวเข้ากอง (฿)",0,1000000,50000)+
+     '<div class="field" style="margin-top:4px"><label class="label">หลังเปิดประชาชื่นแล้ว</label>'+
+     '<select id="sl_auto"><option value="1">เปิดสาขาต่อเรื่อย ๆ เมื่อเงินพอ</option><option value="0">หยุดที่ประชาชื่น — เก็บเงินไว้เฉย ๆ</option></select></div>'+
+     '</div>';
+
+  h+='<div class="sect">สาขาเดิม &amp; สัดส่วนหุ้น</div><div class="card">'+
+     sl("pA","กำไร Rush PHS เต็ม 100% (฿)",0,160000,1000)+
+     sl("eq1","หุ้นคุณใน Rush PHS (%)",0,100,5)+
+     sl("pB","กำไร Rush Hour เซ็นทรัล เต็ม 100% (฿)",20000,160000,1000)+
+     sl("eq2","หุ้นคุณใน Rush Hour เซ็นทรัล (%)",0,100,5)+
+     sl("eq3","หุ้นคุณใน MiNCE (%)",0,100,5)+
+     sl("eqR","หุ้นคุณใน Rush Coffee Roaster (%)",0,100,5)+
+     sl("eq5","หุ้นคุณในสาขาที่ 5 ขึ้นไป (%)",0,100,5)+
+     '</div>';
+
+  h+='<div class="sect">สาขาที่ 5 ขึ้นไป</div><div class="card">'+
+     sl("pct","ทำกำไรได้ (% ของเซ็นทรัล)",40,100,5)+
+     sl("outRel","สาขานอกห้างทำได้ (% ของสาขาห้าง)",60,120,5)+
+     sl("invC","ลงทุนสาขาในเซ็นทรัล (฿)",400000,1000000,10000)+
+     sl("invO","ลงทุนสาขานอกห้าง (฿)",300000,800000,10000)+
+     sl("ramp","ช่วงรันอิน (เดือน)",0,4,1)+
+     sl("gap","เว้นระยะเปิดขั้นต่ำ (เดือน)",0,3,1)+
+     sl("keep","กำไรส่วนคุณที่เก็บไว้ขยาย (%)",50,100,5)+
+     '</div>';
+
+  h+='<div class="sect">MiNCE สาทร ซ.11</div><div class="card">'+
+     '<div class="togline"><input type="checkbox" id="ck_mnOn"'+(S.mnOn?" checked":"")+'><b>นับ MiNCE เข้ากอง</b></div>'+
+     sl("mnRev","รายได้ MiNCE (฿/เดือน)",200000,500000,10000)+
+     sl("mnSt","เริ่มส่งกำไรเดือนที่",1,6,1)+
+     '<div class="note">วัตถุดิบ ~26% + คงที่ 84,000 ฿/เดือน → กำไรเต็ม = รายได้×0.74 − 84,000 · งบเปิดแยกต่างหาก ไม่ดึงจากกองนี้</div>'+
+     '</div>';
+
+  h+='<div class="sect">Rush Coffee Roaster (โรงคั่ว)</div><div class="card">'+
+     '<div class="togline"><input type="checkbox" id="ck_wsOn"'+(S.wsOn?" checked":"")+'><b>นับโรงคั่วเข้ากอง</b></div>'+
+     sl("wsRev","ยอดขายส่งเดือนแรก (฿)",50000,300000,10000)+
+     sl("wsG","โตต่อเดือน (%)",0,20,1)+
+     sl("wsCap","เพดานกำลังผลิต (฿/เดือน)",100000,1000000,50000)+
+     sl("wsGp","กำไรขั้นต้นขายส่ง (%)",10,40,5)+
+     sl("wsFix","ต้นทุนทีม/ขนส่งคงที่ (฿/เดือน)",0,60000,5000)+
+     sl("wsSt","เริ่มเดือนที่",1,6,1)+
+     '</div>';
+
+  h+='<div class="card"><button class="btn-primary btn-block" id="resetBtn">คืนค่าเริ่มต้นทั้งหมด</button></div>';
+  return h;
+}
+
+function labelFor(k){
+  var v=S[k];
+  switch(k){
+    case "pM":   return "เดือน "+v+" · "+monthLabel(v);
+    case "mnSt": case "wsSt": return "เดือน "+v+" · "+monthLabel(v);
+    case "hor":  return v+" เดือน";
+    case "ramp": case "gap": return v+" เดือน";
+    case "eqP":  return v+"% (กำไรคุณ "+fmt(S.pP*v/100)+" ฿)";
+    case "eq1":  return v+"% ("+fmt(S.pA*v/100)+" ฿)";
+    case "eq2":  return v+"% ("+fmt(S.pB*v/100)+" ฿)";
+    case "eq3":  return v+"% ("+fmt(mnProfit(S.mnRev)*v/100)+" ฿)";
+    case "eq5": case "eqR": case "pct": case "outRel": case "keep": case "wsG": case "wsGp": return v+"%";
+    case "d1":   return "−"+v+"% → "+fmt(S.pP*(1-v/100))+" ฿";
+    case "d2":   return "−"+v+"% → "+fmt(S.pP*(1-S.d1/100)*(1-v/100))+" ฿";
+    case "goal": return fmtC(v)+" ฿";
+    default:     return fmt(v)+" ฿";
+  }
+}
+function syncLabels(){
+  Array.prototype.forEach.call(document.querySelectorAll("[id^=lb_]"),function(n){
+    var k=n.id.slice(3);
+    if(S[k]!==undefined) n.textContent=labelFor(k);
+  });
+  var R=results(), a=el("st_a"), b=el("st_b");
+  if(a) a.textContent = R.r.pcc ? (fmtC(R.r.pcc.cashAfter)+" ฿") : "นอกช่วง";
+  if(b) b.textContent = R.hit ? monthLabel(R.hit.m) : "ไม่ถึง";
+}
+function wireSettings(){
+  Array.prototype.forEach.call(document.querySelectorAll("input[type=range][data-k]"),function(n){
+    n.addEventListener("input",function(){
+      S[n.getAttribute("data-k")]=+n.value;
+      syncLabels(); persist();
+    });
+  });
+  var au=el("sl_auto"); au.value=String(S.auto);
+  au.addEventListener("change",function(){ S.auto=+au.value; syncLabels(); persist(); });
+  ["mnOn","wsOn"].forEach(function(k){
+    var c=el("ck_"+k);
+    c.addEventListener("change",function(){ S[k]=c.checked?1:0; syncLabels(); persist(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-preset]"),function(b){
+    b.addEventListener("click",function(){ applyPreset(b.getAttribute("data-preset")); });
+  });
+  el("resetBtn").addEventListener("click",function(){
+    for(var k in DEF) S[k]=DEF[k];
+    persist(); render(); toast("คืนค่าเริ่มต้นแล้ว");
+  });
+  syncLabels();
+}
+function applyPreset(p){
+  if(p==="base"){ S.pM=9; S.eqP=50; S.pP=200000; S.d1=20; S.d2=10; S.auto=1; S.invP=700000; }
+  if(p==="hold"){ S.auto=0; }
+  if(p==="soon"){ S.pM=6; }
+  if(p==="hard"){ S.d1=30; S.d2=20; }
+  if(p==="half"){ S.invP=350000; }
+  if(p==="real"){ S.pP=130000; }
+  persist(); render(); toast("ใส่ค่าชุด “"+({base:"ค่าฐาน",hold:"หยุดที่ประชาชื่น",soon:"เปิด ธ.ค. 69",hard:"ตกแรง 30/20",half:"ดาราออกครึ่ง",real:"กำไรจริง 130k"}[p])+"” แล้ว");
+}
+
+/* ---------- view: charts -------------------------------------------------- */
+function viewCharts(){
+  var R=results(), r=R.r;
+  var h='<h1>กราฟ</h1><p class="sub">เส้นตกทุกครั้งที่ควักเงินเปิดสาขา แล้วไต่ขึ้นใหม่ — ยิ่งสาขาเยอะ ไต่ขึ้นยิ่งชัน</p>';
+  h+='<div class="card"><div class="label">เงินในกอง เทียบเป้า '+fmt(S.goal)+' ฿</div>'+cashSvg(r)+
+     '<div class="legend"><span><i style="background:#B5870F"></i>เงินในกอง</span>'+
+     '<span><i style="background:#2F8F5B"></i>เป้า '+fmtC(S.goal)+'</span>'+
+     '<span><i style="background:#C7553B"></i>เปิดประชาชื่น</span></div></div>';
+  h+='<div class="card"><div class="label">กำไรส่วนของคุณ ต่อเดือน</div>'+profitSvg(r)+
+     '<div class="legend"><span><i style="background:#E0C583"></i>กำไรรวมส่วนคุณ</span>'+
+     '<span><i style="background:#B5870F"></i>เดือนที่เปิดสาขา</span></div></div>';
+  return h;
+}
+function niceStep(span){
+  var st=Math.pow(10,Math.floor(Math.log10(span)));
+  if(span/st<2) st/=4; else if(span/st<5) st/=2;
+  return st;
+}
+function cashSvg(r){
+  var W=328,H=190,L=34,R=8,T=16,B=20, pw=W-L-R, ph=H-T-B;
+  var mx=S.goal, mn=0;
+  r.series.forEach(function(s){ if(s.peak>mx) mx=s.peak; if(s.cash<mn) mn=s.cash; });
+  mx*=1.1;
+  var span=mx-mn, st=niceStep(span);
+  var y=function(v){ return T+(1-(v-mn)/span)*ph; };
+  var n=r.series.length, slot=pw/n, X=function(i){ return L+slot*i+slot/2; };
+  var p='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="เงินในกองเทียบเป้า">';
+  for(var g=Math.ceil(mn/st)*st; g<mx; g+=st){
+    p+='<line x1="'+L+'" y1="'+y(g).toFixed(1)+'" x2="'+(W-R)+'" y2="'+y(g).toFixed(1)+'" stroke="#EAE7DF" stroke-width="1"/>';
+    p+='<text x="'+(L-4)+'" y="'+(y(g)+3).toFixed(1)+'" text-anchor="end" class="tick">'+fmt(g/1000)+'k</text>';
+  }
+  p+='<line x1="'+L+'" y1="'+y(S.goal).toFixed(1)+'" x2="'+(W-R)+'" y2="'+y(S.goal).toFixed(1)+'" stroke="#2F8F5B" stroke-width="1.5" stroke-dasharray="5 3"/>';
+  if(S.pM<=n){
+    var dx=X(S.pM-1);
+    p+='<line x1="'+dx.toFixed(1)+'" y1="'+T+'" x2="'+dx.toFixed(1)+'" y2="'+(T+ph)+'" stroke="#C7553B" stroke-width="1.4" stroke-dasharray="4 3"/>';
+    p+='<text x="'+Math.min(dx+3,W-R-2).toFixed(1)+'" y="'+(T-5)+'" text-anchor="'+(dx>pw*0.6?"end":"start")+'" class="lblr">'+monthLabel(S.pM)+'</text>';
+  }
+  var pts=[];
+  for(var i=0;i<n;i++) pts.push(X(i).toFixed(1)+","+y(r.series[i].peak).toFixed(1));
+  p+='<path d="M'+L+' '+y(mn).toFixed(1)+' L'+pts.join(" L")+' L'+(W-R)+' '+y(mn).toFixed(1)+' Z" fill="rgba(181,135,15,.13)"/>';
+  p+='<polyline points="'+pts.join(" ")+'" fill="none" stroke="#B5870F" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+  var om={}; r.opens.forEach(function(o){ (om[o.m]=om[o.m]||[]).push(o.deal); });
+  for(var j=0;j<n;j++){
+    var s=r.series[j];
+    if(om[s.m]) p+='<circle cx="'+X(j).toFixed(1)+'" cy="'+y(s.peak).toFixed(1)+'" r="3.2" fill="#fff" stroke="#B5870F" stroke-width="2"/>';
+    if(s.m%6===0||s.m===1) p+='<text x="'+X(j).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" class="tick">'+s.m+'</text>';
+  }
+  p+='<line x1="'+L+'" y1="'+y(mn).toFixed(1)+'" x2="'+(W-R)+'" y2="'+y(mn).toFixed(1)+'" stroke="#DDD9CF" stroke-width="1"/></svg>';
+  return p;
+}
+function profitSvg(r){
+  var W=328,H=170,L=34,R=8,T=12,B=20, pw=W-L-R, ph=H-T-B;
+  var mx=0; r.series.forEach(function(s){ if(s.inc>mx) mx=s.inc; });
+  mx=Math.max(mx*1.15,50000);
+  var st=niceStep(mx);
+  var y=function(v){ return T+(1-v/mx)*ph; };
+  var n=r.series.length, slot=pw/n, bw=Math.min(9,slot*0.62);
+  var p='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="กำไรส่วนของคุณต่อเดือน">';
+  for(var g=st; g<mx; g+=st){
+    p+='<line x1="'+L+'" y1="'+y(g).toFixed(1)+'" x2="'+(W-R)+'" y2="'+y(g).toFixed(1)+'" stroke="#EAE7DF" stroke-width="1"/>';
+    p+='<text x="'+(L-4)+'" y="'+(y(g)+3).toFixed(1)+'" text-anchor="end" class="tick">'+fmt(g/1000)+'k</text>';
+  }
+  var om={}; r.opens.forEach(function(o){ (om[o.m]=om[o.m]||[]).push(o.deal); });
+  for(var i=0;i<n;i++){
+    var s=r.series[i], cx=L+slot*i+slot/2, by=y(s.inc);
+    p+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(T+ph-by,0).toFixed(1)+'" rx="2" fill="'+(om[s.m]?"#B5870F":"#E0C583")+'"/>';
+    if(s.m%6===0||s.m===1) p+='<text x="'+cx.toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" class="tick">'+s.m+'</text>';
+  }
+  p+='<line x1="'+L+'" y1="'+(T+ph)+'" x2="'+(W-R)+'" y2="'+(T+ph)+'" stroke="#DDD9CF" stroke-width="1"/></svg>';
+  return p;
+}
+
+/* ---------- view: plan (timeline) ----------------------------------------- */
+function viewPlan(){
+  var R=results(), r=R.r;
+  var mnP=mnProfit(S.mnRev), ws=wsStream();
+  var h='<h1>แผนการเปิด</h1><p class="sub">ลำดับ 1–3 คือดีลที่มีอยู่แล้ว · ประชาชื่นคือลำดับ 4 · จากนั้นกองเปิดต่อเอง</p>';
+  h+='<div class="card" style="padding:12px 10px"><table><thead><tr><th>ลำดับ · ธุรกิจ</th><th class="n">เดือน</th><th class="n">ลงทุน</th><th class="n">กำไรคุณ</th></tr></thead><tbody>';
+  h+='<tr class="exist"><td>1 · Rush PHS <span class="tag tag-b">นอกห้าง</span> <span class="tag tag-n">'+S.eq1+'%</span></td><td class="n">เปิดแล้ว</td><td class="n">–</td><td class="n">'+fmt(S.pA*S.eq1/100)+'</td></tr>';
+  h+='<tr class="exist"><td>2 · Rush Hour เซ็นทรัล <span class="tag tag-g">ในห้าง</span> <span class="tag tag-n">'+S.eq2+'%</span></td><td class="n">เปิดแล้ว</td><td class="n">–</td><td class="n">'+fmt(S.pB*S.eq2/100)+'</td></tr>';
+  if(S.mnOn) h+='<tr class="exist"><td>3 · MiNCE สาทร ซ.11 <span class="tag tag-n">'+S.eq3+'%</span></td><td class="n">'+monthLabel(S.mnSt)+'</td><td class="n">งบแยก</td><td class="n">'+fmt(mnP*S.eq3/100)+'</td></tr>';
+  if(S.wsOn) h+='<tr><td>Rush Coffee Roaster <span class="tag tag-n">'+S.eqR+'%</span></td><td class="n">'+monthLabel(S.wsSt)+'</td><td class="n">งบแยก</td><td class="n">'+fmt(streamVal(ws,S.wsSt)*S.eqR/100)+' → '+fmt(streamVal(ws,S.hor)*S.eqR/100)+'</td></tr>';
+  h+='<tr class="exist"><td>— เงินเก็บส่วนตัว <span class="tag tag-n">ทุนตั้งต้น</span></td><td class="n">เดือน 0</td><td class="n">+'+fmt(S.seed)+'</td><td class="n">–</td></tr>';
+  r.opens.forEach(function(o){
+    var isP=o.t==="P", isC=o.t==="C";
+    var nm=isP ? ('<b>ประชาชื่น</b> <span class="tag tag-ok">ดีลกับดารา</span>')
+               : ('สาขาใหม่ <span class="tag '+(isC?"tag-g":"tag-b")+'">'+(isC?"ในห้าง":"นอกห้าง")+'</span>');
+    var pr=isP ? (fmt(S.pP*S.eqP/100)+" → "+fmt(S.pP*(1-S.d1/100)*(1-S.d2/100)*S.eqP/100)) : fmt(o.p*o.eq);
+    h+='<tr class="'+(isP?"star":"")+'"><td>'+o.deal+' · '+nm+' <span class="tag tag-n">'+Math.round(o.eq*100)+'%</span></td>'+
+       '<td class="n">'+monthLabel(o.m)+'</td><td class="n">'+fmt(o.inv)+'</td><td class="n">'+pr+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  if(!r.opens.length) h+='<div class="empty">ยังไม่มีสาขาใหม่ในช่วงจำลองนี้</div>';
+  return h;
+}
+
+/* ---------- view: saved scenarios ----------------------------------------- */
+function loadSaved(){
+  var raw=STORE.get(K_SAVE);
+  if(!raw) return [];
+  try{ var a=JSON.parse(raw); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+}
+function writeSaved(a){ STORE.set(K_SAVE, JSON.stringify(a)); }
+function saveCurrent(){
+  var R=results();
+  var def="สถานการณ์ "+(loadSaved().length+1);
+  var name=window.prompt("ตั้งชื่อสถานการณ์นี้", def);
+  if(name===null) return;
+  name=(name||def).slice(0,60);
+  var a=loadSaved();
+  a.unshift({
+    name:name,
+    stamp:stampNow(),
+    s:JSON.parse(JSON.stringify(S)),
+    sum:{
+      after: R.r.pcc?Math.round(R.r.pcc.cashAfter):null,
+      before:R.r.pcc?Math.round(R.r.pcc.cashBefore):null,
+      short: R.r.pcc?Math.round(R.r.pcc.shortfall):0,
+      hitM:  R.hit?R.hit.m:null,
+      peak:  Math.round(R.peakMax),
+      n:     R.r.branches.length,
+      rr:    Math.round(R.r.runrate)
+    }
+  });
+  writeSaved(a.slice(0,40));
+  toast(STORE.ok?("เซฟ “"+name+"” แล้ว"):("เซฟชั่วคราวแล้ว (เครื่องนี้ไม่รองรับการเก็บถาวร)"));
+  if(TAB==="save") render();
+}
+function stampNow(){
+  var d=new Date();
+  var p=function(x){ return (x<10?"0":"")+x; };
+  return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+((d.getFullYear()+543)%100)+" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+function viewSaved(){
+  var a=loadSaved();
+  var h='<h1>สถานการณ์ที่เซฟไว้</h1><p class="sub">กด “เซฟ” มุมขวาบนเพื่อเก็บค่าที่ตั้งไว้ตอนนี้ · เก็บในเครื่องนี้เท่านั้น ไม่ได้ส่งขึ้นคลาวด์</p>';
+  if(!STORE.ok) h+='<div class="warnbox">เบราว์เซอร์นี้ไม่ให้เก็บข้อมูลถาวร — สถานการณ์ที่เซฟจะหายเมื่อปิดแอป ลองเปิดจากหน้าจอโฮมแทน</div>';
+  if(!a.length) return h+'<div class="empty">ยังไม่มีสถานการณ์ที่เซฟไว้<br>ลองปรับค่าแล้วกด “เซฟ” ดู</div>';
+  h+='<div class="card tight" style="padding:10px"><table><thead><tr><th>ชื่อ</th><th class="n">เหลือ</th><th class="n">แตะเป้า</th><th class="n">สาขา</th></tr></thead><tbody>';
+  a.forEach(function(x){
+    h+='<tr><td>'+esc(x.name)+'</td><td class="n">'+(x.sum.after==null?"–":fmtC(x.sum.after))+'</td>'+
+       '<td class="n">'+(x.sum.hitM?monthLabel(x.sum.hitM):"ไม่ถึง")+'</td><td class="n">'+x.sum.n+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  a.forEach(function(x,i){
+    h+='<div class="saveitem"><div class="hd"><div class="nm">'+esc(x.name)+'</div><div class="mt">'+esc(x.stamp||"")+'</div></div>';
+    h+='<div class="bd">เปิด '+monthLabel(x.s.pM)+' · งบ '+fmt(x.s.invP)+' ฿ · หุ้น '+x.s.eqP+'% · กำไรเริ่ม '+fmt(x.s.pP)+' ฿<br>'+
+       'เหลือหลังเปิด <b>'+(x.sum.after==null?"–":fmt(x.sum.after)+" ฿")+'</b>'+(x.sum.short>0?' · <span style="color:var(--red)">ขาด '+fmt(x.sum.short)+' ฿</span>':'')+
+       ' · แตะเป้า '+(x.sum.hitM?monthLabel(x.sum.hitM):"ไม่ถึง")+' · สูงสุด '+fmt(x.sum.peak)+' ฿</div>';
+    h+='<div class="acts"><button class="btn-ghost" data-load="'+i+'">เรียกใช้</button><button class="btn-ghost del" data-del="'+i+'">ลบ</button></div></div>';
+  });
+  return h;
+}
+function wireSaved(){
+  Array.prototype.forEach.call(document.querySelectorAll("[data-load]"),function(b){
+    b.addEventListener("click",function(){
+      var x=loadSaved()[+b.getAttribute("data-load")];
+      if(!x) return;
+      for(var k in DEF) S[k]=(typeof x.s[k]==="number")?x.s[k]:DEF[k];
+      persist(); setTab("sum"); toast("เรียกใช้ “"+x.name+"” แล้ว");
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-del]"),function(b){
+    b.addEventListener("click",function(){
+      var i=+b.getAttribute("data-del"), a=loadSaved();
+      if(!a[i]) return;
+      if(!window.confirm('ลบ "'+a[i].name+'" ?')) return;
+      a.splice(i,1); writeSaved(a); render(); toast("ลบแล้ว");
+    });
+  });
+}
+
+/* ---------- boot ---------------------------------------------------------- */
+Array.prototype.forEach.call(document.querySelectorAll(".nav-item"),function(b){
+  b.addEventListener("click",function(){ setTab(b.getAttribute("data-tab")); });
+});
+el("saveBtn").addEventListener("click", saveCurrent);
+render();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){ /* offline cache unavailable — app still works */ });
+  });
+}
+</script>
+</body>
+</html>
