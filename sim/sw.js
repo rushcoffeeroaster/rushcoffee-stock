@@ -1,7 +1,7 @@
 /* Rush Hour simulator — offline service worker.
    Cache-first for the app shell so it opens with no signal;
    network-first-with-fallback for everything else (e.g. Google Fonts). */
-var CACHE = "rh-sim-v1";
+var CACHE = "rh-sim-v2";
 var SHELL = [
   "./",
   "./index.html",
