@@ -560,7 +560,10 @@ async function submitMenu(){
 }
 
 loadAll();
-setInterval(() => { if (state.view!=="add") loadAll(); }, 15000);
+// รีเฟรชอัตโนมัติ — พักเมื่อไม่ได้เปิดหน้าจอนี้อยู่ (ประหยัดโควตา Google + กันแอปอืดตอนหลายคนใช้พร้อมกัน)
+function autoRefreshOk(){ return !document.hidden && state.view!=="add"; }
+setInterval(() => { if (autoRefreshOk()) loadAll(); }, 45000);
+document.addEventListener("visibilitychange", () => { if (autoRefreshOk()) loadAll(); });
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <script src="pwa-install.js"></script>
