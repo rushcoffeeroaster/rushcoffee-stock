@@ -857,7 +857,15 @@ async function confirmReceive(){
 
 // ----- init -----
 loadAll();
-setInterval(() => { if (!document.getElementById("modalRoot").innerHTML && (document.activeElement||{}).id !== "searchInput") loadAll(); }, 10000);
+// รีเฟรชอัตโนมัติ — พักเมื่อไม่ได้เปิดหน้าจอนี้อยู่ (ประหยัดโควตา Google + กันแอปอืดตอนหลายคนใช้พร้อมกัน)
+function autoRefreshOk(){
+  if (document.hidden) return false;
+  if (document.getElementById("modalRoot").innerHTML) return false;
+  if ((document.activeElement||{}).id === "searchInput") return false;
+  return true;
+}
+setInterval(() => { if (autoRefreshOk()) loadAll(); }, 45000);
+document.addEventListener("visibilitychange", () => { if (autoRefreshOk()) loadAll(); });
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <script src="pwa-install.js"></script>
