@@ -369,7 +369,11 @@ function renderPunch(){
       <label class="label">ชื่อพนักงาน — ตอกบัตรได้ทุกสาขา (กำลังตอกที่ ${BRANCH_LABEL[state.branch]})</label>
       <select id="empSelect" onchange="onEmpChange(this.value)">
         <option value="">— เลือกชื่อ —</option>
-        ${emps.map((e)=>`<option value="${escapeHtml(e.id)}" ${state.selectedEmp===e.id?"selected":""}>${escapeHtml(e.name)}</option>`).join("")}
+        ${emps.map((e)=>{
+          const isHome = e.branch===state.branch || !e.branch;
+          const tag = isHome ? "" : ` (${BRANCH_LABEL[e.branch] || e.branch})`;
+          return `<option value="${escapeHtml(e.id)}" ${state.selectedEmp===e.id?"selected":""}>${escapeHtml(e.name)}${tag}</option>`;
+        }).join("")}
       </select>
       ${emps.length===0 ? `<p style="font-size:12px; color:var(--ink-3); margin:8px 0 0;">ยังไม่มีรายชื่อพนักงานในสาขานี้ — เพิ่มในชีต Employees</p>`:""}
     </div>
