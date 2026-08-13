@@ -146,15 +146,6 @@
   .daynav-btn:disabled{ opacity:.35; cursor:default; }
   .daynav-today{ flex:0 0 auto; border:none; background:var(--accent-grad); color:var(--on-accent); font-size:12.5px;
     font-weight:800; padding:0 12px; height:40px; border-radius:10px; cursor:pointer; white-space:nowrap; }
-
-  /* ---------- Custom date range (กำหนดช่วงวันที่เอง) ---------- */
-  .daterange{ display:flex; align-items:center; gap:8px; }
-  .daterange input[type="date"]{ flex:1; min-width:0; }
-  .daterange-sep{ color:var(--ink-3); font-weight:700; flex:0 0 auto; }
-  .quickrange{ display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; }
-  .quickrange-btn{ flex:0 0 auto; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2);
-    font-size:12px; font-weight:700; padding:7px 11px; border-radius:999px; cursor:pointer; white-space:nowrap; }
-  .quickrange-btn:active{ background:var(--accent-soft); }
   .del-btn{ background:none; border:none; color:#C4B9AC; font-size:17px; cursor:pointer; padding:4px 8px; border-radius:8px; }
   .del-btn:active{ background:var(--red-bg); color:var(--red); }
   .empty{ text-align:center; padding:40px 16px; color:var(--ink-3); font-size:14px; }
@@ -176,36 +167,6 @@
   .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border-radius:13px; color:var(--ink-3); font-size:9.5px; font-weight:700; text-decoration:none; white-space:nowrap; transition:.15s; }
   .nav-item svg{ width:22px; height:22px; }
   .nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
-
-  /* ---------- ใบสรุปยอดรายวัน (Bill) ---------- */
-  .bill-actions{ display:flex; gap:8px; margin-bottom:14px; }
-  .bill-back{ flex:0 0 auto; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2); border-radius:10px; padding:0 16px; font-size:14px; font-weight:700; cursor:pointer; }
-  .bill-paper{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:22px 20px; }
-  .bill-head{ text-align:center; padding-bottom:14px; margin-bottom:14px; border-bottom:1.5px dashed var(--line-strong); }
-  .bill-shop{ font-weight:800; font-size:17px; letter-spacing:.4px; }
-  .bill-branch{ font-size:13px; color:var(--ink-2); margin-top:4px; font-weight:600; }
-  .bill-date{ font-size:12.5px; color:var(--ink-3); margin-top:2px; }
-  .bill-sub{ font-size:11.5px; color:var(--ink-3); margin-top:6px; text-transform:uppercase; letter-spacing:.6px; }
-  .bill-section{ margin-bottom:16px; }
-  .bill-section-title{ font-size:12.5px; font-weight:800; color:var(--ink-2); margin-bottom:8px; }
-  .bill-row{ display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
-  .bill-row:last-of-type{ border-bottom:none; }
-  .bill-row-label{ min-width:0; }
-  .bill-row-note{ font-size:11.5px; color:var(--ink-3); margin-top:1px; }
-  .bill-row-amt{ font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap; }
-  .bill-empty{ font-size:12.5px; color:var(--ink-3); padding:6px 0; }
-  .bill-subtotal{ display:flex; justify-content:space-between; padding-top:9px; margin-top:3px; border-top:1px solid var(--line-strong); font-size:13.5px; font-weight:800; }
-  .bill-net{ display:flex; justify-content:space-between; align-items:center; padding:14px 0 4px; margin-top:4px; border-top:1.5px dashed var(--line-strong); font-size:16px; font-weight:800; color:var(--green); }
-  .bill-net.neg{ color:var(--red); }
-  .bill-foot{ text-align:center; font-size:11px; color:var(--ink-3); margin-top:16px; }
-
-  @media print{
-    body *{ visibility:hidden; }
-    .bill-print-area, .bill-print-area *{ visibility:visible; }
-    .bill-print-area{ position:absolute; left:0; top:0; width:100%; box-shadow:none; border:none; padding:0; }
-    .no-print{ display:none !important; }
-    body{ background:#fff; padding-bottom:0; }
-  }
 </style>
 </head>
 <body class="theme-all" id="bodyEl">
@@ -263,6 +224,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       ตอกบัตร
     </a>
+    <a class="nav-item" href="bakery.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h16"/><path d="M5 13c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M4 13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2"/></svg>
+      ขนม
+    </a>
   </div>
 </nav>
 
@@ -285,18 +250,11 @@ const CHANNELS = [
 ];
 const DELIVERY_CHANNEL_IDS = ["grab", "shopee", "lineman", "delivery"];
 const CHANNEL_COLORS = { store:"#3C4450", grab:"#00B14F", shopee:"#EE4D2D", lineman:"#00B300", delivery:"#CF9A2B" };
-// ★ ช่องทางที่ผูกกับสาขาตายตัว (LINE MAN = Rush Hour เท่านั้น) — เลือกช่องทางนี้แล้วระบบล็อกสาขาให้อัตโนมัติ กันบันทึกผิดสาขา
-const CHANNEL_BRANCH_LOCK = { lineman: "rushhour" };
 const STOCK_UNITS = ["g", "kg", "ml", "l", "ชิ้น", "ถุง", "ขวด", "กล่อง"];
 const CAT_COLORS = { stock:"#C7553B", rent:"#A9744F", commission:"#CF9A2B", other:"#9AA0A8" };
 const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"รวมทั้งสองสาขา" };
 
-let state = {
-  income:[], expense:[], view:"dash", period:"week", selectedDate: todayStr(), branch:"all",
-  // ★ ช่วงวันที่กำหนดเอง (สำหรับแท็บ "กำหนดช่วงวันที่") — ค่าเริ่มต้น 7 วันล่าสุด
-  rangeStart: (()=>{ const d=new Date(); d.setDate(d.getDate()-6); return toLocalDateStr(d); })(),
-  rangeEnd: todayStr(),
-};
+let state = { income:[], expense:[], view:"dash", period:"week", selectedDate: todayStr(), branch:"all" };
 let chartInstance = null;
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -356,23 +314,6 @@ function getRangeStart(period){
 }
 function filterByPeriod(arr, period){ const start=getRangeStart(period); return arr.filter((r)=>{ const d=new Date(r.date); return !isNaN(d) && d>=start; }); }
 function filterByDay(arr, dateStr){ return arr.filter((r)=>r.date===dateStr); }
-// ★ กรองตามช่วงวันที่กำหนดเอง (รวมวันแรกและวันสุดท้าย) — เช่น 1-5, 5-12
-function filterByRange(arr, startStr, endStr){
-  if (!startStr || !endStr) return [];
-  const s = startStr <= endStr ? startStr : endStr, e = startStr <= endStr ? endStr : startStr;
-  return arr.filter((r)=> r.date && r.date>=s && r.date<=e);
-}
-function dateRangeDays(startStr, endStr){
-  const a = new Date(startStr+"T00:00:00"), b = new Date(endStr+"T00:00:00");
-  if (isNaN(a) || isNaN(b)) return 1;
-  return Math.max(1, Math.round(Math.abs(b-a)/86400000)+1);
-}
-// ★ ดึงรายรับ/รายจ่ายตามโหมดที่กำลังดูอยู่ (รายวัน/สัปดาห์/เดือน/ทั้งหมด/ช่วงที่กำหนดเอง) — ใช้จุดเดียวทั้งหน้า dashboard และกราฟ
-function getFilteredIncomeExpense(bd){
-  if (state.period==="day") return { incomeF: filterByDay(bd.income, state.selectedDate), expenseF: filterByDay(bd.expense, state.selectedDate) };
-  if (state.period==="range") return { incomeF: filterByRange(bd.income, state.rangeStart, state.rangeEnd), expenseF: filterByRange(bd.expense, state.rangeStart, state.rangeEnd) };
-  return { incomeF: filterByPeriod(bd.income, state.period), expenseF: filterByPeriod(bd.expense, state.period) };
-}
 
 function getBranchData(){
   if (state.branch === "all") return { income: state.income, expense: state.expense };
@@ -397,85 +338,9 @@ function render(){
   const content = document.getElementById("content");
   if (state.view==="dash") content.innerHTML = renderDash();
   else if (state.view==="add") content.innerHTML = renderAdd();
-  else if (state.view==="bill") content.innerHTML = renderBill();
   else content.innerHTML = renderList();
   if (state.view==="dash") setTimeout(drawChart, 0);
   if (state.view==="add") setTimeout(toggleStockFields, 0);
-}
-
-// ---------- ใบสรุปยอดรายวัน (Bill) ----------
-// ★ กดจากมุมมอง "รายวัน" — สรุปทุกรายการรายรับ/รายจ่ายของวันนั้นเป็นใบพร้อมพิมพ์/เซฟ PDF ให้ลูกน้องปิดยอดได้เลย
-function openBill(){
-  state.view = "bill";
-  render();
-  window.scrollTo({ top:0, behavior:"smooth" });
-}
-function closeBill(){
-  state.view = "dash";
-  render();
-}
-function billIncomeRowHtml(r){
-  const label = CHANNELS.find((c)=>c.id===r.channel)?.label || r.channel;
-  const branchTag = state.branch==="all" ? ` · ${BRANCH_LABEL[r.branch]||""}` : "";
-  return `<div class="bill-row">
-    <div class="bill-row-label">
-      <div>${escapeHtml(label)}<span style="color:var(--ink-3); font-weight:500;">${branchTag}</span></div>
-      ${r.note ? `<div class="bill-row-note">${escapeHtml(r.note)}</div>` : ""}
-    </div>
-    <div class="bill-row-amt" style="color:var(--green);">+${fmtMoney(r.amount)}</div>
-  </div>`;
-}
-function billExpenseRowHtml(r){
-  const label = EXPENSE_CATEGORIES.find((c)=>c.id===r.category)?.label || r.category;
-  const branchTag = state.branch==="all" ? ` · ${BRANCH_LABEL[r.branch]||""}` : "";
-  const stockDetail = r.category==="stock" && r.itemName
-    ? `${escapeHtml(r.itemName)}${r.itemQty ? ` (${r.itemQty}${escapeHtml(r.itemUnit||"")})` : ""}${r.note ? " — " : ""}`
-    : "";
-  const noteText = stockDetail + (r.note||"");
-  return `<div class="bill-row">
-    <div class="bill-row-label">
-      <div>${escapeHtml(label)}<span style="color:var(--ink-3); font-weight:500;">${branchTag}</span></div>
-      ${noteText ? `<div class="bill-row-note">${escapeHtml(noteText)}</div>` : ""}
-    </div>
-    <div class="bill-row-amt" style="color:var(--red);">−${fmtMoney(r.amount)}</div>
-  </div>`;
-}
-function renderBill(){
-  const bd = getBranchData();
-  const incomeF = filterByDay(bd.income, state.selectedDate);
-  const expenseF = filterByDay(bd.expense, state.selectedDate);
-  const totalIncome = incomeF.reduce((s,r)=>s+r.amount,0);
-  const totalExpense = expenseF.reduce((s,r)=>s+r.amount,0);
-  const net = totalIncome - totalExpense;
-  const branchLabel = BRANCH_LABEL[state.branch] || "รวมทั้งสองสาขา";
-
-  return `
-    <div class="bill-actions no-print">
-      <button type="button" class="bill-back" onclick="closeBill()">‹ กลับ</button>
-      <button type="button" class="btn-primary btn-block" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
-    </div>
-    <div class="bill-print-area bill-paper">
-      <div class="bill-head">
-        <div class="bill-shop">RUSH COFFEE</div>
-        <div class="bill-branch">สาขา ${escapeHtml(branchLabel)}</div>
-        <div class="bill-date">${escapeHtml(dayHeadLabel(state.selectedDate))}</div>
-        <div class="bill-sub">ใบสรุปยอดประจำวัน</div>
-      </div>
-      <div class="bill-section">
-        <div class="bill-section-title">รายรับ (${incomeF.length} รายการ)</div>
-        ${incomeF.length ? incomeF.map(billIncomeRowHtml).join("") : `<div class="bill-empty">ไม่มีรายการรายรับ</div>`}
-        <div class="bill-subtotal"><span>รวมรายรับ</span><span style="color:var(--green);">+${fmtMoney(totalIncome)} ฿</span></div>
-      </div>
-      <div class="bill-section">
-        <div class="bill-section-title">รายจ่าย (${expenseF.length} รายการ)</div>
-        ${expenseF.length ? expenseF.map(billExpenseRowHtml).join("") : `<div class="bill-empty">ไม่มีรายการรายจ่าย</div>`}
-        <div class="bill-subtotal"><span>รวมรายจ่าย</span><span style="color:var(--red);">−${fmtMoney(totalExpense)} ฿</span></div>
-      </div>
-      <div class="bill-net ${net>=0?"":"neg"}">
-        <span>กำไรสุทธิ</span><span>${net>=0?"+":"−"}${fmtMoney(Math.abs(net))} ฿</span>
-      </div>
-      <div class="bill-foot">พิมพ์เมื่อ ${escapeHtml(new Date().toLocaleString("th-TH"))}</div>
-    </div>`;
 }
 
 function toggleStockFields(){
@@ -484,20 +349,8 @@ function toggleStockFields(){
 }
 
 // ---------- Dashboard ----------
-function periodDays(){
-  if (state.period==="week") return 7;
-  if (state.period==="month") return 30;
-  if (state.period==="range") return dateRangeDays(state.rangeStart, state.rangeEnd);
-  return null;
-}
-function fmtShortThaiDate(s){ const d=new Date(s+"T00:00:00"); if (isNaN(d)) return s; return d.toLocaleDateString("th-TH",{ day:"2-digit", month:"short" }); }
-function periodLabel(){
-  if (state.period==="day") return "วันที่เลือก";
-  if (state.period==="week") return "7 วันล่าสุด";
-  if (state.period==="month") return "30 วันล่าสุด";
-  if (state.period==="range") return fmtShortThaiDate(state.rangeStart) + " – " + fmtShortThaiDate(state.rangeEnd);
-  return "ทั้งหมด";
-}
+function periodDays(){ return state.period==="week"?7 : state.period==="month"?30 : null; }
+function periodLabel(){ return state.period==="day"?"วันที่เลือก" : state.period==="week"?"7 วันล่าสุด" : state.period==="month"?"30 วันล่าสุด" : "ทั้งหมด"; }
 
 function renderDash(){
   let html = `
@@ -505,7 +358,6 @@ function renderDash(){
       <div class="chip ${state.period==="day"?"active":""}" onclick="setPeriod('day')">รายวัน</div>
       <div class="chip ${state.period==="week"?"active":""}" onclick="setPeriod('week')">7 วันล่าสุด</div>
       <div class="chip ${state.period==="month"?"active":""}" onclick="setPeriod('month')">30 วันล่าสุด</div>
-      <div class="chip ${state.period==="range"?"active":""}" onclick="setPeriod('range')">กำหนดช่วงวันที่</div>
       <div class="chip ${state.period==="all"?"active":""}" onclick="setPeriod('all')">ทั้งหมด</div>
     </div>`;
 
@@ -519,28 +371,12 @@ function renderDash(){
         <button type="button" class="daynav-btn" onclick="shiftDay(1)" aria-label="วันถัดไป" ${isToday?"disabled":""}>›</button>
       </div>
       ${!isToday ? `<button type="button" class="daynav-today" style="margin-top:8px;" onclick="setSelectedDate(todayStr())">« กลับไปวันนี้</button>` : ""}
-      <button type="button" class="btn-primary btn-block" style="margin-top:10px;" onclick="openBill()">🧾 ออกบิลสรุปยอดวันนี้</button>
-    </div>`;
-  }
-
-  if (state.period==="range"){
-    html += `<div class="field" style="margin-bottom:14px;">
-      <label class="label">กำหนดช่วงวันที่เอง — เช่น วันที่ 1-5 หรือ 5-12</label>
-      <div class="daterange">
-        <input type="date" value="${state.rangeStart}" max="${todayStr()}" onchange="setRangeStart(this.value)" />
-        <span class="daterange-sep">–</span>
-        <input type="date" value="${state.rangeEnd}" max="${todayStr()}" onchange="setRangeEnd(this.value)" />
-      </div>
-      <div class="quickrange">
-        <button type="button" class="quickrange-btn" onclick="setQuickRange(6)">7 วันล่าสุด</button>
-        <button type="button" class="quickrange-btn" onclick="setQuickRange(13)">14 วันล่าสุด</button>
-        <button type="button" class="quickrange-btn" onclick="setMonthToDate()">ตั้งแต่ต้นเดือนนี้</button>
-      </div>
     </div>`;
   }
 
   const bd = getBranchData();
-  const { incomeF, expenseF } = getFilteredIncomeExpense(bd);
+  const incomeF = state.period==="day" ? filterByDay(bd.income, state.selectedDate) : filterByPeriod(bd.income, state.period);
+  const expenseF = state.period==="day" ? filterByDay(bd.expense, state.selectedDate) : filterByPeriod(bd.expense, state.period);
 
   const totalIncome = incomeF.reduce((s,r)=>s+r.amount,0);
   const totalExpense = expenseF.reduce((s,r)=>s+r.amount,0);
@@ -704,23 +540,17 @@ function renderStockSummary(expenseF){
 }
 
 function buildDailySeries(incomeF, expenseF, period){
-  const keys = [];
-  if (period==="range"){
-    // ★ ช่วงที่กำหนดเอง — ไล่ทีละวันตั้งแต่ rangeStart ถึง rangeEnd (รวมวันแรก/สุดท้าย) แทนย้อนหลังตายตัว 7/30 วัน
-    const s0 = state.rangeStart <= state.rangeEnd ? state.rangeStart : state.rangeEnd;
-    const e0 = state.rangeStart <= state.rangeEnd ? state.rangeEnd : state.rangeStart;
-    const s = new Date(s0+"T00:00:00"), e = new Date(e0+"T00:00:00");
-    if (!isNaN(s) && !isNaN(e)){
-      for (let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) keys.push(toLocalDateStr(d));
-    }
-  } else {
-    const days = period==="week"?7:30;
-    for (let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); keys.push(toLocalDateStr(d)); }
+  const days = period==="week"?7:30;
+  const labels=[], keys=[], storeArr=[], deliveryArr=[], expenseArr=[];
+  for (let i=days-1;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=toLocalDateStr(d);
+    keys.push(key);
+    labels.push(d.toLocaleDateString("th-TH",{ day:"2-digit", month:"2-digit" }));
+    storeArr.push(incomeF.filter((r)=>r.date===key && r.channel==="store").reduce((s,r)=>s+r.amount,0));
+    deliveryArr.push(incomeF.filter((r)=>r.date===key && DELIVERY_CHANNEL_IDS.includes(r.channel)).reduce((s,r)=>s+r.amount,0)); // รวมทุกแพลตฟอร์ม delivery
+    expenseArr.push(expenseF.filter((r)=>r.date===key).reduce((s,r)=>s+r.amount,0));
   }
-  const labels = keys.map((key)=>{ const d=new Date(key+"T00:00:00"); return d.toLocaleDateString("th-TH",{ day:"2-digit", month:"2-digit" }); });
-  const storeArr = keys.map((key)=>incomeF.filter((r)=>r.date===key && r.channel==="store").reduce((s,r)=>s+r.amount,0));
-  const deliveryArr = keys.map((key)=>incomeF.filter((r)=>r.date===key && DELIVERY_CHANNEL_IDS.includes(r.channel)).reduce((s,r)=>s+r.amount,0)); // รวมทุกแพลตฟอร์ม delivery
-  const expenseArr = keys.map((key)=>expenseF.filter((r)=>r.date===key).reduce((s,r)=>s+r.amount,0));
   return { labels, keys, storeArr, deliveryArr, expenseArr };
 }
 
@@ -743,32 +573,10 @@ function shiftDay(delta){
   render();
 }
 
-// ★ กำหนดช่วงวันที่เอง (แท็บ "กำหนดช่วงวันที่") — พิมพ์/เลือกวันเริ่ม-สิ้นสุดได้อิสระ เช่น 1-5, 5-12
-function setRangeStart(v){
-  state.rangeStart = v;
-  if (state.rangeStart > state.rangeEnd) state.rangeEnd = state.rangeStart; // กันช่วงกลับด้าน (เริ่มหลังจบ)
-  render();
-}
-function setRangeEnd(v){
-  state.rangeEnd = v;
-  if (state.rangeEnd < state.rangeStart) state.rangeStart = state.rangeEnd; // กันช่วงกลับด้าน (จบก่อนเริ่ม)
-  render();
-}
-function setQuickRange(daysBack){
-  const e = new Date(); const s = new Date(); s.setDate(s.getDate()-daysBack);
-  state.rangeStart = toLocalDateStr(s); state.rangeEnd = toLocalDateStr(e);
-  render();
-}
-function setMonthToDate(){
-  const now = new Date();
-  state.rangeStart = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
-  state.rangeEnd = todayStr();
-  render();
-}
-
 function drawChart(){
   const bd = getBranchData();
-  const { incomeF, expenseF } = getFilteredIncomeExpense(bd);
+  const incomeF = state.period==="day" ? filterByDay(bd.income, state.selectedDate) : filterByPeriod(bd.income, state.period);
+  const expenseF = state.period==="day" ? filterByDay(bd.expense, state.selectedDate) : filterByPeriod(bd.expense, state.period);
   const primary = state.branch==="rush" ? "#6E7884" : state.branch==="rushhour" ? "#C2941A" : "#3C4450";
   const secondary = state.branch==="rush" ? "#B6BEC8" : state.branch==="rushhour" ? "#E6C24E" : "#8A93A0";
 
@@ -816,8 +624,7 @@ function renderAdd(){
       <div class="field"><label class="label">สาขา</label>
         <select id="incBranch"><option value="rush" ${defaultBranch==="rush"?"selected":""}>Rush (เงิน)</option><option value="rushhour" ${defaultBranch==="rushhour"?"selected":""}>Rush Hour (ทอง)</option></select></div>
       <div class="field"><label class="label">วันที่</label><input id="incDate" type="date" value="${todayStr()}" /></div>
-      <div class="field"><label class="label">ช่องทาง</label><select id="incChannel" onchange="onIncomeChannelChange()">${CHANNELS.map((c)=>`<option value="${c.id}">${c.label}</option>`).join("")}</select>
-        <p style="font-size:11px; color:var(--ink-3); margin:5px 2px 0;">* LINE MAN เป็นของสาขา Rush Hour เท่านั้น — เลือกแล้วระบบจะสลับสาขาให้อัตโนมัติ</p></div>
+      <div class="field"><label class="label">ช่องทาง</label><select id="incChannel">${CHANNELS.map((c)=>`<option value="${c.id}">${c.label}</option>`).join("")}</select></div>
       <div class="field"><label class="label">จำนวนเงิน (บาท)</label><input id="incAmount" type="number" inputmode="decimal" min="0" placeholder="0" /></div>
       <div class="field"><label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label><input id="incNote" placeholder="เช่น ยอดขายกะเช้า" /></div>
       <button class="btn-primary btn-income btn-block" onclick="submitIncome()">+ บันทึกรายรับ</button>
@@ -842,31 +649,10 @@ function renderAdd(){
     </div>`;
 }
 
-// ★ ช่องทางบางอย่างผูกกับสาขาตายตัว (เช่น LINE MAN = Rush Hour เท่านั้น) — สลับสาขาให้อัตโนมัติเมื่อเลือกช่องทางนั้น
-function onIncomeChannelChange(){
-  const channelEl = document.getElementById("incChannel"), branchEl = document.getElementById("incBranch");
-  if (!channelEl || !branchEl) return;
-  const lockBranch = CHANNEL_BRANCH_LOCK[channelEl.value];
-  if (lockBranch){
-    branchEl.value = lockBranch;
-    branchEl.disabled = true;
-  } else {
-    branchEl.disabled = false;
-  }
-}
-
 async function submitIncome(){
-  const branchEl=document.getElementById("incBranch"), channel=document.getElementById("incChannel").value,
-    date=document.getElementById("incDate").value, amount=Number(document.getElementById("incAmount").value),
+  const branch=document.getElementById("incBranch").value, date=document.getElementById("incDate").value,
+    channel=document.getElementById("incChannel").value, amount=Number(document.getElementById("incAmount").value),
     note=document.getElementById("incNote").value;
-  let branch=branchEl.value;
-  // ★ เซฟตี้เน็ต: ถ้าช่องทางนี้ถูกล็อกสาขาไว้ (เช่น lineman → rushhour) แต่ไม่ตรง ให้บังคับแก้ก่อนบันทึกเสมอ
-  const lockBranch = CHANNEL_BRANCH_LOCK[channel];
-  if (lockBranch && branch !== lockBranch){
-    branch = lockBranch;
-    branchEl.value = lockBranch;
-    showToast(`${CHANNELS.find((c)=>c.id===channel)?.label || channel} เป็นของสาขา Rush Hour — ปรับสาขาให้อัตโนมัติ`);
-  }
   if (!amount || amount<=0){ showToast("กรุณาใส่จำนวนเงิน"); return; }
   try{
     await apiCall("addIncome", { id:uid(), date, channel, amount, note, branch });
@@ -944,13 +730,42 @@ function renderList(){
   return html;
 }
 
+// ลบรายการ — เดิมทีไม่ได้อ่านคำตอบจากเซิร์ฟเวอร์เลย จึงขึ้น "ลบรายการแล้ว" ทุกครั้ง
+// แม้ Apps Script จะตอบกลับเป็น error หรือหน้า HTML (ซึ่งเกิดเป็นครั้งคราวเวลาโดนยิงถี่ๆ)
+// ตอนนี้ตรวจคำตอบจริง ลองซ้ำได้ 3 ครั้ง และยืนยันว่าแถวหายไปแล้วจริงก่อนบอกว่าสำเร็จ
 async function deleteRecord(type, id){
-  try{
-    await fetch(API_URL, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body:new URLSearchParams({ action: type==="income"?"deleteIncome":"deleteExpense", id }).toString() });
-    showToast("ลบรายการแล้ว");
-    await loadAll();
-  }catch(e){ showToast("ลบไม่สำเร็จ: " + e.message); }
+  const action = type === "income" ? "deleteIncome" : "deleteExpense";
+  const rows = () => (type === "income" ? state.income : state.expense);
+  let lastErr = "ไม่ทราบสาเหตุ";
+
+  for (let attempt = 0; attempt < 3; attempt++){
+    if (attempt) await new Promise((r) => setTimeout(r, 1200 * attempt));
+    try{
+      const res = await fetch(API_URL, { method:"POST", redirect:"follow",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body:new URLSearchParams({ action, id }).toString() });
+      const text = (await res.text()).trim();
+
+      if (!res.ok){ lastErr = "เซิร์ฟเวอร์ตอบกลับ HTTP " + res.status; continue; }
+
+      let data;
+      try{ data = JSON.parse(text); }
+      catch(e){ lastErr = "เซิร์ฟเวอร์ตอบกลับไม่ใช่ข้อมูล JSON — " + text.slice(0, 80); continue; }
+
+      if (data.error){ lastErr = data.error; continue; }
+      if (!data.ok){ lastErr = "เซิร์ฟเวอร์ไม่ยืนยันการลบ"; continue; }
+
+      await loadAll();
+      if (!rows().some((r) => r.id === id)){ showToast("ลบรายการแล้ว"); return true; }
+      lastErr = "เซิร์ฟเวอร์ตอบว่าสำเร็จ แต่แถวยังอยู่ในชีต";
+    }catch(networkErr){
+      lastErr = "เชื่อมต่อเครือข่ายไม่ได้: " + networkErr.message;
+    }
+  }
+
+  showToast("ลบไม่สำเร็จ: " + lastErr);
+  await loadAll();
+  return false;
 }
 
 loadAll();
