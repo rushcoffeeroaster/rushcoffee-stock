@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>ครัวขนม · Rush Coffee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#F4F3EF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ครัวขนม">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+  :root{
+    --bg:#F4F3EF;
+    --bg-grad: radial-gradient(135% 110% at 50% -10%, #FCFBF9 0%, #F4F3EF 55%, #ECEAE3 100%);
+    --surface:#FFFFFF; --surface-2:#FBFAF7;
+    --line:#EAE7DF; --line-strong:#DDD9CF;
+    --ink:#1E232A; --ink-2:#5D646E; --ink-3:#9A9FA8;
+    --green:#2F8F5B; --green-bg:#E9F4EE;
+    --red:#C7553B; --red-bg:#FBEDE9;
+    --amber:#CF9A2B; --amber-bg:#FAF2DD;
+    --shadow-sm:0 1px 2px rgba(28,28,36,.04), 0 2px 8px rgba(28,28,36,.05);
+    --shadow-md:0 6px 22px rgba(28,28,36,.09);
+    --radius:16px; --radius-sm:11px;
+    --accent:#8A6A3B; --accent-deep:#5E482A; --accent-soft:#F5EFE6;
+    --accent-grad:linear-gradient(135deg,#B08D5B 0%,#8A6A3B 100%);
+    --metal-grad:linear-gradient(120deg,#8A6A3B 0%,#D8BC8C 48%,#7A5C31 100%);
+    --on-accent:#FFFFFF;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; }
+  body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+    color:var(--ink); padding-bottom:26px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:560px; margin:0 auto; padding:14px 16px 8px; }
+
+  .appbar{ position:sticky; top:0; z-index:40; background:rgba(244,243,239,.86); backdrop-filter:saturate(160%) blur(14px); border-bottom:1px solid var(--line); }
+  .appbar-inner{ max-width:560px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .logo{ width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--accent-grad); box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.35); flex-shrink:0; }
+  .logo svg{ width:21px; height:21px; }
+  .wordmark{ font-weight:800; font-size:15px; letter-spacing:.4px; line-height:1; background:var(--metal-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .brand-tag{ font-size:11px; color:var(--ink-3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .today-chip{ font-size:11.5px; font-weight:700; color:var(--accent-deep); background:var(--accent-soft); padding:6px 11px; border-radius:999px; white-space:nowrap; }
+
+  h1{ font-size:20px; font-weight:800; margin:6px 0 2px; letter-spacing:.2px; }
+  .sub{ color:var(--ink-2); font-size:12.5px; margin:0 0 14px; }
+  h2{ font-size:14px; font-weight:800; margin:0 0 9px; display:flex; align-items:center; gap:7px; }
+
+  .tabs{ display:flex; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:4px; margin-bottom:14px; box-shadow:var(--shadow-sm); }
+  .tab{ flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--ink-2); transition:.15s; }
+  .tab.active{ background:var(--accent-grad); color:var(--on-accent); box-shadow:var(--shadow-sm); }
+
+  .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
+  .card-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .item-name{ font-weight:800; font-size:15.5px; margin:0; }
+  .item-cat{ font-size:11.5px; color:var(--ink-3); margin:2px 0 0; }
+
+  input,select,textarea{ width:100%; border:1px solid var(--line-strong); border-radius:10px; padding:11px 12px; font-size:14px; background:var(--surface); color:var(--ink); font-family:inherit; transition:.15s; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .label{ font-size:12px; color:var(--ink-2); margin-bottom:5px; display:block; font-weight:600; }
+  .field{ margin-bottom:13px; }
+  .row{ display:flex; gap:9px; }
+  .row .field{ flex:1; }
+
+  .btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:12px; padding:14px 16px; font-size:15px; font-weight:800; cursor:pointer; width:100%; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); transition:.12s; }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn-ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:12px; padding:12px 16px; font-size:14px; font-weight:700; cursor:pointer; width:100%; }
+
+  /* ตัวนับจำนวน — ปุ่มใหญ่ กดง่ายตอนมือเลอะแป้ง */
+  .counter{ display:flex; align-items:center; gap:8px; }
+  .counter button{ width:42px; height:42px; flex:0 0 42px; border-radius:11px; border:1px solid var(--line-strong); background:var(--surface); font-size:20px; font-weight:800; color:var(--accent-deep); cursor:pointer; line-height:1; }
+  .counter button:active{ background:var(--accent-soft); }
+  .counter input{ text-align:center; font-weight:800; font-size:17px; padding:10px 4px; }
+
+  .num-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }
+  .num-box{ background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .num-box .k{ font-size:11px; color:var(--ink-3); font-weight:600; }
+  .num-box .v{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:1px; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{ padding:8px 13px; border-radius:999px; border:1px solid var(--line); background:var(--surface); font-size:12.5px; font-weight:700; color:var(--ink-2); cursor:pointer; }
+  .chip.active{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; }
+
+  .ing-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .ing-row:last-child{ border-bottom:none; }
+  .ing-name{ flex:1; min-width:0; font-weight:600; }
+  .ing-qty{ font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ing-warn{ font-size:11px; color:var(--red); font-weight:700; }
+
+  .stat-line{ display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:11px; font-size:13px; font-weight:600; margin-bottom:8px; }
+  .stat-ok{ background:var(--green-bg); color:#27764a; }
+  .stat-warn{ background:var(--amber-bg); color:#8a6a14; }
+  .stat-bad{ background:var(--red-bg); color:var(--red); }
+
+  .cam-frame{ position:relative; width:100%; aspect-ratio:4/3; border-radius:var(--radius); overflow:hidden; background:#15171b; display:grid; place-items:center; }
+  .cam-frame video,.cam-frame img{ width:100%; height:100%; object-fit:cover; }
+  .cam-hint{ color:#cdd2d8; font-size:13px; text-align:center; padding:22px; }
+  .photo-strip{ display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; }
+  .photo-strip img{ width:62px; height:62px; object-fit:cover; border-radius:10px; border:1px solid var(--line); }
+
+  .empty{ text-align:center; padding:40px 16px; color:var(--ink-3); font-size:14px; }
+  .err-box{ background:var(--red-bg); color:var(--red); border:1px solid #EED2C8; border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:13px; font-weight:600; }
+  .setup-box{ background:var(--amber-bg); color:#8a6a14; border:1px solid #EFE0B8; border-radius:12px; padding:14px; font-size:13px; line-height:1.6; margin-bottom:13px; }
+  .setup-box code{ background:#fff; padding:1px 6px; border-radius:5px; font-size:12px; }
+  .demo-bar{ background:var(--accent-soft); border:1px dashed var(--accent); color:var(--accent-deep); border-radius:11px; padding:9px 12px; font-size:12.5px; font-weight:700; margin-bottom:12px; }
+  .toast{ position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:999px; font-size:13px; font-weight:600; z-index:120; box-shadow:var(--shadow-md); max-width:90vw; text-align:center; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(24,22,20,.55); backdrop-filter:blur(3px); display:flex; align-items:flex-end; justify-content:center; padding:0; z-index:90; }
+  .sheet{ background:var(--surface); border-radius:20px 20px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); width:100%; max-width:560px; max-height:88vh; overflow-y:auto; box-shadow:var(--shadow-md); }
+  .sheet-grab{ width:40px; height:4px; border-radius:999px; background:var(--line-strong); margin:0 auto 14px; }
+
+  /* สรุปเย็น — พิมพ์ได้ */
+  .sum-head{ text-align:center; margin-bottom:14px; }
+  .sum-row{ display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
+  .sum-row:last-child{ border-bottom:none; }
+  .sum-row b{ font-variant-numeric:tabular-nums; }
+  .sum-total{ background:var(--accent-soft); border-radius:11px; padding:12px 14px; margin-top:10px; font-weight:800; display:flex; justify-content:space-between; }
+
+  @media (max-width:470px){
+    input, select, textarea{ font-size:16px; }
+    .tab{ font-size:11.5px; }
+  }
+  @media print{
+    body *{ visibility:hidden; }
+    .print-area, .print-area *{ visibility:visible; }
+    .print-area{ position:absolute; left:0; top:0; width:100%; padding:0 6mm; }
+    .no-print{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="appbar no-print">
+  <div class="appbar-inner">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15c0-4 3.6-7 8-7s8 3 8 7"/><path d="M3 15h18v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2Z"/><path d="M9 8c0-1.2.6-2 1.5-2S12 6.8 12 8"/></svg>
+      </div>
+      <div>
+        <div class="wordmark">ครัวขนม</div>
+        <div class="brand-tag" id="brandTag">ผลิต · เบิกของ · สรุปเย็น</div>
+      </div>
+    </div>
+    <span class="today-chip" id="todayChip">—</span>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+  <h1 id="pageTitle">ครัวขนมวันนี้</h1>
+  <p class="sub" id="pageSub">กำลังโหลด...</p>
+
+  <div class="tabs no-print">
+    <div class="tab active" id="tabToday" onclick="setView('today')">วันนี้</div>
+    <div class="tab" id="tabDraw" onclick="setView('draw')">เบิกของ</div>
+    <div class="tab" id="tabPhoto" onclick="setView('photo')">รูปถ่าย</div>
+    <div class="tab" id="tabSum" onclick="setView('sum')">สรุปเย็น</div>
+  </div>
+
+  <div id="errorBox"></div>
+  <div id="content"><div class="empty">กำลังโหลด...</div></div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================================
+   ครัวขนม (Bakery Production) — Rush Coffee
+   ----------------------------------------------------------------------------
+   ต่อ 2 หลังบ้าน:
+     BAKE_API  = bake.gs      (สูตร / บันทึกผลผลิต / รูปถ่าย)
+     STOCK_API = StockAPI .gs (ตัดสต๊อกจริงตอนเบิกของ — ใช้ action "moveStock")
+   ถ้ายังไม่ได้ตั้งค่า แอปจะรันโหมดตัวอย่างให้ลองใช้ก่อนได้
+   ============================================================================ */
+const BAKE_API  = "";
+const STOCK_API = "https://script.google.com/macros/s/AKfycbzRGIVn3Vz6doKwYY6ltuEQIhrs9YYtvyiqXJBnckQh9705ZePIYZcOgFwQ5j5LtMoo/exec";
+
+const WASTE_REASONS = ["ไหม้", "ขึ้นรูปไม่สวย", "แป้งไม่ขึ้น", "ตกพื้น", "ค้างวัน", "อื่นๆ"];
+
+let state = {
+  view: "today",
+  demo: false,
+  loading: true,
+  error: "",
+  recipes: [],       // { id, name, category, unit, yieldPerBatch, ingredients:[{name, qty, unit, stockItemId, unitCost}] }
+  stock: [],         // { id, name, unit, qty }
+  today: {},         // itemId -> { batches, baked, sold, waste, wasteReason, note }
+  photos: [],        // { id, dataUrl, caption, time }
+  draw: { itemId: "", batches: 1 },
+  cam: { stream: null, shot: null },
+  busy: false
+};
+
+/* ---------- helpers ---------- */
+function todayISO(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+function thaiDate(){ return new Date().toLocaleDateString("th-TH",{ weekday:"long", day:"numeric", month:"long", year:"numeric" }); }
+function esc(s){ const d=document.createElement("div"); d.textContent = s==null?"":s; return d.innerHTML; }
+function money(n){ return (Math.round((Number(n)||0)*100)/100).toLocaleString("th-TH",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function num(n){ return (Number(n)||0).toLocaleString("th-TH"); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function bakeReady(){ return /^https:\/\/script\.google\.com/.test(BAKE_API); }
+function stockReady(){ return /^https:\/\/script\.google\.com/.test(STOCK_API); }
+function showToast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
+
+async function callApi(url, action, payload){
+  const u = url + (url.indexOf("?")>=0?"&":"?") + "_cb=" + Date.now();
+  const body = new URLSearchParams({ action });
+  if (payload) body.set("payload", JSON.stringify(payload));
+  const res = await fetch(u, { method:"POST", redirect:"follow", cache:"no-store",
+    headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: body.toString() });
+  const txt = await res.text();
+  try { return JSON.parse(txt); }
+  catch(e){ throw new Error("รูปแบบข้อมูลผิด: " + txt.slice(0,90)); }
+}
+
+/* ---------- ตัวอย่าง (ใช้เมื่อยังไม่ได้ต่อหลังบ้าน) ---------- */
+function demoRecipes(){
+  return [
+    { id:"CR", name:"ครัวซอง", category:"ครัวซอง", unit:"ชิ้น", yieldPerBatch:24, ingredients:[
+      { name:"แป้งขนมปัง", qty:1000, unit:"g", stockItemId:"", unitCost:0.045 },
+      { name:"เนยจืดแผ่น", qty:500, unit:"g", stockItemId:"", unitCost:0.32 },
+      { name:"นมสด", qty:250, unit:"ml", stockItemId:"", unitCost:0.038 },
+      { name:"ยีสต์", qty:20, unit:"g", stockItemId:"", unitCost:0.55 },
+      { name:"น้ำตาล", qty:100, unit:"g", stockItemId:"", unitCost:0.03 }
+    ]},
+    { id:"SD", name:"ซาวร์โดว์", category:"ขนมปัง", unit:"ก้อน", yieldPerBatch:6, ingredients:[
+      { name:"แป้งขนมปัง", qty:1500, unit:"g", stockItemId:"", unitCost:0.045 },
+      { name:"เกลือ", qty:30, unit:"g", stockItemId:"", unitCost:0.02 },
+      { name:"หัวเชื้อ (levain)", qty:300, unit:"g", stockItemId:"", unitCost:0.04 }
+    ]},
+    { id:"PC", name:"แปงโอโชโกลา", category:"ครัวซอง", unit:"ชิ้น", yieldPerBatch:18, ingredients:[
+      { name:"แป้งขนมปัง", qty:900, unit:"g", stockItemId:"", unitCost:0.045 },
+      { name:"เนยจืดแผ่น", qty:450, unit:"g", stockItemId:"", unitCost:0.32 },
+      { name:"แท่งช็อกโกแลต", qty:36, unit:"ชิ้น", stockItemId:"", unitCost:2.5 }
+    ]}
+  ];
+}
+
+/* ---------- โหลดข้อมูล ---------- */
+async function loadAll(){
+  state.loading = true; state.error = "";
+  try{
+    if (bakeReady()){
+      const d = await callApi(BAKE_API, "getAll", { date: todayISO() });
+      if (d && d.error) throw new Error(d.error);
+      state.recipes = d.recipes || [];
+      state.today   = d.today   || {};
+      state.photos  = d.photos  || [];
+      state.demo = false;
+    } else {
+      state.recipes = demoRecipes();
+      state.demo = true;
+    }
+    if (stockReady()){
+      try{
+        const s = await callApi(STOCK_API, "getAll");
+        state.stock = (s && s.items) ? s.items : [];
+      }catch(e){ /* สต๊อกล่มไม่ควรทำให้ครัวใช้ไม่ได้ */ }
+    }
+  }catch(e){ state.error = e.message; }
+  state.loading = false;
+  render();
+}
+
+/* ---------- คำนวณ ---------- */
+function rec(id){ return state.recipes.find(r=>r.id===id) || null; }
+function todayOf(id){
+  if(!state.today[id]) state.today[id] = { batches:0, baked:0, sold:0, waste:0, wasteReason:"", note:"" };
+  return state.today[id];
+}
+// ต้นทุนวัตถุดิบต่อ 1 รอบผลิต
+function batchCost(r){
+  if(!r) return 0;
+  return (r.ingredients||[]).reduce((s,i)=> s + (Number(i.qty)||0)*(Number(i.unitCost)||0), 0);
+}
+// สรุปรวมทั้งวัน
+function daySummary(){
+  let baked=0, sold=0, waste=0, cost=0;
+  const rows=[];
+  state.recipes.forEach(r=>{
+    const t = state.today[r.id];
+    if(!t) return;
+    const b=Number(t.baked)||0, s=Number(t.sold)||0, w=Number(t.waste)||0;
+    const bt=Number(t.batches)||0;
+    if(!b && !s && !w && !bt) return;
+    const c = bt * batchCost(r);
+    baked+=b; sold+=s; waste+=w; cost+=c;
+    rows.push({ id:r.id, name:r.name, unit:r.unit||"ชิ้น", batches:bt, baked:b, sold:s, waste:w,
+                left: Math.max(0, b - s - w), reason:t.wasteReason||"", cost:c });
+  });
+  return { rows, baked, sold, waste, left: Math.max(0, baked - sold - waste), cost };
+}
+
+/* ---------- render ---------- */
+function setView(v){
+  state.view = v;
+  ["today","draw","photo","sum"].forEach(k=>{
+    const el=document.getElementById("tab"+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el) el.classList.toggle("active", k===v);
+  });
+  if (v!=="photo") stopCam();
+  render();
+}
+
+function render(){
+  document.getElementById("todayChip").textContent = thaiDate();
+  const c = document.getElementById("content");
+  const eb = document.getElementById("errorBox");
+  eb.innerHTML = state.error ? `<div class="err-box">โหลดข้อมูลไม่สำเร็จ: ${esc(state.error)}</div>` : "";
+
+  if (state.loading){ c.innerHTML = `<div class="empty">กำลังโหลด...</div>`; return; }
+
+  const titles = { today:["ครัวขนมวันนี้","บันทึกจำนวนที่อบ ขาย และของเสีย"],
+                   draw:["เบิกวัตถุดิบ","เลือกเมนู + จำนวนรอบ ระบบตัดสต๊อกให้อัตโนมัติ"],
+                   photo:["รูปถ่ายวันนี้","เก็บภาพวัตถุดิบและขนมที่ออก"],
+                   sum:["สรุปตอนเย็น","กดพิมพ์หรือบันทึกเป็นไฟล์ได้เลย"] };
+  document.getElementById("pageTitle").textContent = titles[state.view][0];
+  document.getElementById("pageSub").textContent  = titles[state.view][1];
+
+  let html = state.demo ? `<div class="demo-bar no-print">🧪 โหมดตัวอย่าง — ยังไม่ได้ต่อหลังบ้าน ข้อมูลจะไม่ถูกบันทึก</div>` : "";
+  if (state.view==="today") html += renderToday();
+  else if (state.view==="draw") html += renderDraw();
+  else if (state.view==="photo") html += renderPhoto();
+  else html += renderSum();
+  c.innerHTML = html;
+
+  if (state.view==="photo") startCam();
+}
+
+function renderToday(){
+  if (!state.recipes.length) return `<div class="empty">ยังไม่มีสูตรขนม — เพิ่มในชีต Recipes</div>`;
+  const s = daySummary();
+  let h = `<div class="card"><div class="num-grid">
+      <div class="num-box"><div class="k">อบวันนี้</div><div class="v">${num(s.baked)}</div></div>
+      <div class="num-box"><div class="k">ขายแล้ว</div><div class="v" style="color:var(--green)">${num(s.sold)}</div></div>
+      <div class="num-box"><div class="k">เหลือ</div><div class="v">${num(s.left)}</div></div>
+      <div class="num-box"><div class="k">ของเสีย</div><div class="v" style="color:var(--red)">${num(s.waste)}</div></div>
+    </div></div>`;
+
+  state.recipes.forEach(r=>{
+    const t = todayOf(r.id);
+    h += `<div class="card">
+      <div class="card-head">
+        <div><p class="item-name">${esc(r.name)}</p><p class="item-cat">${esc(r.category||"")} · 1 รอบ = ${num(r.yieldPerBatch||0)} ${esc(r.unit||"ชิ้น")}</p></div>
+      </div>
+      <div class="row">
+        <div class="field"><label class="label">อบได้ (${esc(r.unit||"ชิ้น")})</label>
+          <div class="counter">
+            <button onclick="bump('${r.id}','baked',-1)">−</button>
+            <input type="number" inputmode="numeric" min="0" value="${t.baked||0}" oninput="setNum('${r.id}','baked',this.value)">
+            <button onclick="bump('${r.id}','baked',1)">+</button>
+          </div></div>
+        <div class="field"><label class="label">ขายแล้ว</label>
+          <div class="counter">
+            <button onclick="bump('${r.id}','sold',-1)">−</button>
+            <input type="number" inputmode="numeric" min="0" value="${t.sold||0}" oninput="setNum('${r.id}','sold',this.value)">
+            <button onclick="bump('${r.id}','sold',1)">+</button>
+          </div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label class="label">ของเสีย/ทิ้ง</label>
+          <div class="counter">
+            <button onclick="bump('${r.id}','waste',-1)">−</button>
+            <input type="number" inputmode="numeric" min="0" value="${t.waste||0}" oninput="setNum('${r.id}','waste',this.value)">
+            <button onclick="bump('${r.id}','waste',1)">+</button>
+          </div></div>
+        <div class="field"><label class="label">เหตุผลของเสีย</label>
+          <select onchange="setTxt('${r.id}','wasteReason',this.value)">
+            <option value="">—</option>
+            ${WASTE_REASONS.map(w=>`<option value="${esc(w)}" ${t.wasteReason===w?"selected":""}>${esc(w)}</option>`).join("")}
+          </select></div>
+      </div>
+      <p style="margin:0; font-size:12px; color:var(--ink-3);">เหลืออยู่ <b style="color:var(--ink)">${num(Math.max(0,(t.baked||0)-(t.sold||0)-(t.waste||0)))}</b> ${esc(r.unit||"ชิ้น")}</p>
+    </div>`;
+  });
+
+  h += `<button class="btn-primary no-print" onclick="saveToday()" ${state.busy?"disabled":""}>บันทึกผลวันนี้</button>`;
+  return h;
+}
+
+function renderDraw(){
+  if (!state.recipes.length) return `<div class="empty">ยังไม่มีสูตรขนม</div>`;
+  const sel = state.draw.itemId || state.recipes[0].id;
+  state.draw.itemId = sel;
+  const r = rec(sel);
+  const n = Math.max(1, Number(state.draw.batches)||1);
+
+  let h = `<div class="card">
+    <div class="field"><label class="label">เมนูที่จะทำ</label>
+      <select onchange="setDrawItem(this.value)">
+        ${state.recipes.map(x=>`<option value="${x.id}" ${x.id===sel?"selected":""}>${esc(x.name)}</option>`).join("")}
+      </select></div>
+    <div class="field"><label class="label">จำนวนรอบผลิต</label>
+      <div class="counter">
+        <button onclick="setDrawBatch(${n-1})">−</button>
+        <input type="number" inputmode="numeric" min="1" value="${n}" oninput="setDrawBatch(this.value)">
+        <button onclick="setDrawBatch(${n+1})">+</button>
+      </div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-2);">จะได้ประมาณ <b style="color:var(--ink)">${num((r.yieldPerBatch||0)*n)}</b> ${esc(r.unit||"ชิ้น")}</p>
+  </div>`;
+
+  h += `<div class="card"><h2>วัตถุดิบที่ต้องเบิก</h2>`;
+  let short = 0;
+  (r.ingredients||[]).forEach(i=>{
+    const need = (Number(i.qty)||0) * n;
+    const st = i.stockItemId ? state.stock.find(s=>s.id===i.stockItemId) : null;
+    const have = st ? Number(st.qty)||0 : null;
+    const notEnough = have!=null && have < need;
+    if (notEnough) short++;
+    h += `<div class="ing-row">
+      <span class="ing-name">${esc(i.name)}${notEnough?` <span class="ing-warn">· มี ${num(have)} ไม่พอ</span>`:""}</span>
+      <span class="ing-qty">${num(need)} ${esc(i.unit||"")}</span>
+    </div>`;
+  });
+  h += `</div>`;
+
+  const cost = batchCost(r) * n;
+  h += `<div class="card"><div class="sum-total"><span>ต้นทุนวัตถุดิบรอบนี้</span><span>${money(cost)} ฿</span></div></div>`;
+
+  if (!stockReady()){
+    h += `<div class="setup-box">ยังไม่ได้ต่อแอปสต๊อก — เบิกแล้วจะยังไม่ตัดสต๊อกจริง</div>`;
+  } else if (short){
+    h += `<div class="stat-line stat-warn">⚠️ มีวัตถุดิบไม่พอ ${short} รายการ — เบิกได้แต่สต๊อกจะติดลบ</div>`;
+  }
+  h += `<button class="btn-primary no-print" onclick="confirmDraw()" ${state.busy?"disabled":""}>ยืนยันเบิก + ตัดสต๊อก</button>`;
+  return h;
+}
+
+function renderPhoto(){
+  let h = `<div class="card">
+    <div class="cam-frame" id="camFrame">
+      <div class="cam-hint" id="camHint">กำลังเปิดกล้อง...</div>
+      <video id="camVideo" autoplay playsinline muted style="display:none;"></video>
+    </div>
+    <div style="display:flex; gap:9px; margin-top:11px;">
+      <button class="btn-ghost" onclick="startCam()">เปิดกล้องใหม่</button>
+      <button class="btn-primary" onclick="snap()">ถ่ายรูป</button>
+    </div>
+    <canvas id="snapCanvas" style="display:none;"></canvas>
+  </div>`;
+  if (state.photos.length){
+    h += `<div class="card"><h2>รูปวันนี้ (${state.photos.length})</h2><div class="photo-strip">`;
+    state.photos.forEach(p=>{ h += `<img src="${p.dataUrl||p.url}" alt="${esc(p.caption||"")}" title="${esc(p.time||"")}">`; });
+    h += `</div></div>`;
+  } else {
+    h += `<div class="empty">ยังไม่มีรูปวันนี้</div>`;
+  }
+  return h;
+}
+
+function renderSum(){
+  const s = daySummary();
+  if (!s.rows.length) return `<div class="empty">ยังไม่มีข้อมูลวันนี้ — ไปกรอกที่แท็บ "วันนี้" ก่อน</div>`;
+  let h = `<div class="card print-area">
+    <div class="sum-head">
+      <div style="font-weight:800; font-size:16px;">สรุปครัวขนม</div>
+      <div style="font-size:12.5px; color:var(--ink-2); margin-top:2px;">${thaiDate()}</div>
+    </div>`;
+  s.rows.forEach(r=>{
+    h += `<div class="sum-row"><span><b>${esc(r.name)}</b><br>
+      <span style="font-size:11.5px; color:var(--ink-3);">${r.batches} รอบ · ต้นทุน ${money(r.cost)} ฿${r.waste&&r.reason?` · เสีย: ${esc(r.reason)}`:""}</span></span>
+      <span style="text-align:right; white-space:nowrap;">
+        อบ <b>${num(r.baked)}</b><br>
+        <span style="font-size:11.5px; color:var(--ink-3);">ขาย ${num(r.sold)} · เหลือ ${num(r.left)}${r.waste?` · เสีย ${num(r.waste)}`:""}</span>
+      </span></div>`;
+  });
+  h += `<div class="sum-total"><span>รวมอบ</span><span>${num(s.baked)} ชิ้น</span></div>
+        <div class="sum-total" style="margin-top:6px;"><span>ขาย / เหลือ / เสีย</span><span>${num(s.sold)} / ${num(s.left)} / ${num(s.waste)}</span></div>
+        <div class="sum-total" style="margin-top:6px;"><span>ต้นทุนวัตถุดิบที่ใช้</span><span>${money(s.cost)} ฿</span></div>`;
+  if (state.photos.length){
+    h += `<div style="margin-top:12px;"><div style="font-size:12px; font-weight:700; color:var(--ink-2); margin-bottom:6px;">รูปวันนี้</div><div class="photo-strip">`;
+    state.photos.slice(0,8).forEach(p=>{ h += `<img src="${p.dataUrl||p.url}" alt="">`; });
+    h += `</div></div>`;
+  }
+  h += `</div>
+    <div class="row no-print" style="margin-top:4px;">
+      <button class="btn-ghost" onclick="saveToday()">บันทึก</button>
+      <button class="btn-primary" onclick="window.print()">พิมพ์ / เซฟ PDF</button>
+    </div>`;
+  return h;
+}
+
+/* ---------- actions ---------- */
+function setNum(id, field, v){ todayOf(id)[field] = Math.max(0, Number(v)||0); refreshTotals(); }
+function setTxt(id, field, v){ todayOf(id)[field] = v; }
+function bump(id, field, d){
+  const t = todayOf(id);
+  t[field] = Math.max(0, (Number(t[field])||0) + d);
+  render();
+}
+function refreshTotals(){
+  if (state.view!=="today") return;
+  const s = daySummary();
+  const boxes = document.querySelectorAll(".num-box .v");
+  if (boxes.length>=4){
+    boxes[0].textContent = num(s.baked);
+    boxes[1].textContent = num(s.sold);
+    boxes[2].textContent = num(s.left);
+    boxes[3].textContent = num(s.waste);
+  }
+}
+function setDrawItem(v){ state.draw.itemId = v; render(); }
+function setDrawBatch(v){ state.draw.batches = Math.max(1, Number(v)||1); render(); }
+
+async function saveToday(){
+  if (state.busy) return;
+  if (state.demo){ showToast("โหมดตัวอย่าง — ยังไม่บันทึกจริง"); return; }
+  state.busy = true; render();
+  try{
+    const rows = Object.keys(state.today).map(id=>Object.assign({ itemId:id, date:todayISO() }, state.today[id]));
+    const r = await callApi(BAKE_API, "saveDaily", { date: todayISO(), rows: rows });
+    if (r && r.error) throw new Error(r.error);
+    showToast("บันทึกผลวันนี้แล้ว ✓");
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
+  state.busy = false; render();
+}
+
+async function confirmDraw(){
+  if (state.busy) return;
+  const r = rec(state.draw.itemId);
+  if (!r) return;
+  const n = Math.max(1, Number(state.draw.batches)||1);
+  const cost = batchCost(r) * n;
+
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="overlay" onclick="if(event.target===this) closeModal()">
+      <div class="sheet">
+        <div class="sheet-grab"></div>
+        <h2>ยืนยันเบิกวัตถุดิบ</h2>
+        <p style="font-size:13px; color:var(--ink-2); margin:0 0 12px;">${esc(r.name)} · ${n} รอบ · ต้นทุน ${money(cost)} ฿</p>
+        ${(r.ingredients||[]).map(i=>`<div class="ing-row"><span class="ing-name">${esc(i.name)}</span><span class="ing-qty">${num((Number(i.qty)||0)*n)} ${esc(i.unit||"")}</span></div>`).join("")}
+        <p style="font-size:12px; color:var(--ink-3); margin:12px 0 14px;">ยืนยันแล้วระบบจะตัดสต๊อกวัตถุดิบตามจำนวนนี้ทันที</p>
+        <div class="row" style="margin-bottom:0;">
+          <button class="btn-ghost" onclick="closeModal()">ยกเลิก</button>
+          <button class="btn-primary" onclick="doDraw()">ยืนยันเบิก</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function doDraw(){
+  const r = rec(state.draw.itemId);
+  if (!r) return;
+  const n = Math.max(1, Number(state.draw.batches)||1);
+  closeModal();
+  state.busy = true; render();
+
+  let okCount = 0, failCount = 0, skipped = 0;
+  try{
+    for (const i of (r.ingredients||[])){
+      const need = (Number(i.qty)||0) * n;
+      if (!i.stockItemId || !stockReady()){ skipped++; continue; }
+      try{
+        const res = await callApi(STOCK_API, "moveStock", {
+          id: i.stockItemId, type: "out", delta: need,
+          note: "เบิกทำ " + r.name + " " + n + " รอบ"
+        });
+        if (res && res.error) failCount++; else okCount++;
+      }catch(e){ failCount++; }
+    }
+    // จดจำนวนรอบไว้ใช้คิดต้นทุนตอนสรุปเย็น
+    const t = todayOf(r.id);
+    t.batches = (Number(t.batches)||0) + n;
+
+    if (bakeReady()){
+      try{ await callApi(BAKE_API, "logDraw", { date: todayISO(), itemId: r.id, batches: n, cost: batchCost(r)*n }); }catch(e){}
+    }
+    let msg = "เบิกแล้ว " + n + " รอบ";
+    if (okCount) msg += " · ตัดสต๊อก " + okCount + " รายการ";
+    if (skipped) msg += " · ข้าม " + skipped + " (ยังไม่ผูกสต๊อก)";
+    if (failCount) msg += " · ผิดพลาด " + failCount;
+    showToast(msg);
+  }catch(e){ showToast("เบิกไม่สำเร็จ: " + e.message); }
+
+  state.busy = false;
+  if (stockReady()){ try{ const s = await callApi(STOCK_API,"getAll"); state.stock = (s&&s.items)?s.items:state.stock; }catch(e){} }
+  render();
+}
+
+/* ---------- กล้อง ---------- */
+async function startCam(){
+  const v = document.getElementById("camVideo"), hint = document.getElementById("camHint");
+  if (!v) return;
+  if (state.cam.stream && state.cam.stream.active){
+    v.srcObject = state.cam.stream; v.style.display="block"; if(hint) hint.style.display="none";
+    try{ await v.play(); }catch(e){} return;
+  }
+  if (!window.isSecureContext || !navigator.mediaDevices){
+    if (hint) hint.textContent = "ต้องเปิดผ่าน https ถึงจะใช้กล้องได้";
+    return;
+  }
+  try{
+    const st = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment", width:{ideal:1280} }, audio:false });
+    state.cam.stream = st; v.srcObject = st; v.style.display="block";
+    if (hint) hint.style.display="none";
+    try{ await v.play(); }catch(e){}
+  }catch(e){
+    if (hint) hint.textContent = "เปิดกล้องไม่ได้ — กดอนุญาตกล้องให้เบราว์เซอร์แล้วลองใหม่";
+  }
+}
+function stopCam(){
+  if (state.cam.stream){ state.cam.stream.getTracks().forEach(t=>t.stop()); state.cam.stream = null; }
+}
+function snap(){
+  const v = document.getElementById("camVideo");
+  if (!v || !v.videoWidth){ showToast("กล้องยังไม่พร้อม"); return; }
+  const cv = document.getElementById("snapCanvas");
+  const scale = Math.min(1, 900 / v.videoWidth);
+  const w = Math.round(v.videoWidth*scale), h = Math.round(v.videoHeight*scale);
+  cv.width=w; cv.height=h;
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(v,0,0,w,h);
+  // ประทับวันเวลาไว้บนรูป กันสับสนตอนย้อนดู
+  const stamp = new Date().toLocaleString("th-TH",{ day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+  const fs = Math.max(13, Math.round(w/38));
+  ctx.font = `700 ${fs}px Inter, "Noto Sans Thai", sans-serif`;
+  ctx.textBaseline = "bottom";
+  const pad = Math.round(w*0.028);
+  const g = ctx.createLinearGradient(0,h-fs*2.4,0,h);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,.6)");
+  ctx.fillStyle=g; ctx.fillRect(0,h-fs*2.4,w,fs*2.4);
+  ctx.fillStyle="#fff"; ctx.fillText(stamp, pad, h-pad);
+
+  const dataUrl = cv.toDataURL("image/jpeg", 0.7);
+  const photo = { id: uid(), dataUrl: dataUrl, caption:"", time: stamp };
+  state.photos.unshift(photo);
+  showToast("เก็บรูปแล้ว");
+  render();
+  if (bakeReady()){
+    callApi(BAKE_API, "uploadPhoto", { date: todayISO(), base64: dataUrl.split(",")[1], caption: stamp })
+      .catch(()=>{ /* เก็บไว้ในเครื่องก่อน ไม่ขัดจังหวะคนทำงาน */ });
+  }
+}
+
+/* ---------- init ---------- */
+window.addEventListener("beforeunload", stopCam);
+document.addEventListener("visibilitychange", ()=>{ if (document.hidden) stopCam(); });
+loadAll();
+</script>
+</body>
+</html>
