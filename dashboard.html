@@ -386,28 +386,29 @@ function periodLabel(){ if(state.period==="custom") return rangeLabelTH(); retur
 function renderDash(){
   let html = `
     <div class="chiprow">
-      <div class="chip ${state.period==="custom" ? `
-          <div class="field">
-            <label>เลือกช่วงวันที่ — ดูยอดขายตั้งแต่วันไหนถึงวันไหนก็ได้</label>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input type="date" value="${state.rangeFrom}" onchange="setRangeFrom(this.value)" style="flex:1;min-width:0">
-              <span style="color:var(--ink-3)">ถึง</span>
-              <input type="date" value="${state.rangeTo}" onchange="setRangeTo(this.value)" style="flex:1;min-width:0">
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-              <div class="chip" onclick="setRangePreset('thismonth')">เดือนนี้</div>
-              <div class="chip" onclick="setRangePreset('lastmonth')">เดือนที่แล้ว</div>
-              <div class="chip" onclick="setRangePreset('first15')">วันที่ 1-15</div>
-              <div class="chip" onclick="setRangePreset('last15')">วันที่ 16-สิ้นเดือน</div>
-            </div>
-          </div>` : ""}
-          ${state.period==="day"?"active":""}" onclick="setPeriod('day')">รายวัน</div>
+      <div class="chip ${state.period==="day"?"active":""}" onclick="setPeriod('day')">รายวัน</div>
       <div class="chip ${state.period==="week"?"active":""}" onclick="setPeriod('week')">7 วันล่าสุด</div>
       <div class="chip ${state.period==="month"?"active":""}" onclick="setPeriod('month')">30 วันล่าสุด</div>
       <div class="chip ${state.period==="all"?"active":""}" onclick="setPeriod('all')">ทั้งหมด</div>
       <div class="chip ${state.period==="custom"?"active":""}" onclick="setPeriod('custom')">กำหนดเอง</div>
     </div>`;
 
+  if (state.period==="custom"){
+    html += `<div class="field">
+      <label>เลือกช่วงวันที่ — ดูยอดขายตั้งแต่วันไหนถึงวันไหนก็ได้</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" value="${state.rangeFrom}" onchange="setRangeFrom(this.value)" style="flex:1;min-width:0">
+        <span style="color:var(--ink-3)">ถึง</span>
+        <input type="date" value="${state.rangeTo}" onchange="setRangeTo(this.value)" style="flex:1;min-width:0">
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <div class="chip" onclick="setRangePreset('thismonth')">เดือนนี้</div>
+        <div class="chip" onclick="setRangePreset('lastmonth')">เดือนที่แล้ว</div>
+        <div class="chip" onclick="setRangePreset('first15')">วันที่ 1-15</div>
+        <div class="chip" onclick="setRangePreset('last15')">วันที่ 16-สิ้นเดือน</div>
+      </div>
+    </div>`;
+  }
   if (state.period==="day"){
     const isToday = state.selectedDate >= todayStr();
     html += `<div class="field" style="max-width:340px; margin-bottom:14px;">
