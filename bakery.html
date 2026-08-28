@@ -217,6 +217,7 @@ async function loadAll(){
     if (d.error) throw new Error(d.error);
     state.data={ items:d.items||[], runs:d.runs||[], orders:d.orders||[] };
     loadBuy();
+    loadDaySummary();
     state.error="";
   }catch(e){
     // ถ้ามีข้อมูลอยู่แล้ว (เคยโหลดสำเร็จ) อย่าเด้ง error ใหญ่จากการรีเฟรชที่สะดุดชั่วคราว
@@ -248,7 +249,7 @@ function render(){
   if (state.tab==="timeline"){ c.innerHTML=renderTimeline(); fab.style.display="flex"; fl.textContent="เพิ่มรอบผลิต"; }
   else if (state.tab==="orders"){ c.innerHTML=renderOrders(); fab.style.display="flex"; fl.textContent="เพิ่มออเดอร์"; }
   else if (state.tab==="stats"){ c.innerHTML=renderStats(); fab.style.display="none"; }
-  else if (state.tab==="buy"){ c.innerHTML=renderBuy(); fab.style.display="none"; }
+  else if (state.tab==="buy"){ c.innerHTML=renderBuy()+renderDaySummary(); fab.style.display="none"; }
   else { c.innerHTML=renderItems(); fab.style.display="flex"; fl.textContent="เพิ่มเมนู"; }
 }
 
@@ -260,6 +261,48 @@ function setupNotice(){
 
 // ---------------- ★ ซื้อของ: ใบเสร็จ + แยก เบเกอรี่ / บาร์น้ำ ----------------
 const BUY_CATS = [{id:"bakery", label:"🥐 เบเกอรี่"}, {id:"bar", label:"🥤 บาร์น้ำ"}];
+
+/* ============ สรุปเย็น (Claude เขียนกลับเข้ามาทุกวัน) ============ */
+async function loadDaySummary(){
+  try{
+    const r = await apiCall("getSummary", { date: state.date });
+    state.daySummary = (r && r.summary) ? r.summary : null;
+  }catch(e){ state.daySummary = null; }
+  if (state.tab === "buy") render();
+}
+
+function renderDaySummary(){
+  const s = state.daySummary;
+  const head = `<div style="font-weight:800;font-size:15px;margin-bottom:4px">\u{1F319} สรุปเย็น</div>`;
+  if (!s){
+    return `<div class="card" style="border-style:dashed">${head}<div style="color:var(--ink-3);font-size:13px;line-height:1.65">ยังไม่มีสรุปของวันนี้ — ทุกเย็นผมจะอ่านใบเสร็จที่น้องส่งเข้ามา แล้วเขียนยอดสรุปลงตรงนี้ให้เอง</div></div>`;
+  }
+  const vsRaw = s.vsYesterday;
+  const vs = Number(vsRaw);
+  const hasVs = String(vsRaw==null?"":vsRaw) !== "" && isFinite(vs);
+  const up = vs > 0;
+  const vsCol = up ? "var(--red)" : "var(--green)";
+  const vsBg  = up ? "var(--red-bg)" : "var(--green-bg)";
+  const vsTxt = hasVs ? `${up?"\u25B2":"\u25BC"} ${Math.abs(vs*100).toFixed(0)}% เทียบเมื่อวาน` : "";
+  const flags = String(s.flags||"").split(/\s*[|;\n]\s*/).filter(Boolean);
+  const box = "flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:9px 11px";
+  return `<div class="card">${head}
+    <div style="display:flex;align-items:baseline;gap:8px;margin:6px 0 10px;flex-wrap:wrap">
+      <div style="font-size:26px;font-weight:800;letter-spacing:-.5px">${bahtTH(s.grandTotal)} \u0E3F</div>
+      ${hasVs?`<span style="font-size:12px;font-weight:700;color:${vsCol};background:${vsBg};padding:3px 9px;border-radius:999px">${vsTxt}</span>`:""}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <div style="${box}"><div style="font-size:12px;color:var(--ink-2)">\u{1F950} เบเกอรี่</div><div style="font-weight:800">${bahtTH(s.bakeryTotal)} \u0E3F</div></div>
+      <div style="${box}"><div style="font-size:12px;color:var(--ink-2)">\u{1F964} บาร์น้ำ</div><div style="font-weight:800">${bahtTH(s.barTotal)} \u0E3F</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:9px">
+      <span>ยอดสะสมเดือนนี้</span><b style="color:var(--ink)">${bahtTH(s.monthToDate)} \u0E3F</b>
+    </div>
+    ${flags.length?`<div style="margin-top:10px;background:var(--amber-bg);border-radius:var(--radius-sm);padding:9px 11px"><div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:2px">\u26A0\uFE0F รายการที่ผิดสังเกต</div>${flags.map(f=>`<div style="font-size:13px;line-height:1.65">\u2022 ${escapeHtml(f)}</div>`).join("")}</div>`:""}
+    ${s.note?`<div style="margin-top:9px;font-size:13px;color:var(--ink-2);line-height:1.65">${escapeHtml(String(s.note))}</div>`:""}
+  </div>`;
+}
+
 function bahtTH(n){ return (Math.round((Number(n)||0)*100)/100).toLocaleString("th-TH",{minimumFractionDigits:2, maximumFractionDigits:2}); }
 
 async function loadBuy(){
