@@ -154,6 +154,7 @@
     <div class="tab active" id="tabTimeline" onclick="setTab('timeline')">ไทม์ไลน์</div>
     <div class="tab" id="tabOrders" onclick="setTab('orders')">ส่งสาขา</div>
     <div class="tab" id="tabStats" onclick="setTab('stats')">สถิติ</div>
+    <div class="tab" id="tabBuy" onclick="setTab('buy')">ซื้อของ</div>
     <div class="tab" id="tabItems" onclick="setTab('items')">เมนู</div>
   </div>
   <div id="errorBox"></div>
@@ -183,7 +184,7 @@ const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"รวมทุ�
 
 let state = {
   tab:"timeline", date: todayStr(), branch:"all", statsPeriod:"30",
-  data:{ items:[], runs:[], orders:[] }, loaded:false, error:"", modal:false,
+  data:{ items:[], runs:[], orders:[] }, buy:{ rows:[], totals:{bakery:0,bar:0,all:0,pending:0}, cat:"bakery", loading:false }, loaded:false, error:"", modal:false,
 };
 
 function apiReady(){ return /^https:\/\/script\.google\.com/.test(API_URL); }
@@ -215,6 +216,7 @@ async function loadAll(){
     const d=await apiCall("getAll");
     if (d.error) throw new Error(d.error);
     state.data={ items:d.items||[], runs:d.runs||[], orders:d.orders||[] };
+    loadBuy();
     state.error="";
   }catch(e){
     // ถ้ามีข้อมูลอยู่แล้ว (เคยโหลดสำเร็จ) อย่าเด้ง error ใหญ่จากการรีเฟรชที่สะดุดชั่วคราว
@@ -230,7 +232,7 @@ function closeModal(){ document.getElementById("modalRoot").innerHTML=""; state.
 
 function setTab(t){
   state.tab=t;
-  ["timeline","orders","stats","items"].forEach(function(x){ document.getElementById("tab"+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle("active", x===t); });
+  ["timeline","orders","stats","buy","items"].forEach(function(x){ document.getElementById("tab"+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle("active", x===t); });
   document.getElementById("bodyEl").className = (t==="orders" && state.branch==="rush") ? "b-rush" : "";
   render();
 }
@@ -246,6 +248,7 @@ function render(){
   if (state.tab==="timeline"){ c.innerHTML=renderTimeline(); fab.style.display="flex"; fl.textContent="เพิ่มรอบผลิต"; }
   else if (state.tab==="orders"){ c.innerHTML=renderOrders(); fab.style.display="flex"; fl.textContent="เพิ่มออเดอร์"; }
   else if (state.tab==="stats"){ c.innerHTML=renderStats(); fab.style.display="none"; }
+  else if (state.tab==="buy"){ c.innerHTML=renderBuy(); fab.style.display="none"; }
   else { c.innerHTML=renderItems(); fab.style.display="flex"; fl.textContent="เพิ่มเมนู"; }
 }
 
@@ -253,6 +256,110 @@ function setupNotice(){
   return `<div class="setup-box"><b>⚙️ ยังไม่ได้เชื่อมระบบหลังบ้าน</b><br>
   เปิดไฟล์ <code>bakery.html</code> แล้ววางลิงก์ Google Apps Script (Web App) ในตัวแปร <code>API_URL</code><br>
   โค้ดหลังบ้านอยู่ในไฟล์ <code>bakery.gs</code> — รัน <code>setup()</code> ครั้งเดียวจะได้เมนูตัวอย่าง 3 ชนิด แล้ว Deploy เอา /exec มาวาง</div>`;
+}
+
+// ---------------- ★ ซื้อของ: ใบเสร็จ + แยก เบเกอรี่ / บาร์น้ำ ----------------
+const BUY_CATS = [{id:"bakery", label:"🥐 เบเกอรี่"}, {id:"bar", label:"🥤 บาร์น้ำ"}];
+function bahtTH(n){ return (Math.round((Number(n)||0)*100)/100).toLocaleString("th-TH",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+async function loadBuy(){
+  if(!apiReady()) return;
+  try{
+    const d = await apiCall("getPurchases", { from: state.date, to: state.date });
+    state.data.buy = state.data.buy || {};
+    state.buyRows = d.rows || [];
+    state.buyTotals = d.totals || {bakery:0,bar:0,all:0,pending:0};
+    if(state.tab==="buy") render();
+  }catch(e){ /* ไม่ให้พังทั้งหน้าเพราะโหลดยอดซื้อไม่ได้ */ }
+}
+
+function setBuyCat(c){ state.buyCat = c; render(); }
+
+function renderBuy(){
+  const rows = state.buyRows || [];
+  const tt = state.buyTotals || {bakery:0,bar:0,all:0,pending:0};
+  const cat = state.buyCat || "bakery";
+
+  let h = `<div class="card" style="margin-bottom:11px;">
+    <div style="display:flex; gap:9px;">
+      <div style="flex:1; background:#F7F3EC; border-radius:12px; padding:11px 13px;">
+        <div style="font-size:11.5px; color:#8B8175; font-weight:600;">🥐 เบเกอรี่</div>
+        <div style="font-size:19px; font-weight:800;">${bahtTH(tt.bakery)} ฿</div>
+      </div>
+      <div style="flex:1; background:#EEF3F7; border-radius:12px; padding:11px 13px;">
+        <div style="font-size:11.5px; color:#77828B; font-weight:600;">🥤 บาร์น้ำ</div>
+        <div style="font-size:19px; font-weight:800;">${bahtTH(tt.bar)} ฿</div>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:11px; padding-top:10px; border-top:1px dashed #E6E1D8;">
+      <span style="font-weight:800;">รวมวันนี้</span>
+      <span style="font-weight:800; font-size:17px;">${bahtTH(tt.all)} ฿</span>
+    </div>
+    ${tt.pending ? `<div style="margin-top:9px; background:#FAF2DD; color:#8a6a14; border-radius:9px; padding:8px 11px; font-size:12.5px; font-weight:700;">⏳ รอผมอ่านยอด ${tt.pending} ใบ — จะเติมให้ตอนสรุปเย็น</div>` : ""}
+  </div>`;
+
+  h += `<div class="card">
+    <div style="font-weight:800; font-size:14px; margin-bottom:9px;">เพิ่มใบเสร็จ</div>
+    <div style="display:flex; gap:7px; margin-bottom:11px;">
+      ${BUY_CATS.map(c=>`<div onclick="setBuyCat('${c.id}')" style="flex:1; text-align:center; padding:11px 6px; border-radius:11px; cursor:pointer; font-weight:700; font-size:13.5px; border:1px solid ${cat===c.id?'transparent':'#E6E1D8'}; background:${cat===c.id?'#8A6A3B':'#fff'}; color:${cat===c.id?'#fff':'#5D646E'};">${c.label}</div>`).join("")}
+    </div>
+    <input id="buyFile" type="file" accept="image/*,application/pdf" style="display:none;" onchange="onBuyFile(this)">
+    <button class="btn-primary" style="width:100%;" onclick="document.getElementById('buyFile').click()">📄 เลือกไฟล์ใบเสร็จ (CamScanner)</button>
+    <p style="font-size:11.5px; color:#9A9FA8; margin:9px 0 0; line-height:1.5;">สแกนด้วย CamScanner แล้วเลือกไฟล์ที่นี่ — ใส่ยอดเองก็ได้ ถ้าเว้นไว้ผมจะอ่านให้ตอนเย็น</p>
+    <div style="display:flex; gap:9px; margin-top:11px;">
+      <input id="buyAmt" type="number" inputmode="decimal" min="0" placeholder="ยอดเงิน (ไม่ใส่ก็ได้)" style="flex:1;">
+      <input id="buyVendor" placeholder="ร้าน" style="flex:1;">
+    </div>
+    <div id="buyStatus" style="font-size:12.5px; margin-top:9px; color:#5D646E;"></div>
+  </div>`;
+
+  if(!rows.length){
+    h += `<div class="empty" style="text-align:center; padding:34px 16px; color:#9A9FA8;">ยังไม่มีรายการซื้อวันนี้</div>`;
+    return h;
+  }
+  h += `<div class="card"><div style="font-weight:800; font-size:14px; margin-bottom:6px;">รายการวันนี้ (${rows.length})</div>`;
+  rows.forEach(r=>{
+    const isBar = r.category==="bar";
+    h += `<div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #EFEBE3;">
+      <span style="font-size:16px;">${isBar?"🥤":"🥐"}</span>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:13.5px;">${escapeHtml(r.vendor||"(ไม่ระบุร้าน)")}</div>
+        <div style="font-size:11.5px; color:#9A9FA8;">${isBar?"บาร์น้ำ":"เบเกอรี่"}${r.status==="pending"?" · ⏳ รออ่านยอด":""}${r.source==="ai"?" · 🤖 ผมกรอกให้":""}</div>
+      </div>
+      ${r.fileUrl?`<a href="${escapeHtml(r.fileUrl)}" target="_blank" rel="noopener" style="font-size:12px; color:#8A6A3B; font-weight:700; text-decoration:none;">ดูใบเสร็จ</a>`:""}
+      <span style="font-weight:800; white-space:nowrap;">${r.amount?bahtTH(r.amount)+" ฿":"—"}</span>
+    </div>`;
+  });
+  h += `</div>`;
+  return h;
+}
+
+function onBuyFile(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  const st = document.getElementById("buyStatus");
+  if(f.size > 8*1024*1024){ if(st) st.innerHTML='<span style="color:#C7553B; font-weight:700;">ไฟล์ใหญ่เกิน 8MB — สแกนใหม่ให้เล็กลงหน่อย</span>'; input.value=""; return; }
+  if(st) st.textContent = "กำลังอัปโหลด...";
+  const reader = new FileReader();
+  reader.onload = async function(){
+    try{
+      const b64 = String(reader.result).split(",")[1];
+      const amt = Number((document.getElementById("buyAmt")||{}).value) || 0;
+      const ven = ((document.getElementById("buyVendor")||{}).value || "").trim();
+      const r = await apiCall("uploadReceipt", {
+        date: state.date, category: state.buyCat || "bakery",
+        base64: b64, mime: f.type || "image/jpeg", amount: amt, vendor: ven
+      });
+      if(r && r.error) throw new Error(r.error);
+      showToast(amt ? "บันทึกใบเสร็จแล้ว ✓" : "เก็บใบเสร็จแล้ว — ผมจะอ่านยอดให้ตอนเย็น");
+      const av=document.getElementById("buyAmt"); if(av) av.value="";
+      const vv=document.getElementById("buyVendor"); if(vv) vv.value="";
+      await loadBuy(); render();
+    }catch(e){
+      if(st) st.innerHTML='<span style="color:#C7553B; font-weight:700;">อัปโหลดไม่สำเร็จ: '+escapeHtml(e.message)+'</span>';
+    }
+  };
+  reader.readAsDataURL(f);
 }
 
 // ---------------- TIMELINE ----------------
