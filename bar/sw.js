@@ -1,5 +1,5 @@
 /* Rush Coffee · bar — service worker (offline shell) */
-const CACHE = "rush-bar-v2";
+const CACHE = "rush-bar-v3";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./pwa-install.js"];
 
 self.addEventListener("install", (e) => {

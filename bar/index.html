@@ -913,8 +913,15 @@ function renderPunch(){
 
   const br = attBranch();
   if(!br){
-    return '<div class="stat-line stat-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>เลือกสาขาที่กำลังจะตอกบัตรก่อน (Rush หรือ Rush Hour)</div>'
-      + '<div class="empty"><span class="big">📍</span>ระบบต้องรู้สาขาเพื่อตรวจว่าอยู่ในพื้นที่ร้านจริง<br>แตะปุ่มสาขาด้านบน</div>';
+    return '<div class="card" style="text-align:center; padding:28px 18px 22px;">'
+      +'<div class="today-ic" style="margin:0 auto 13px; width:54px; height:54px; border-radius:16px;">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:27px;height:27px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>'
+      +'<p style="margin:0 0 5px; font-weight:800; font-size:17px;">ตอกบัตรที่สาขาไหน?</p>'
+      +'<p style="margin:0 0 18px; font-size:12.5px; color:var(--ink-2); line-height:1.6;">แตะสาขาที่คุณอยู่ตอนนี้<br>ระบบจะเช็ก GPS ว่าอยู่ในพื้นที่ร้านจริงก่อนบันทึก</p>'
+      +'<div class="punch-grid">'
+      +'<button class="btn-primary" style="background:linear-gradient(135deg,#8C95A1,#69727E); color:#fff;" onclick="setBranch(\'rush\')">Rush</button>'
+      +'<button class="btn-primary" style="background:linear-gradient(135deg,#E3BE4A,#C2941A); color:#3A2C04;" onclick="setBranch(\'rushhour\')">Rush Hour</button>'
+      +'</div></div>';
   }
 
   const emps = att.config.employees.slice().sort((a,b)=>{
