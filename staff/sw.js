@@ -1,5 +1,5 @@
 /* Rush Coffee · staff — service worker (offline shell) */
-const CACHE = "rush-staff-v3";
+const CACHE = "rush-staff-v4";
 const ASSETS = ["./", "./index.html", "./report.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./pwa-install.js"];
 
 self.addEventListener("install", (e) => {
@@ -17,7 +17,24 @@ self.addEventListener("fetch", (e) => {
   // ปล่อยให้ Google Apps Script / Drive / ฟอนต์ วิ่งออกเน็ตตรง ๆ ไม่แคช
   if (u.origin !== location.origin) return;
   if (e.request.method !== "GET") return;
-  e.respondWith(
-    caches.match(e.request).then((hit) => hit || fetch(e.request).catch(() => caches.match("./index.html", "./report.html")))
-  );
+
+  const accept = e.request.headers.get("accept") || "";
+  const isPage = e.request.mode === "navigate" || accept.indexOf("text/html") >= 0;
+
+  if (isPage) {
+    // หน้าเว็บ: เอาของใหม่จากเน็ตก่อนเสมอ — อัปเดตแล้วเห็นทันที ไม่ต้องลบแอปทิ้ง
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+          return res;
+        })
+        .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // ไอคอน/สคริปต์: ใช้ของในเครื่องก่อน เร็วกว่า
+  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request)));
 });

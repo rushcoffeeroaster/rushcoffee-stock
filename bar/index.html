@@ -908,9 +908,6 @@ async function loadAttRecords(){
 function attBranch(){ return state.branch==="all" ? null : state.branch; }
 
 function renderPunch(){
-  if(!att.loaded){ loadAtt(); return '<div class="skel"></div><div class="skel"></div>'; }
-  if(att.err) return '<div class="err-box">โหลดข้อมูลพนักงานไม่สำเร็จ: '+escapeHtml(att.err)+'</div>';
-
   const br = attBranch();
   if(!br){
     return '<div class="card" style="text-align:center; padding:28px 18px 22px;">'
@@ -923,6 +920,9 @@ function renderPunch(){
       +'<button class="btn-primary" style="background:linear-gradient(135deg,#E3BE4A,#C2941A); color:#3A2C04;" onclick="setBranch(\'rushhour\')">Rush Hour</button>'
       +'</div></div>';
   }
+
+  if(!att.loaded){ loadAtt(); return '<div class="skel"></div><div class="skel"></div>'; }
+  if(att.err) return '<div class="err-box">โหลดข้อมูลพนักงานไม่สำเร็จ: '+escapeHtml(att.err)+'</div>';
 
   const emps = att.config.employees.slice().sort((a,b)=>{
     const ah=a.branch===br||!a.branch, bh=b.branch===br||!b.branch;
