@@ -161,8 +161,7 @@
 /* ===== SANDOS · Scandinavian ===== */
 body{ background:#FFFFFF; }
 .appbar{ background:#1B36C4 !important; border-bottom:0 !important; position:sticky; overflow:visible !important; z-index:20; }
-.appbar::after{ content:""; position:absolute; left:0; right:0; bottom:-13px; height:14px; background:#FFFFFF;
-  clip-path:polygon(0 46%,22% 10%,52% 44%,78% 6%,100% 36%,100% 100%,0 100%); }
+.appbar::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:13px; background:#FFFFFF; clip-path:polygon(0 44%,22% 8%,52% 42%,78% 4%,100% 34%,100% 100%,0 100%); pointer-events:none; }
 .wordmark{ background:none !important; -webkit-background-clip:initial !important;
   -webkit-text-fill-color:#FFFFFF !important; color:#FFFFFF !important; letter-spacing:.18em; font-weight:500; }
 .brand-tag{ color:#B9C4F2 !important; letter-spacing:.12em; font-size:9.5px; }
@@ -200,7 +199,7 @@ input,select,textarea{ border-radius:2px !important; }
 </div>
 
 <div class="wrap" id="app">
-  <h1 id="pageTitle">สต๊อกSANDOS</h1>
+  <h1 id="pageTitle">สต๊อก SANDOS</h1>
   <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
 
   <div class="branch-row">
@@ -234,7 +233,7 @@ input,select,textarea{ border-radius:2px !important; }
 
 <script>
 /* ============================================================================
-   Rush Coffee · แอปSANDOS — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
+   Rush Coffee · แอป SANDOS — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
    ============================================================================ */
 const API_STOCK = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
 const API_ACC = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
