@@ -782,7 +782,7 @@ function setRangePreset(kind){
 
 function periodChips(){
   return '<div class="chiprow">'
-    +['day','week','month','custom'].map((p)=>'<div class="chip '+(state.period===p?"active":"")+'" onclick="setPeriod(\''+p+'\')">'+(p==="day"?"วันนี้":(p==="week"?"7 วันล่าสุด":"30 วันล่าสุด"))+'</div>').join("")
+    +['day','week','month','custom'].map((p)=>'<div class="chip '+(state.period===p?"active":"")+'" onclick="setPeriod(\''+p+'\')">'+(p==="day"?"วันนี้":(p==="week"?"7 วันล่าสุด":p==="month"?"30 วันล่าสุด":"กำหนดเอง"))+'</div>').join("")
     +'</div>';
 }
 
