@@ -328,8 +328,7 @@ function tagNote(userNote){
   return n ? DEPT_LABEL+" · "+n : DEPT_LABEL;
 }
 function isMine(r){
-  const n=String(r.note||"");
-  return n===DEPT_LABEL || n.indexOf(DEPT_LABEL+" · ")===0;
+  return true;
 }
 function plainNote(r){
   const n=String(r.note||"");
@@ -402,7 +401,7 @@ function render(){
   if(!state.loaded){ content.innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>'; return; }
 
   if(state.view==="stock"){ content.innerHTML=renderStock(); document.getElementById("summaryText").textContent=stockSummaryText(); }
-  else if(state.view==="daily"){ content.innerHTML=renderDaily(); document.getElementById("summaryText").textContent="ยอดขายและค่าใช้จ่ายของฝ่าย"+DEPT_LABEL; }
+  else if(state.view==="daily"){ content.innerHTML=renderDaily(); document.getElementById("summaryText").textContent="ยอดขายและค่าใช้จ่ายของฝ่าย " + DEPT_LABEL; }
   else { content.innerHTML=renderCost(); document.getElementById("summaryText").textContent="ต้นทุนและกำไรขั้นต้นของเมนู"+DEPT_LABEL; }
 }
 function stockSummaryText(){
