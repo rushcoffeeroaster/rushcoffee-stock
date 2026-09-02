@@ -235,7 +235,7 @@ const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"รวมสอ�
 let state = {
   view:"stock", branch:"all", loaded:false, formOpen:false,
   items:[], income:[], expense:[], recipes:[],
-  search:"", catFilter:"all", period:"day", err:"",
+  search:"", catFilter:"all", period:"day", rangeFrom:todayStr().slice(0,8)+"01", rangeTo:todayStr(), err:"",
   scanner:null, scanBusy:false,
 };
 
@@ -318,8 +318,8 @@ function periodStart(){
   const days = state.period==="week" ? 7 : 30;
   return Date.now() - days*864e5;
 }
-function periodLabel(){ return state.period==="day"?"วันนี้":(state.period==="week"?"7 วันล่าสุด":"30 วันล่าสุด"); }
-function inPeriod(r){ const t=new Date(r.date).getTime(); return !isNaN(t) && t>=periodStart(); }
+function periodLabel(){ if(state.period==="custom") return rangeLabelTH(); return state.period==="day"?"วันนี้":(state.period==="week"?"7 วันล่าสุด":"30 วันล่าสุด"); }
+function inPeriod(r){ if(state.period==="custom"){ const d=String((r&&r.date)||"").slice(0,10); return d>=state.rangeFrom && d<=state.rangeTo; } const t=new Date(r.date).getTime(); return !isNaN(t) && t>=periodStart(); }
 function myIncome(){ return state.income.filter((r)=> isMine(r) && branchOk(r.branch) && inPeriod(r)); }
 function myExpense(){ return state.expense.filter((r)=> isMine(r) && branchOk(r.branch) && inPeriod(r)); }
 
@@ -666,7 +666,7 @@ function renderDaily(){
   const byCh={}; CHANNELS.forEach((c)=>byCh[c.id]=0);
   inc.forEach((r)=>{ byCh[r.channel]=(byCh[r.channel]||0)+r.amount; });
 
-  let h=periodChips();
+  let h=periodChips()+rangeField();
   h+='<div class="kpi-grid" style="margin-bottom:12px;">'
     +'<div class="kpi good"><p class="kpi-label">ยอดขาย</p><p class="kpi-val">'+fmtB(totalIn)+' <small>฿</small></p></div>'
     +'<div class="kpi bad"><p class="kpi-label">ค่าใช้จ่าย</p><p class="kpi-val">'+fmtB(totalOut)+' <small>฿</small></p></div>'
@@ -740,9 +740,49 @@ function renderCost(){
   return h;
 }
 
+
+/* ===== เลือกช่วงวันที่เอง ===== */
+const TH_MON=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+function rangeLabelTH(){
+  const a=new Date(state.rangeFrom), b=new Date(state.rangeTo);
+  if(isNaN(a)||isNaN(b)) return "กำหนดเอง";
+  return (a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear())
+    ? a.getDate()+" – "+b.getDate()+" "+TH_MON[b.getMonth()]
+    : a.getDate()+" "+TH_MON[a.getMonth()]+" – "+b.getDate()+" "+TH_MON[b.getMonth()];
+}
+function rangeField(){
+  if(state.period!=="custom") return "";
+  return '<div class="field" style="margin-top:10px">'
+    + '<label>เลือกช่วงวันที่ — ดูยอดตั้งแต่วันไหนถึงวันไหนก็ได้</label>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    +   '<input type="date" value="'+state.rangeFrom+'" onchange="setRangeFrom(this.value)" style="flex:1;min-width:0">'
+    +   '<span style="opacity:.6">ถึง</span>'
+    +   '<input type="date" value="'+state.rangeTo+'" onchange="setRangeTo(this.value)" style="flex:1;min-width:0">'
+    + '</div>'
+    + '<div class="chiprow" style="margin-top:8px">'
+    +   '<div class="chip" onclick="setRangePreset(&quot;thismonth&quot;)">เดือนนี้</div>'
+    +   '<div class="chip" onclick="setRangePreset(&quot;lastmonth&quot;)">เดือนที่แล้ว</div>'
+    +   '<div class="chip" onclick="setRangePreset(&quot;first15&quot;)">วันที่ 1-15</div>'
+    +   '<div class="chip" onclick="setRangePreset(&quot;last15&quot;)">วันที่ 16-สิ้นเดือน</div>'
+    + '</div></div>';
+}
+function setRangeFrom(v){ if(!v) return; state.rangeFrom=v; if(state.rangeTo<v) state.rangeTo=v; render(); }
+function setRangeTo(v){ if(!v) return; state.rangeTo=v; if(v<state.rangeFrom) state.rangeFrom=v; render(); }
+function setRangePreset(kind){
+  const now=new Date(todayStr()), y=now.getFullYear(), m=now.getMonth();
+  const pad=n=>String(n).padStart(2,"0");
+  const mk=(yy,mm,dd)=>yy+"-"+pad(mm+1)+"-"+pad(dd);
+  const last=(yy,mm)=>new Date(yy,mm+1,0).getDate();
+  if(kind==="thismonth"){ state.rangeFrom=mk(y,m,1); state.rangeTo=todayStr(); }
+  else if(kind==="lastmonth"){ const d=new Date(y,m-1,1), yy=d.getFullYear(), mm=d.getMonth(); state.rangeFrom=mk(yy,mm,1); state.rangeTo=mk(yy,mm,last(yy,mm)); }
+  else if(kind==="first15"){ state.rangeFrom=mk(y,m,1); state.rangeTo=mk(y,m,15); }
+  else if(kind==="last15"){ state.rangeFrom=mk(y,m,16); state.rangeTo=mk(y,m,last(y,m)); }
+  render();
+}
+
 function periodChips(){
   return '<div class="chiprow">'
-    +['day','week','month'].map((p)=>'<div class="chip '+(state.period===p?"active":"")+'" onclick="setPeriod(\''+p+'\')">'+(p==="day"?"วันนี้":(p==="week"?"7 วันล่าสุด":"30 วันล่าสุด"))+'</div>').join("")
+    +['day','week','month','custom'].map((p)=>'<div class="chip '+(state.period===p?"active":"")+'" onclick="setPeriod(\''+p+'\')">'+(p==="day"?"วันนี้":(p==="week"?"7 วันล่าสุด":"30 วันล่าสุด"))+'</div>').join("")
     +'</div>';
 }
 
