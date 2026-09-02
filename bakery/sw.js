@@ -1,5 +1,5 @@
 /* Rush Coffee · bakery — service worker (offline shell) */
-const CACHE = "rush-bakery-v5";
+const CACHE = "rush-bakery-v6";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./pwa-install.js"];
 
 self.addEventListener("install", (e) => {

@@ -181,9 +181,13 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxNyrGfWkAKWj0eN9Wf6fUH
 // พนักงานที่ลาออกแล้ว — ไม่นับ "ไม่มาตอก" ให้อีก แต่ถ้าเดือนที่เลือกเขายังทำงานอยู่ ข้อมูลจะยังโชว์ครบ
 const HIDDEN_EMPLOYEE_IDS = ["E04"];
 
+// รหัสผู้จัดการ — ฝังไว้ให้เข้าได้เลย ไม่ต้องพิมพ์
+// (ฝั่ง Apps Script ยังบังคับตรวจรหัสอยู่ จึงต้องส่งไปด้วยทุกครั้ง)
+const MANAGER_PIN = "1357";
+
 const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"ทุกสาขา" };
 let state = {
-  authed:false, managerPin:"",
+  authed:false, managerPin:MANAGER_PIN,
   branch:"all", period:"month", from:monthStart(), to:todayStr(),
   data:null, loading:false, error:"", pinError:"", expanded:{},
 };
@@ -213,7 +217,10 @@ async function fetchReport(){
   try{
     const data=await apiCall("getReport",{ from:state.from, to:state.to, branch:state.branch, managerPin:state.managerPin });
     if (data.error){
-      if (/pin/i.test(data.error)){ state.authed=false; state.pinError="รหัสผู้จัดการไม่ถูกต้อง"; state.managerPin=""; }
+      if (/pin/i.test(data.error)){
+        state.authed=false;
+        state.error="รหัสผู้จัดการในไฟล์ไม่ตรงกับที่ตั้งไว้ใน Apps Script — แก้ค่า MANAGER_PIN ที่ต้นไฟล์ staff/report.html";
+      }
       else state.error=data.error;
     }else{
       state.data=data; state.authed=true; state.pinError="";
@@ -259,11 +266,6 @@ function openAppSwitcher(){
     </div>`;
 }
 function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
-
-// ---------- PIN ----------
-function onPinInput(v){ state.managerPin=(v||"").replace(/\D/g,"").slice(0,4); syncPinDots(); if (state.managerPin.length===4) setTimeout(fetchReport,150); }
-function syncPinDots(){ for(let i=0;i<4;i++){ const d=document.getElementById("pd"+i); if(!d)continue; if(i<state.managerPin.length){ d.textContent="•"; d.classList.add("filled"); }else{ d.textContent=""; d.classList.remove("filled"); } } }
-function focusPin(){ const el=document.getElementById("pinInput"); if(el) el.focus(); }
 
 // ---------- compute ----------
 function shiftFor(branch){ const s=state.data&&state.data.shiftByBranch&&state.data.shiftByBranch[branch]; return s || (state.data&&state.data.shift) || { start:"08:00", graceMin:10 }; }
@@ -379,7 +381,12 @@ function render(){
     content.innerHTML=`<div class="err-box">ยังไม่ได้เชื่อมระบบหลังบ้าน — วางลิงก์ Apps Script (ตัวเดียวกับหน้าตอกบัตร) ในตัวแปร <b>API_URL</b> ของไฟล์ staff/report.html</div>`;
     return;
   }
-  if (!state.authed){ content.innerHTML=renderGate(); setTimeout(()=>{ syncPinDots(); focusPin(); },0); return; }
+  if (!state.authed){
+    content.innerHTML = state.error
+      ? `<div class="err-box">${escapeHtml(state.error)}</div><button class="btn-primary" onclick="fetchReport()">ลองใหม่</button>`
+      : `<div class="loading-text">กำลังโหลดรายงาน...</div>`;
+    return;
+  }
 
   let html=`<h1>รายงานการทำงาน</h1><p class="sub">สรุปชั่วโมงทำงาน · มาสาย · ลา/ไม่มา</p>`;
 
@@ -472,22 +479,8 @@ function renderEmp(e){
   </div>`;
 }
 
-function renderGate(){
-  return `<div class="gate">
-    <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
-    <h1 style="margin:0 0 4px;">รายงานสำหรับผู้จัดการ</h1>
-    <p class="sub" style="margin:0 0 4px;">ใส่รหัสผู้จัดการ 4 หลักเพื่อดูข้อมูล</p>
-    ${state.pinError?`<div class="err-box" style="text-align:center;">${escapeHtml(state.pinError)}</div>`:""}
-    ${state.loading?`<p class="loading-text">กำลังตรวจสอบ...</p>`:""}
-    <div class="pin-wrap" onclick="focusPin()">
-      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
-      <input class="pin-input" id="pinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" oninput="onPinInput(this.value)">
-    </div>
-  </div>`;
-}
-
-// init
-render();
+// init — เข้าได้เลย ไม่ต้องใส่รหัส
+fetchReport();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <script src="pwa-install.js"></script>

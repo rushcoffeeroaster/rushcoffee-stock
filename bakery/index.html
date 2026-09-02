@@ -34,7 +34,6 @@
     --bg-grad:radial-gradient(135% 110% at 50% -10%, #FDFBF8 0%, #F7F3EF 55%, #EFE6DC 100%);
     --bar-bg:rgba(247,243,239,.82); --nav-bg:rgba(255,255,255,.88);
   }
-
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; }
   body{ font-family:"Inter","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
@@ -82,14 +81,14 @@
   .row{ display:flex; gap:8px; }
   .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:15px; margin-bottom:11px; box-shadow:var(--shadow-sm); }
   .card.tight{ padding:4px 15px; }
-  .card h2{ margin:0 0 12px; font-size:15px; }
 
   .btn-primary{ background:var(--accent-grad); color:var(--on-accent); border:none; border-radius:12px; padding:14px 16px; font-size:15px; font-weight:800; cursor:pointer; width:100%; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.3); transition:.12s; }
   .btn-primary:active{ transform:scale(.98); }
+  .btn-scan{ margin-bottom:2px; }
   .btn-sell{ background:linear-gradient(135deg,#3BA06A,#2C8052); color:#fff; }
   .btn-buy{ background:linear-gradient(135deg,#D06044,#B5482F); color:#fff; }
   .btn-ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:12px; padding:12px 16px; font-size:14px; font-weight:700; cursor:pointer; width:100%; }
-  .btn-sm{ padding:6px 12px; font-size:12px; border-radius:9px; width:auto; font-weight:700; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer; }
+  .btn-sm{ padding:6px 11px; font-size:12px; border-radius:9px; width:auto; font-weight:700; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); cursor:pointer; }
   .btn-sm.solid{ background:var(--accent-grad); color:var(--on-accent); border-color:transparent; }
   .btn-danger{ color:var(--red); border-color:#EED2C8; }
 
@@ -115,8 +114,8 @@
   .gauge{ display:flex; align-items:center; gap:8px; margin:8px 0 6px; }
   .gauge-bg{ flex:1; height:7px; border-radius:5px; background:var(--line); overflow:hidden; }
   .gauge-fg{ height:100%; border-radius:5px; transition:width .5s ease; }
-  .mini{ font-size:11px; color:var(--ink-3); white-space:nowrap; }
-  .it-foot{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; }
+  .mini{ font-size:11px; color:var(--ink-3); }
+  .it-foot{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap; }
   .acts{ display:flex; gap:6px; }
 
   .lrow{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); }
@@ -208,19 +207,17 @@
 
 <script>
 /* ============================================================================
-   Rush Coffee · แอปเบเกอรี่
-   ใช้ Google Sheet + Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
-   ยอดขาย/ค่าใช้จ่ายที่บันทึกที่นี่ ไหลเข้าหน้าบัญชีรวม (dashboard) อัตโนมัติ
+   Rush Coffee · แอปเบเกอรี่ — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
    ============================================================================ */
 const API_STOCK = "https://script.google.com/macros/s/AKfycbzRGIVn3Vz6doKwYY6ltuEQIhrs9YYtvyiqXJBnckQh9705ZePIYZcOgFwQ5j5LtMoo/exec";
 const API_ACC   = "https://script.google.com/macros/s/AKfycbyjUOdNkE1p-07AdWC_ouO4SiuI3v-blgStfJWSdr-i1K4ydDVztRsTM1319siKXIrH/exec";
+const API_MENU  = "https://script.google.com/macros/s/AKfycbxsLohRbR-jKYJYaz6lXM6sEuo6O-5HSWexRTT9ehE-3p6CZVyHGMhS8ECo_FD5skWP/exec";
 
-const DEPT_LABEL = "เบเกอรี่";     // ชื่อฝ่าย — ใช้ติดหน้าโน้ตให้รู้ว่าใครบันทึก
-const OWN_CATS   = ["bakery"];       // หมวดสต๊อกของฝ่ายนี้
-const SHARED_CATS= ["dairy","other"];    // ของใช้ร่วมสองฝ่าย
-const RECIPE_CAT = "เบเกอรี่";     // หมวดเมนูในชีต Recipes
+const DEPT_LABEL = "เบเกอรี่";
+const OWN_CATS   = ["bakery"];
+const SHARED_CATS= ["dairy","other"];
+const RECIPE_CAT = "เบเกอรี่";
 
-/* ชุดเดียวกับหน้าบัญชีเดิมเป๊ะ */
 const CHANNELS = [
   { id:"store",    label:"หน้าร้าน" },
   { id:"delivery", label:"Delivery" },
@@ -239,9 +236,9 @@ let state = {
   view:"stock", branch:"all", loaded:false, formOpen:false,
   items:[], income:[], expense:[], recipes:[],
   search:"", catFilter:"all", period:"day", err:"",
+  scanner:null, scanBusy:false,
 };
 
-/* ---------------- helpers ---------------- */
 function escapeHtml(s){ const d=document.createElement("div"); d.textContent = s==null?"":s; return d.innerHTML; }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function n2(v){ return Number(v)||0; }
@@ -271,23 +268,25 @@ async function apiCall(url, action, payload){
   try{ return JSON.parse(text); }catch(e){ throw new Error("รูปแบบข้อมูลไม่ถูกต้อง: "+text.slice(0,160)); }
 }
 
-/* ---------------- load ---------------- */
 async function loadAll(){
   try{
-    const [s,a] = await Promise.all([ apiCall(API_STOCK,"getAll"), apiCall(API_ACC,"getAll") ]);
+    const [s,a,m] = await Promise.all([
+      apiCall(API_STOCK,"getAll"),
+      apiCall(API_ACC,"getAll"),
+      apiCall(API_MENU,"getAll").catch(()=>({ recipes:[] })),
+    ]);
     if(s.error) throw new Error(s.error);
     if(a.error) throw new Error(a.error);
     state.items  = (s.items||[]).map((it)=>({ ...it, qty:n2(it.qty), min:n2(it.min), cost:n2(it.cost) }));
     state.income = (a.income||[]).map((r)=>({ ...r, amount:n2(r.amount), date:normDate(r.date) }));
     state.expense= (a.expense||[]).map((r)=>({ ...r, amount:n2(r.amount), date:normDate(r.date) }));
-    state.recipes= (a.recipes||[]).map((r)=>({ ...r, sellingPrice:n2(r.sellingPrice), ingredientQty:n2(r.ingredientQty), buyPrice:n2(r.buyPrice), packSize:n2(r.packSize) }));
+    state.recipes= (m.recipes||[]).map((r)=>({ ...r, sellingPrice:n2(r.sellingPrice), ingredientQty:n2(r.ingredientQty), buyPrice:n2(r.buyPrice), packSize:n2(r.packSize), servings:n2(r.servings) }));
     state.err="";
   }catch(e){ state.err=e.message; }
   state.loaded=true;
   if(!state.formOpen) render();
 }
 
-/* ---------------- ตัวช่วยกรอง ---------------- */
 function branchOk(v){ return state.branch==="all" || v===state.branch || !v; }
 function visibleCats(){ return OWN_CATS.concat(SHARED_CATS); }
 function deptItems(){
@@ -298,8 +297,7 @@ function itemById(id){ return state.items.find((it)=>it.id===id); }
 function lowItems(){ return deptItems().filter((it)=> it.min>0 && it.qty<it.min); }
 function stockValue(){ return deptItems().reduce((s,it)=> s + it.qty*it.cost, 0); }
 
-/* ติดชื่อฝ่ายไว้หน้าโน้ต — อ่านออกเป็นภาษาคน ไม่ใช่รหัส
-   เช่น "เบเกอรี่ · ยอดกะเช้า"  แล้วหน้าบัญชีรวมก็อ่านรู้เรื่องเหมือนกัน */
+/* ติดชื่อฝ่ายไว้หน้าหมายเหตุ — อ่านออกเป็นภาษาคน ไม่ใช่รหัส */
 function tagNote(userNote){
   const n=(userNote||"").trim();
   return n ? DEPT_LABEL+" · "+n : DEPT_LABEL;
@@ -315,23 +313,19 @@ function plainNote(r){
   return n;
 }
 
-/* ---------------- ช่วงเวลา ---------------- */
 function periodStart(){
   if(state.period==="day"){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
   const days = state.period==="week" ? 7 : 30;
   return Date.now() - days*864e5;
 }
 function periodLabel(){ return state.period==="day"?"วันนี้":(state.period==="week"?"7 วันล่าสุด":"30 วันล่าสุด"); }
-function inPeriod(r){
-  const t=new Date(r.date).getTime();
-  return !isNaN(t) && t>=periodStart();
-}
+function inPeriod(r){ const t=new Date(r.date).getTime(); return !isNaN(t) && t>=periodStart(); }
 function myIncome(){ return state.income.filter((r)=> isMine(r) && branchOk(r.branch) && inPeriod(r)); }
 function myExpense(){ return state.expense.filter((r)=> isMine(r) && branchOk(r.branch) && inPeriod(r)); }
 
-/* ---------------- เมนู & ต้นทุน ---------------- */
+/* เมนู — สูตรทั้งหมดอยู่ใต้สาขา rush จึงไม่กรองสาขา (ไม่งั้นจอว่าง) */
 function deptMenus(){
-  const rows=state.recipes.filter((r)=> String(r.category||"").trim()===RECIPE_CAT && branchOk(r.branch));
+  const rows=state.recipes.filter((r)=> String(r.category||"").trim()===RECIPE_CAT);
   const by={};
   rows.forEach((r)=>{
     const k=r.menuName;
@@ -353,8 +347,8 @@ function menuStats(m){
 }
 function gpColor(p){ return p<30?"var(--red)":(p<60?"var(--amber)":"var(--green)"); }
 
-/* ---------------- สลับหน้า ---------------- */
 function setView(v){
+  if(v!=="stock") stopScanner();
   state.view=v;
   [["stock","navStock"],["daily","navDaily"],["cost","navCost"]].forEach(([k,id])=>{
     const el=document.getElementById(id); if(el) el.classList.toggle("active", v===k);
@@ -371,7 +365,6 @@ function onSearch(v){
   setTimeout(()=>{ const i=document.getElementById("searchInput"); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } },0);
 }
 
-/* ---------------- render ---------------- */
 function render(){
   ["rush","rushhour","all"].forEach((b)=>{
     const el=document.getElementById("br"+b.charAt(0).toUpperCase()+b.slice(1));
@@ -392,13 +385,22 @@ function stockSummaryText(){
   return low>0 ? low+" รายการใกล้หมด — ควรสั่งเพิ่ม" : "ดูแลอยู่ "+deptItems().length+" รายการ · ทุกอย่างพอใช้";
 }
 
-/* ---------- 1) สต๊อก ---------- */
+/* ============================================================================
+   สต๊อก — ยกมาจากแอปเดิมทั้งชุด: สแกนบาร์โค้ดรับเข้า / ใช้ออก / รับเข้า / แก้ไข
+   action ที่เรียก: getAll · moveStock · saveItem · logOnly · updateItemMeta
+   (ชื่อเดิมทั้งหมด ไม่แตะหลังบ้าน)
+   ============================================================================ */
+
 function renderStock(){
   const items=deptItems();
-  if(items.length===0) return '<div class="empty"><span class="big">📦</span>ยังไม่มีวัตถุดิบหมวด'+escapeHtml(DEPT_LABEL)+'</div>'+addBtn();
+  let h='<button class="btn-primary btn-scan" onclick="openScanner()">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;vertical-align:-4px;margin-right:7px;"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M3 12h18"/></svg>'
+    +'สแกนบาร์โค้ดรับเข้า</button>';
+
+  if(items.length===0) return h+'<div class="empty"><span class="big">📦</span>ยังไม่มีวัตถุดิบหมวด'+escapeHtml(DEPT_LABEL)+'</div>'+addBtn();
 
   const low=lowItems(), out=items.filter((it)=>it.qty<=0);
-  let h='<div class="kpi-grid">'
+  h+='<div class="kpi-grid" style="margin-top:12px;">'
     +'<div class="kpi"><p class="kpi-label">วัตถุดิบทั้งหมด</p><p class="kpi-val">'+items.length+'</p></div>'
     +'<div class="kpi '+(low.length?"warn":"good")+'"><p class="kpi-label">ใกล้หมด</p><p class="kpi-val">'+low.length+'</p></div>'
     +'<div class="kpi '+(out.length?"bad":"")+'"><p class="kpi-label">หมดสต๊อก</p><p class="kpi-val">'+out.length+'</p></div>'
@@ -409,8 +411,8 @@ function renderStock(){
     ? '<div class="stat-line stat-warn" style="margin-top:13px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>'+low.length+' รายการต่ำกว่าจุดสั่งซื้อ — '+escapeHtml(low.slice(0,3).map((i)=>i.name).join(", "))+(low.length>3?" …":"")+'</div>'
     : '<div class="stat-line stat-ok" style="margin-top:13px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ทุกรายการอยู่เหนือจุดสั่งซื้อขั้นต่ำ</div>';
 
-  h += '<div class="field" style="margin-top:12px;"><input id="searchInput" placeholder="ค้นหาวัตถุดิบ..." value="'+escapeHtml(state.search)+'" oninput="onSearch(this.value)"></div>';
-  h += '<div class="chiprow"><div class="chip '+(state.catFilter==="all"?"active":"")+'" onclick="setCat(\'all\')">ทั้งหมด</div>'
+  h+='<div class="field" style="margin-top:12px;"><input id="searchInput" placeholder="ค้นหาวัตถุดิบ..." value="'+escapeHtml(state.search)+'" oninput="onSearch(this.value)"></div>';
+  h+='<div class="chiprow"><div class="chip '+(state.catFilter==="all"?"active":"")+'" onclick="setCat(\'all\')">ทั้งหมด</div>'
     + visibleCats().map((c)=>'<div class="chip '+(state.catFilter===c?"active":"")+'" onclick="setCat(\''+c+'\')">'+escapeHtml(CAT_LABEL[c]||c)+'</div>').join("")
     + '</div>';
 
@@ -434,8 +436,9 @@ function renderStock(){
       +'<div class="it-top"><p class="it-name">'+escapeHtml(it.name)+(isLow?' <span style="color:var(--red);font-size:11.5px;">· ใกล้หมด</span>':"")+'</p>'
       +'<span class="it-qty" style="color:'+(isLow?"var(--red)":"var(--ink)")+'">'+fmtN(it.qty)+' '+escapeHtml(it.unit||"")+'</span></div>'
       +'<div class="gauge"><div class="gauge-bg"><div class="gauge-fg" style="width:'+pct+'%;background:'+col+'"></div></div><span class="mini">ขั้นต่ำ '+fmtN(it.min)+'</span></div>'
-      +'<div class="it-foot"><span class="mini">'+escapeHtml(CAT_LABEL[it.category]||it.category)+(shared?" · ใช้ร่วม":"")+(it.cost>0?" · ทุน "+fmtB2(it.cost)+"฿/"+escapeHtml(it.unit||""):" · ยังไม่ระบุทุน")+'</span>'
-      +'<div class="acts"><button class="btn-sm solid" onclick="openCount('+JSON.stringify(it.id)+')">นับสต๊อก</button>'
+      +'<div class="it-foot"><span class="mini">'+escapeHtml(CAT_LABEL[it.category]||it.category)+(shared?" · ใช้ร่วม":"")+(it.cost>0?" · ทุน "+fmtB2(it.cost)+"฿/"+escapeHtml(it.unit||""):" · ยังไม่ระบุทุน")+(it.barcode?" · มีบาร์โค้ด":"")+'</span>'
+      +'<div class="acts"><button class="btn-sm" onclick="openMove('+JSON.stringify(it.id)+',\'out\')">ใช้ออก</button>'
+      +'<button class="btn-sm solid" onclick="openMove('+JSON.stringify(it.id)+',\'in\')">รับเข้า</button>'
       +'<button class="btn-sm" onclick="openItemForm('+JSON.stringify(it.id)+')">⋯</button></div></div>'
       +'</div></div></div>';
   });
@@ -443,32 +446,238 @@ function renderStock(){
 }
 function addBtn(){ return '<button class="btn-ghost" style="margin-top:6px;" onclick="openItemForm(null)">+ เพิ่มวัตถุดิบใหม่</button>'; }
 
-/* ---------- 2) บันทึกรายวัน ---------- */
+/* ---------- ใช้ออก / รับเข้า (เหมือนแอปเดิม) ---------- */
+function openMove(itemId, type){
+  const it=itemById(itemId); if(!it) return;
+  const title = type==="in" ? "รับเข้า" : "ใช้ออก";
+  openSheet('<h2 style="font-size:17px;margin:0 0 4px;">'+title+' — '+escapeHtml(it.name)+'</h2>'
+    +'<p class="sub" style="margin:0 0 14px;">คงเหลือตอนนี้ '+fmtN(it.qty)+' '+escapeHtml(it.unit||"")+'</p>'
+    +'<div class="field"><label class="label">จำนวน ('+escapeHtml(it.unit||"")+')</label>'
+    +'<input id="mvQty" type="number" inputmode="decimal" min="0" step="any" placeholder="0" oninput="updMovePrev(\''+type+'\','+JSON.stringify(itemId)+')"></div>'
+    +'<div class="field"><label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label>'
+    +'<input id="mvNote" placeholder="'+(type==="in"?"เช่น ซื้อจากแม็คโคร":"เช่น ทำครัวซองรอบเช้า")+'"></div>'
+    +'<div class="card" style="background:var(--surface-2);margin-bottom:14px;"><p class="kpi-label" style="margin:0 0 3px;">หลังบันทึก</p><p id="mvPrev" style="margin:0;font-weight:800;font-size:15px;">—</p></div>'
+    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button>'
+    +'<button class="btn-primary '+(type==="in"?"btn-sell":"btn-buy")+'" onclick="submitMove('+JSON.stringify(itemId)+',\''+type+'\')">'+title+'</button></div>');
+  setTimeout(()=>{ const el=document.getElementById("mvQty"); if(el) el.focus(); },60);
+}
+function updMovePrev(type, itemId){
+  const el=document.getElementById("mvPrev"); if(!el) return;
+  const q=n2(document.getElementById("mvQty").value);
+  const it=itemById(itemId);
+  if(!it||q<=0){ el.textContent="—"; return; }
+  const left = type==="in" ? it.qty+q : it.qty-q;
+  const cost = q*it.cost;
+  el.innerHTML='คงเหลือ '+fmtN(left)+' '+escapeHtml(it.unit||"")
+    +(left<0?' <span style="color:var(--red)">(ติดลบ!)</span>':"")
+    +(it.cost>0?' <span style="font-weight:600;color:var(--ink-3);font-size:12.5px;">· มูลค่า '+fmtB2(cost)+' ฿</span>':"");
+}
+async function submitMove(itemId, type){
+  const it=itemById(itemId);
+  const q=n2(document.getElementById("mvQty").value);
+  const note=document.getElementById("mvNote").value.trim();
+  if(!it){ return; }
+  if(q<=0){ showToast("ใส่จำนวนก่อน"); return; }
+  closeModal();
+  try{
+    await apiCall(API_STOCK,"moveStock",{ itemId:it.id, itemName:it.name, type:type, amount:q, note:note, branch: it.branch || (state.branch==="all"?"rush":state.branch) });
+    showToast((type==="in"?"รับเข้า ":"ใช้ออก ")+it.name+" "+(type==="in"?"+":"−")+fmtN(q)+" "+(it.unit||""));
+    await loadAll();
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+}
+
+/* ---------- สแกนบาร์โค้ด (เหมือนแอปเดิม: html5-qrcode) ---------- */
+function ensureScannerLib(){
+  if(window.Html5Qrcode) return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js";
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error("โหลดตัวสแกนไม่ได้ ตรวจอินเทอร์เน็ต"));
+    document.head.appendChild(s);
+  });
+}
+async function openScanner(){
+  openSheet('<h2 style="font-size:17px;margin:0 0 4px;">สแกนบาร์โค้ดรับเข้า</h2>'
+    +'<p class="sub" style="margin:0 0 12px;">ส่องบาร์โค้ดข้างถุง/กล่อง แล้วใส่จำนวนที่รับเข้า</p>'
+    +'<div id="reader" style="width:100%;border-radius:var(--radius);overflow:hidden;background:#15171b;min-height:230px;"></div>'
+    +'<p id="scanMsg" class="sub" style="margin:12px 0 0;text-align:center;">กำลังเปิดกล้อง...</p>'
+    +'<button class="btn-ghost" style="margin-top:10px;" onclick="stopScanner()">ปิดกล้อง</button>');
+  try{
+    await ensureScannerLib();
+    await startScan();
+  }catch(e){
+    const m=document.getElementById("scanMsg");
+    if(m) m.innerHTML='<span style="color:var(--red);font-weight:700;">'+escapeHtml(e.message)+'</span>';
+  }
+}
+async function startScan(){
+  const msg=document.getElementById("scanMsg");
+  if(!window.isSecureContext){ if(msg) msg.textContent="ต้องเปิดผ่าน https เท่านั้น"; return; }
+  try{
+    state.scanner = new window.Html5Qrcode("reader");
+    await state.scanner.start(
+      { facingMode:"environment" },
+      { fps:10, qrbox:{ width:250, height:160 } },
+      (code)=>{ onScanSuccess(code); },
+      ()=>{}
+    );
+    if(msg) msg.textContent="เล็งบาร์โค้ดให้อยู่ในกรอบ";
+  }catch(e){
+    if(msg) msg.innerHTML='<span style="color:var(--red);font-weight:700;">เปิดกล้องไม่ได้ — กดอนุญาตกล้องให้เบราว์เซอร์ แล้วลองใหม่</span>';
+  }
+}
+async function stopScanner(){
+  if(state.scanner){
+    try{ await state.scanner.stop(); }catch(e){}
+    try{ state.scanner.clear(); }catch(e){}
+    state.scanner=null;
+  }
+  closeModal();
+}
+async function onScanSuccess(code){
+  if(state.scanBusy) return;
+  state.scanBusy=true;
+  await stopScanner();
+  state.scanBusy=false;
+  handleScan(String(code).trim());
+}
+function handleScan(code){
+  const hit = state.items.find((it)=> String(it.barcode||"").trim() === code);
+  if(hit){ openScanReceive(hit, code); return; }
+  openScanLink(code);
+}
+/* เจอของแล้ว → ใส่จำนวนรับเข้า */
+function openScanReceive(it, code){
+  openSheet('<h2 style="font-size:17px;margin:0 0 4px;">รับเข้า — '+escapeHtml(it.name)+'</h2>'
+    +'<p class="sub" style="margin:0 0 14px;">บาร์โค้ด '+escapeHtml(code)+' · คงเหลือ '+fmtN(it.qty)+' '+escapeHtml(it.unit||"")+'</p>'
+    +'<div class="field"><label class="label">จำนวนที่รับเข้า ('+escapeHtml(it.unit||"")+')</label>'
+    +'<input id="scQty" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div>'
+    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button>'
+    +'<button class="btn-primary btn-sell" onclick="submitScanReceive('+JSON.stringify(it.id)+','+JSON.stringify(code)+')">รับเข้า</button></div>'
+    +'<button class="btn-ghost" style="margin-top:9px;" onclick="openScanner()">สแกนตัวถัดไป</button>');
+  setTimeout(()=>{ const el=document.getElementById("scQty"); if(el) el.focus(); },60);
+}
+async function submitScanReceive(itemId, code){
+  const it=itemById(itemId);
+  const q=n2(document.getElementById("scQty").value);
+  if(!it||q<=0){ showToast("ใส่จำนวนก่อน"); return; }
+  closeModal();
+  try{
+    await apiCall(API_STOCK,"moveStock",{ itemId:it.id, itemName:it.name, type:"in", amount:q, note:"สแกนรับเข้า (บาร์โค้ด "+code+")", branch: it.branch || (state.branch==="all"?"rush":state.branch) });
+    showToast("รับเข้า "+it.name+" +"+fmtN(q)+" "+(it.unit||""));
+    await loadAll();
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+}
+/* ยังไม่เคยผูกบาร์โค้ด → เลือกว่าเป็นของชิ้นไหน */
+function openScanLink(code){
+  const list=deptItems().slice().sort((a,b)=> String(a.name).localeCompare(String(b.name),"th"));
+  if(list.length===0){ showToast("ยังไม่มีวัตถุดิบให้ผูก"); return; }
+  openSheet('<h2 style="font-size:17px;margin:0 0 4px;">บาร์โค้ดนี้ยังไม่มีในระบบ</h2>'
+    +'<p class="sub" style="margin:0 0 14px;">รหัส '+escapeHtml(code)+' — เลือกว่าเป็นของชิ้นไหน ครั้งหน้าสแกนแล้วจะเจอเลย</p>'
+    +'<div class="field"><label class="label">วัตถุดิบ</label><select id="lkItem">'
+      +list.map((it)=>'<option value="'+escapeHtml(it.id)+'">'+escapeHtml(it.name)+' (คงเหลือ '+fmtN(it.qty)+' '+escapeHtml(it.unit||"")+')</option>').join("")
+    +'</select></div>'
+    +'<div class="row"><div class="field" style="flex:1;"><label class="label">รับเข้าเลย (ไม่บังคับ)</label>'
+    +'<input id="lkQty" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div>'
+    +'<div class="field" style="flex:1;"><label class="label">ราคาทุนต่อหน่วย (฿)</label>'
+    +'<input id="lkCost" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div></div>'
+    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button>'
+    +'<button class="btn-primary" onclick="submitScanLink('+JSON.stringify(code)+')">ผูกบาร์โค้ด</button></div>');
+}
+async function submitScanLink(code){
+  const it=itemById(document.getElementById("lkItem").value);
+  const q=n2(document.getElementById("lkQty").value);
+  const cost=n2(document.getElementById("lkCost").value);
+  if(!it){ return; }
+  closeModal();
+  try{
+    await apiCall(API_STOCK,"updateItemMeta",{ id:it.id, barcode:code, cost: cost>0 ? cost : it.cost });
+    if(q>0){
+      await apiCall(API_STOCK,"moveStock",{ itemId:it.id, itemName:it.name, type:"in", amount:q, note:"สแกนรับเข้า (บาร์โค้ด "+code+")", branch: it.branch || (state.branch==="all"?"rush":state.branch) });
+    }
+    showToast("ผูกบาร์โค้ดกับ "+it.name+" แล้ว");
+    await loadAll();
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+}
+
+/* ---------- เพิ่ม/แก้ไขวัตถุดิบ ---------- */
+function openItemForm(itemId){
+  const ed = itemId ? itemById(itemId) : null;
+  const cats=visibleCats();
+  openSheet('<h2 style="font-size:17px;margin:0 0 14px;">'+(ed?"แก้ไขวัตถุดิบ":"เพิ่มวัตถุดิบใหม่")+'</h2>'
+    +'<div class="field"><label class="label">ชื่อวัตถุดิบ</label><input id="ifName" value="'+(ed?escapeHtml(ed.name):"")+'"></div>'
+    +'<div class="row"><div class="field" style="flex:1;"><label class="label">หน่วย</label><select id="ifUnit">'
+      +STOCK_UNITS.map((u)=>'<option value="'+u+'" '+(ed&&ed.unit===u?"selected":"")+'>'+u+'</option>').join("")+'</select></div>'
+    +'<div class="field" style="flex:1;"><label class="label">หมวด</label><select id="ifCat">'
+      +cats.map((c)=>'<option value="'+c+'" '+(ed&&ed.category===c?"selected":(!ed&&c===OWN_CATS[0]?"selected":""))+'>'+escapeHtml(CAT_LABEL[c]||c)+'</option>').join("")+'</select></div></div>'
+    +(ed?"":'<div class="field"><label class="label">จำนวนเริ่มต้น</label><input id="ifQty" type="number" inputmode="decimal" min="0" step="any" value="0"></div>')
+    +'<div class="row"><div class="field" style="flex:1;"><label class="label">จุดสั่งซื้อขั้นต่ำ</label><input id="ifMin" type="number" inputmode="decimal" min="0" step="any" value="'+(ed?ed.min:0)+'"></div>'
+    +'<div class="field" style="flex:1;"><label class="label">ต้นทุนต่อหน่วย (฿)</label><input id="ifCost" type="number" inputmode="decimal" min="0" step="any" value="'+(ed?ed.cost:0)+'"></div></div>'
+    +'<div class="field"><label class="label">บาร์โค้ด (ไม่บังคับ)</label><input id="ifBarcode" value="'+(ed?escapeHtml(ed.barcode||""):"")+'" placeholder="สแกนหรือพิมพ์เอง"></div>'
+    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary" onclick="submitItem('+(ed?JSON.stringify(ed.id):"null")+')">'+(ed?"บันทึก":"เพิ่ม")+'</button></div>'
+    +(ed?'<button class="btn-ghost btn-danger" style="margin-top:9px;" onclick="submitDelete('+JSON.stringify(ed.id)+')">ลบรายการนี้</button>':""));
+  setTimeout(()=>{ const el=document.getElementById("ifName"); if(el) el.focus(); },60);
+}
+async function submitItem(editId){
+  const name=document.getElementById("ifName").value.trim();
+  if(!name){ showToast("ใส่ชื่อวัตถุดิบ"); return; }
+  const unit=document.getElementById("ifUnit").value;
+  const category=document.getElementById("ifCat").value;
+  const min=n2(document.getElementById("ifMin").value);
+  const cost=n2(document.getElementById("ifCost").value);
+  const barcode=document.getElementById("ifBarcode").value.trim();
+  const qEl=document.getElementById("ifQty");
+  closeModal();
+  try{
+    if(editId){
+      const ex=itemById(editId);
+      await apiCall(API_STOCK,"saveItem",{ id:editId, name:name, unit:unit, category:category, qty:ex.qty, min:min, branch:ex.branch, cost:cost, barcode:barcode });
+      await apiCall(API_STOCK,"updateItemMeta",{ id:editId, barcode:barcode, cost:cost });
+      showToast('บันทึก "'+name+'" แล้ว');
+    }else{
+      const qty=qEl?n2(qEl.value):0;
+      const br = state.branch==="all" ? "rush" : state.branch;
+      const id=uid();
+      await apiCall(API_STOCK,"saveItem",{ id:id, name:name, unit:unit, category:category, qty:qty, min:min, branch:br, cost:cost, barcode:barcode });
+      await apiCall(API_STOCK,"logOnly",{ itemName:name, type:"add", amount:qty, note:"เพิ่มวัตถุดิบใหม่ ("+DEPT_LABEL+")", branch:br });
+      showToast('เพิ่ม "'+name+'" แล้ว');
+    }
+    await loadAll();
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+}
+async function submitDelete(itemId){
+  const it=itemById(itemId);
+  closeModal();
+  try{
+    await fetch(API_STOCK+"?"+new URLSearchParams({ action:"deleteItem", id:itemId }));
+    showToast('ลบ "'+(it?it.name:"")+'" แล้ว');
+    await loadAll();
+  }catch(e){ showToast("ลบไม่สำเร็จ: "+e.message); }
+}
+
+
+/* ---------- บันทึกรายวัน ---------- */
 function renderDaily(){
   const inc=myIncome(), exp=myExpense();
   const totalIn=inc.reduce((s,r)=>s+r.amount,0);
   const totalOut=exp.reduce((s,r)=>s+r.amount,0);
   const net=totalIn-totalOut;
-
-  const byCh={};
-  CHANNELS.forEach((c)=>byCh[c.id]=0);
+  const byCh={}; CHANNELS.forEach((c)=>byCh[c.id]=0);
   inc.forEach((r)=>{ byCh[r.channel]=(byCh[r.channel]||0)+r.amount; });
 
   let h=periodChips();
-
   h+='<div class="kpi-grid" style="margin-bottom:12px;">'
     +'<div class="kpi good"><p class="kpi-label">ยอดขาย</p><p class="kpi-val">'+fmtB(totalIn)+' <small>฿</small></p></div>'
     +'<div class="kpi bad"><p class="kpi-label">ค่าใช้จ่าย</p><p class="kpi-val">'+fmtB(totalOut)+' <small>฿</small></p></div>'
     +'<div class="kpi wide '+(net>=0?"good":"bad")+'"><p class="kpi-label">คงเหลือ · '+escapeHtml(periodLabel())+'</p><p class="kpi-val lg">'+(net>=0?"+":"")+fmtB(net)+' <small>฿</small></p></div>'
     +'</div>';
-
   h+='<div class="kpi-grid" style="margin-bottom:14px;">'
     + CHANNELS.map((c)=>{
         const v=byCh[c.id]||0, pct = totalIn>0 ? Math.round(v/totalIn*100) : 0;
         return '<div class="kpi"><p class="kpi-label">'+escapeHtml(c.label)+' · '+pct+'%</p><p class="kpi-val" style="font-size:20px;">'+fmtB(v)+' <small>฿</small></p></div>';
       }).join("")
     +'</div>';
-
   h+='<div class="row" style="margin-bottom:14px;">'
     +'<button class="btn-primary btn-sell" onclick="openSaleForm()">+ ยอดขาย</button>'
     +'<button class="btn-primary btn-buy" onclick="openBuyForm()">+ ซื้อของ</button>'
@@ -496,21 +705,22 @@ function renderDaily(){
   return h+'</div>';
 }
 
-/* ---------- 3) ต้นทุน ---------- */
+/* ---------- ต้นทุน ---------- */
 function renderCost(){
   const menus=deptMenus();
-  if(menus.length===0) return '<div class="empty"><span class="big">📐</span>ยังไม่มีเมนูหมวด "'+escapeHtml(RECIPE_CAT)+'" ในชีต Recipes</div>';
+  if(menus.length===0) return '<div class="empty"><span class="big">📐</span>ยังไม่มีเมนูหมวด "'+escapeHtml(RECIPE_CAT)+'"</div>';
 
   const stats=menus.map((m)=>({ m, s:menuStats(m) }));
-  const avg=stats.reduce((a,x)=>a+x.s.gp,0)/stats.length;
-  const lowGp=stats.filter((x)=>x.s.gp<30).length;
+  const priced=stats.filter((x)=>x.s.price>0);
+  const avg= priced.length ? priced.reduce((a,x)=>a+x.s.gp,0)/priced.length : 0;
+  const lowGp=priced.filter((x)=>x.s.gp<30).length;
   const sorted=stats.slice().sort((a,b)=> b.s.gp-a.s.gp);
 
   let h='<div class="kpi-grid">'
     +'<div class="kpi"><p class="kpi-label">จำนวนเมนู</p><p class="kpi-val">'+menus.length+'</p></div>'
     +'<div class="kpi '+(avg<30?"bad":(avg<60?"warn":"good"))+'"><p class="kpi-label">GP เฉลี่ย</p><p class="kpi-val">'+avg.toFixed(0)+'<small>%</small></p></div>'
     +'<div class="kpi '+(lowGp?"bad":"good")+'"><p class="kpi-label">เมนูกำไรต่ำ (&lt;30%)</p><p class="kpi-val">'+lowGp+'</p></div>'
-    +'<div class="kpi"><p class="kpi-label">ต้นทุนเฉลี่ย/ที่</p><p class="kpi-val">'+fmtB2(stats.reduce((a,x)=>a+x.s.cost,0)/stats.length)+' <small>฿</small></p></div>'
+    +'<div class="kpi"><p class="kpi-label">ตั้งราคาขายแล้ว</p><p class="kpi-val">'+priced.length+'<small>/'+menus.length+'</small></p></div>'
     +'</div>';
 
   h+='<h2>เมนูทั้งหมด <span class="h2-sub">เรียงตาม GP</span></h2>';
@@ -518,10 +728,13 @@ function renderCost(){
     const col=gpColor(s.gp);
     const ings=m.ingredients.map((g)=> escapeHtml(g.ingredientName||"")+" "+fmtN(g.ingredientQty)+escapeHtml(g.ingredientUnit||"")).join(" · ");
     h+='<div class="card">'
-      +'<div class="it-top"><p class="it-name">'+escapeHtml(m.menuName)+'</p><span class="mini">ขาย '+fmtB2(s.price)+' ฿</span></div>'
-      +'<p class="t2" style="margin:5px 0 0;font-size:11.5px;color:var(--ink-3);">'+ings+(m.servings>1?' · สูตรนี้ได้ '+fmtN(m.servings)+' ที่':"")+'</p>'
-      +'<div class="gauge"><div class="gauge-bg"><div class="gauge-fg" style="width:'+Math.max(0,Math.min(100,s.gp))+'%;background:'+col+'"></div></div><span class="gp-lab" style="color:'+col+'">GP '+s.gp.toFixed(0)+'%</span></div>'
-      +'<div class="it-foot"><span class="mini">ต้นทุน <b>'+fmtB2(s.cost)+'</b> ฿ · กำไร <b style="color:'+(s.profit>=0?"var(--green)":"var(--red)")+'">'+fmtB2(s.profit)+'</b> ฿</span></div>'
+      +'<div class="it-top"><p class="it-name">'+escapeHtml(m.menuName)+'</p>'
+      +'<span class="mini">'+(s.price>0?"ขาย "+fmtB2(s.price)+" ฿":"ยังไม่ตั้งราคา")+'</span></div>'
+      +'<p class="mini" style="margin:5px 0 0;">'+ings+(m.servings>1?' · สูตรนี้ได้ '+fmtN(m.servings)+' ที่':"")+'</p>'
+      + (s.price>0
+          ? '<div class="gauge"><div class="gauge-bg"><div class="gauge-fg" style="width:'+Math.max(0,Math.min(100,s.gp))+'%;background:'+col+'"></div></div><span class="gp-lab" style="color:'+col+'">GP '+s.gp.toFixed(0)+'%</span></div>'
+          : '<div style="height:8px;"></div>')
+      +'<div class="it-foot"><span class="mini">ต้นทุน <b>'+fmtB2(s.cost)+'</b> ฿'+(s.price>0?' · กำไร <b style="color:'+(s.profit>=0?"var(--green)":"var(--red)")+'">'+fmtB2(s.profit)+'</b> ฿':"")+'</span></div>'
       +'</div>';
   });
   return h;
@@ -533,7 +746,7 @@ function periodChips(){
     +'</div>';
 }
 
-/* ---------------- ฟอร์ม ---------------- */
+/* ---------- ฟอร์มร่วม ---------- */
 function closeModal(){ document.getElementById("modalRoot").innerHTML=""; state.formOpen=false; }
 function openSheet(html){
   state.formOpen=true;
@@ -545,17 +758,16 @@ function branchOptions(){
        + '<option value="rushhour" '+(def==="rushhour"?"selected":"")+'>Rush Hour</option>';
 }
 
-/* ยอดขาย — เหมือนหน้าบัญชีเดิม: วันที่ / สาขา / ช่องทาง / จำนวนเงิน / หมายเหตุ */
 function openSaleForm(){
   openSheet('<h2 style="font-size:17px;margin:0 0 4px;">บันทึกยอดขาย</h2>'
-    +'<p class="sub" style="margin:0 0 14px;">ยอดนี้จะไปรวมในหน้าบัญชีอัตโนมัติ</p>'
+    +'<p class="sub" style="margin:0 0 14px;">ยอดนี้ไปรวมในหน้าบัญชีอัตโนมัติ</p>'
     +'<div class="row"><div class="field" style="flex:1;"><label class="label">วันที่</label><input id="slDate" type="date" value="'+todayStr()+'"></div>'
     +'<div class="field" style="flex:1;"><label class="label">สาขา</label><select id="slBranch">'+branchOptions()+'</select></div></div>'
     +'<div class="field"><label class="label">ช่องทาง</label><select id="slChannel">'
       +CHANNELS.map((c)=>'<option value="'+c.id+'">'+escapeHtml(c.label)+'</option>').join("")+'</select></div>'
     +'<div class="field"><label class="label">จำนวนเงิน (บาท)</label><input id="slAmount" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div>'
     +'<div class="field"><label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label><input id="slNote" placeholder="เช่น ยอดกะเช้า"></div>'
-    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary btn-sell" onclick="submitSale()">บันทึกยอดขาย</button></div>');
+    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary btn-sell" onclick="submitSale()">บันทึก</button></div>');
   setTimeout(()=>{ const el=document.getElementById("slAmount"); if(el) el.focus(); },60);
 }
 async function submitSale(){
@@ -574,10 +786,9 @@ async function submitSale(){
   }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
 }
 
-/* ซื้อของ — เหมือนหน้าบัญชีเดิม: หมวดรายจ่าย + ช่องวัตถุดิบเมื่อเลือกหมวดสต๊อก */
 function openBuyForm(){
   openSheet('<h2 style="font-size:17px;margin:0 0 4px;">บันทึกซื้อของ</h2>'
-    +'<p class="sub" style="margin:0 0 14px;">ค่าใช้จ่ายนี้จะไปรวมในหน้าบัญชีอัตโนมัติ</p>'
+    +'<p class="sub" style="margin:0 0 14px;">ค่าใช้จ่ายนี้ไปรวมในหน้าบัญชีอัตโนมัติ</p>'
     +'<div class="row"><div class="field" style="flex:1;"><label class="label">วันที่</label><input id="byDate" type="date" value="'+todayStr()+'"></div>'
     +'<div class="field" style="flex:1;"><label class="label">สาขา</label><select id="byBranch">'+branchOptions()+'</select></div></div>'
     +'<div class="field"><label class="label">หมวดรายจ่าย</label><select id="byCat" onchange="toggleStockFields()">'
@@ -590,7 +801,7 @@ function openBuyForm(){
     +'</div>'
     +'<div class="field"><label class="label">จำนวนเงิน (บาท)</label><input id="byAmount" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div>'
     +'<div class="field"><label class="label">บันทึกเพิ่มเติม (ไม่บังคับ)</label><input id="byNote" placeholder="เช่น ซื้อจากแม็คโคร"></div>'
-    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary btn-buy" onclick="submitBuy()">บันทึกซื้อของ</button></div>');
+    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary btn-buy" onclick="submitBuy()">บันทึก</button></div>');
   setTimeout(()=>{ toggleStockFields(); const el=document.getElementById("byItem"); if(el) el.focus(); },60);
 }
 function toggleStockFields(){
@@ -615,7 +826,6 @@ async function submitBuy(){
     await loadAll();
   }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
 }
-
 async function deleteRec(kind,id){
   try{
     await fetch(API_ACC,{ method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
@@ -625,78 +835,6 @@ async function deleteRec(kind,id){
   }catch(e){ showToast("ลบไม่สำเร็จ: "+e.message); }
 }
 
-/* นับสต๊อก — ใส่จำนวนที่นับได้จริง ระบบปรับให้ตรง */
-function openCount(itemId){
-  const it=itemById(itemId); if(!it) return;
-  openSheet('<h2 style="font-size:17px;margin:0 0 4px;">นับสต๊อก — '+escapeHtml(it.name)+'</h2>'
-    +'<p class="sub" style="margin:0 0 14px;">ระบบบันทึกว่าตอนนี้เหลือเท่าไหร่ ('+fmtN(it.qty)+' '+escapeHtml(it.unit||"")+' ในระบบตอนนี้)</p>'
-    +'<div class="field"><label class="label">นับได้จริง ('+escapeHtml(it.unit||"")+')</label><input id="cnQty" type="number" inputmode="decimal" min="0" step="any" value="'+it.qty+'"></div>'
-    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary" onclick="submitCount('+JSON.stringify(itemId)+')">บันทึก</button></div>');
-  setTimeout(()=>{ const el=document.getElementById("cnQty"); if(el){ el.focus(); el.select(); } },60);
-}
-async function submitCount(itemId){
-  const it=itemById(itemId);
-  const q=n2(document.getElementById("cnQty").value);
-  if(!it){ return; }
-  closeModal();
-  try{
-    await apiCall(API_STOCK,"saveItem",{ id:it.id, name:it.name, unit:it.unit, category:it.category, qty:q, min:it.min, branch:it.branch, cost:it.cost });
-    showToast(it.name+" → "+fmtN(q)+" "+(it.unit||""));
-    await loadAll();
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
-}
-
-/* เพิ่ม/แก้ไขวัตถุดิบ */
-function openItemForm(itemId){
-  const ed = itemId ? itemById(itemId) : null;
-  const cats=visibleCats();
-  openSheet('<h2 style="font-size:17px;margin:0 0 14px;">'+(ed?"แก้ไขวัตถุดิบ":"เพิ่มวัตถุดิบใหม่")+'</h2>'
-    +'<div class="field"><label class="label">ชื่อวัตถุดิบ</label><input id="ifName" value="'+(ed?escapeHtml(ed.name):"")+'"></div>'
-    +'<div class="row"><div class="field" style="flex:1;"><label class="label">หน่วย</label><select id="ifUnit">'
-      +STOCK_UNITS.map((u)=>'<option value="'+u+'" '+(ed&&ed.unit===u?"selected":"")+'>'+u+'</option>').join("")+'</select></div>'
-    +'<div class="field" style="flex:1;"><label class="label">หมวด</label><select id="ifCat">'
-      +cats.map((c)=>'<option value="'+c+'" '+(ed&&ed.category===c?"selected":(!ed&&c===OWN_CATS[0]?"selected":""))+'>'+escapeHtml(CAT_LABEL[c]||c)+'</option>').join("")+'</select></div></div>'
-    +(ed?"":'<div class="field"><label class="label">จำนวนเริ่มต้น</label><input id="ifQty" type="number" inputmode="decimal" min="0" step="any" value="0"></div>')
-    +'<div class="row"><div class="field" style="flex:1;"><label class="label">จุดสั่งซื้อขั้นต่ำ</label><input id="ifMin" type="number" inputmode="decimal" min="0" step="any" value="'+(ed?ed.min:0)+'"></div>'
-    +'<div class="field" style="flex:1;"><label class="label">ต้นทุนต่อหน่วย (฿)</label><input id="ifCost" type="number" inputmode="decimal" min="0" step="any" value="'+(ed?ed.cost:0)+'"></div></div>'
-    +'<div class="row"><button class="btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn-primary" onclick="submitItem('+(ed?JSON.stringify(ed.id):"null")+')">'+(ed?"บันทึก":"เพิ่ม")+'</button></div>'
-    +(ed?'<button class="btn-ghost btn-danger" style="margin-top:9px;" onclick="submitDelete('+JSON.stringify(ed.id)+')">ลบรายการนี้</button>':""));
-  setTimeout(()=>{ const el=document.getElementById("ifName"); if(el) el.focus(); },60);
-}
-async function submitItem(editId){
-  const name=document.getElementById("ifName").value.trim();
-  if(!name){ showToast("ใส่ชื่อวัตถุดิบ"); return; }
-  const unit=document.getElementById("ifUnit").value;
-  const category=document.getElementById("ifCat").value;
-  const min=n2(document.getElementById("ifMin").value);
-  const cost=n2(document.getElementById("ifCost").value);
-  const qEl=document.getElementById("ifQty");
-  closeModal();
-  try{
-    if(editId){
-      const ex=itemById(editId);
-      await apiCall(API_STOCK,"saveItem",{ id:editId, name:name, unit:unit, category:category, qty:ex.qty, min:min, branch:ex.branch, cost:cost });
-      showToast('บันทึก "'+name+'" แล้ว');
-    }else{
-      const qty=qEl?n2(qEl.value):0;
-      const br = state.branch==="all" ? "rush" : state.branch;
-      await apiCall(API_STOCK,"saveItem",{ id:uid(), name:name, unit:unit, category:category, qty:qty, min:min, branch:br, cost:cost });
-      showToast('เพิ่ม "'+name+'" แล้ว');
-    }
-    await loadAll();
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
-}
-async function submitDelete(itemId){
-  const it=itemById(itemId);
-  closeModal();
-  try{
-    await fetch(API_STOCK+"?"+new URLSearchParams({ action:"deleteItem", id:itemId }));
-    showToast('ลบ "'+(it?it.name:"")+'" แล้ว');
-    await loadAll();
-  }catch(e){ showToast("ลบไม่สำเร็จ: "+e.message); }
-}
-
-/* สลับแอป */
 function openAppSwitcher(){
   openSheet('<h2 style="font-size:17px;margin:0 0 4px;">สลับแอป</h2><p class="sub" style="margin:0 0 13px;">แต่ละแอปติดตั้งแยกกันบนมือถือได้</p>'
     +'<a class="applink" href="../staff/"><div class="dot" style="background:linear-gradient(135deg,#8C95A1,#69727E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><b>พนักงาน</b><span>ตอกบัตร · สรุปยอด</span></div></a>'
@@ -709,7 +847,7 @@ function openAppSwitcher(){
 /* ---------------- init ---------------- */
 tickClock(); setInterval(tickClock,1000);
 loadAll();
-setInterval(()=>{ if(!state.formOpen) loadAll(); }, 20000);
+setInterval(()=>{ if(!state.formOpen && !state.scanner) loadAll(); }, 20000);
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <script src="pwa-install.js"></script>
