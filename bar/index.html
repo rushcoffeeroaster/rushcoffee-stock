@@ -26,13 +26,13 @@
     --shadow-sm:0 1px 2px rgba(28,28,36,.04), 0 2px 8px rgba(28,28,36,.05);
     --shadow-md:0 6px 22px rgba(28,28,36,.09);
     --radius:16px; --radius-sm:11px;
-    --accent:#2F343A; --accent-deep:#15181C; --accent-soft:#ECEEF1;
-    --accent-grad:linear-gradient(135deg,#454C55 0%,#22262B 100%);
-    --metal-grad:linear-gradient(120deg,#22262B 0%,#8C959F 48%,#1C1F24 100%);
-    --on-accent:#FFFFFF;
-    --bg:#F3F4F6;
-    --bg-grad:radial-gradient(135% 110% at 50% -10%, #FBFBFC 0%, #F3F4F6 55%, #E6E8EC 100%);
-    --bar-bg:rgba(243,244,246,.82); --nav-bg:rgba(255,255,255,.88);
+    --accent:#FFFFFF; --accent-deep:#3A4048; --accent-soft:#F6F7F9;
+    --accent-grad:linear-gradient(135deg,#FFFFFF 0%,#F2F4F6 100%);
+    --metal-grad:linear-gradient(120deg,#C3C8CF 0%,#FFFFFF 48%,#C3C8CF 100%);
+    --on-accent:#1E232A;
+    --bg:#FAFAFB;
+    --bg-grad:radial-gradient(135% 110% at 50% -10%, #FFFFFF 0%, #FAFAFB 55%, #EFF1F3 100%);
+    --bar-bg:rgba(250,250,251,.82); --nav-bg:rgba(255,255,255,.88);
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; }
@@ -152,6 +152,9 @@
   .nav-item.active{ color:var(--accent-deep); background:var(--accent-soft); }
 
   @media (max-width:470px){ input,select{ font-size:16px; } }
+/* ★ ธีมขาว: ใส่เส้นขอบให้ปุ่ม/ชิปที่ active ยังเห็นชัด */
+.chip.active,.branch-btn.active,.btn-primary,.btn-sm.solid,.logo{ border:1px solid var(--line-strong) !important; }
+.btn-primary,.chip.active,.branch-btn.active{ box-shadow:var(--shadow-sm); }
 </style>
 </head>
 <body id="bodyEl">
@@ -268,7 +271,7 @@ async function apiCall(url, action, payload){
   try{ return JSON.parse(text); }catch(e){ throw new Error("รูปแบบข้อมูลไม่ถูกต้อง: "+text.slice(0,160)); }
 }
 
-async function loadAll(){
+async function loadAll(){ loadReceipts();
   try{
     const [s,a,m] = await Promise.all([
       apiCall(API_STOCK,"getAll"),
@@ -666,7 +669,7 @@ function renderDaily(){
   const byCh={}; CHANNELS.forEach((c)=>byCh[c.id]=0);
   inc.forEach((r)=>{ byCh[r.channel]=(byCh[r.channel]||0)+r.amount; });
 
-  let h=periodChips()+rangeField();
+  let h=periodChips()+rangeField()+receiptCard()+summaryCard();
   h+='<div class="kpi-grid" style="margin-bottom:12px;">'
     +'<div class="kpi good"><p class="kpi-label">ยอดขาย</p><p class="kpi-val">'+fmtB(totalIn)+' <small>฿</small></p></div>'
     +'<div class="kpi bad"><p class="kpi-label">ค่าใช้จ่าย</p><p class="kpi-val">'+fmtB(totalOut)+' <small>฿</small></p></div>'
@@ -778,6 +781,78 @@ function setRangePreset(kind){
   else if(kind==="first15"){ state.rangeFrom=mk(y,m,1); state.rangeTo=mk(y,m,15); }
   else if(kind==="last15"){ state.rangeFrom=mk(y,m,16); state.rangeTo=mk(y,m,last(y,m)); }
   render();
+}
+
+
+/* ===== ใบเสร็จ + สรุปเย็น ===== */
+const API_RECEIPT = "https://script.google.com/macros/s/AKfycbxelwmSht1vaPZc9Y5wjjffHIIOKZx-OCxuuhBDXcwebbxm3w05ZlaBL98UpzPjQCkr/exec";
+const RC_CAT = "bar";
+let rcRows = [], rcSummary = null, rcBusy = false;
+async function loadReceipts(){
+  try{ const r = await apiCall(API_RECEIPT, "getPurchases", { date: todayStr() });
+       rcRows = ((r && r.rows) || []).filter(function(x){ return String(x.category) === RC_CAT; });
+  }catch(e){ rcRows = []; }
+  try{ const s = await apiCall(API_RECEIPT, "getSummary", { date: todayStr() });
+       rcSummary = (s && s.summary) ? s.summary : null;
+  }catch(e){ rcSummary = null; }
+  if (state.view === "daily") render();
+}
+function pickReceipt(){ const f = document.getElementById("rcFile"); if(f){ f.value=""; f.click(); } }
+async function onReceiptFile(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  if (f.size > 8*1024*1024){ showToast("ไฟล์ใหญ่เกิน 8MB"); return; }
+  rcBusy = true; render();
+  try{
+    const b64 = await new Promise(function(res, rej){ const fr = new FileReader();
+      fr.onload = function(){ res(String(fr.result).split(",")[1]); }; fr.onerror = rej; fr.readAsDataURL(f); });
+    const r = await apiCall(API_RECEIPT, "uploadReceipt", { date: todayStr(), category: RC_CAT,
+      base64: b64, mime: f.type || "image/jpeg", amount: 0, vendor: "" });
+    if (r && r.error) throw new Error(r.error);
+    showToast("ส่งใบเสร็จแล้ว ✓");
+  }catch(e){ showToast("ส่งไม่สำเร็จ ลองใหม่อีกครั้ง"); }
+  rcBusy = false; await loadReceipts();
+}
+async function setReceiptAmount(id, v){
+  const amt = Number(v); if(!isFinite(amt) || amt <= 0) return;
+  try{ await apiCall(API_RECEIPT, "savePurchase", { id: id, amount: amt }); showToast("บันทึกยอดแล้ว ✓"); }
+  catch(e){ showToast("บันทึกไม่สำเร็จ"); }
+  await loadReceipts();
+}
+function receiptCard(){
+  const pend = rcRows.filter(function(r){ return String(r.status) === "pending"; }).length;
+  const sub = rcRows.length
+    ? ("วันนี้ส่งแล้ว " + rcRows.length + " ใบ" + (pend ? " · รอผมอ่านยอด " + pend + " ใบ" : " · อ่านครบแล้ว"))
+    : "สแกนด้วย CamScanner แล้วกดปุ่มนี้ ไม่ต้องกรอกอะไร";
+  const list = rcRows.map(function(r){
+    const ok = Number(r.amount) > 0;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)">'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+      +     escapeHtml(String(r.vendor || "(รออ่านชื่อร้าน)")) + '</div>'
+      +   (r.fileUrl ? '<a href="' + escapeHtml(String(r.fileUrl)) + '" target="_blank" rel="noopener" style="font-size:12px;color:var(--ink-3);text-decoration:none">ดูรูป</a>' : "")
+      + '</div>'
+      + (ok ? '<b style="font-size:14px">' + fmtB(r.amount) + '</b>'
+            : '<input type="number" inputmode="decimal" placeholder="ใส่ยอดเอง" onchange="setReceiptAmount(&quot;' + r.id + '&quot;,this.value)" style="width:118px;font-size:16px">')
+      + '</div>';
+  }).join("");
+  return '<div class="card">'
+    + '<button class="btn-primary" onclick="pickReceipt()" style="width:100%;padding:18px;font-size:17px;font-weight:800">'
+    +   (rcBusy ? "กำลังส่ง…" : "📸 ถ่ายใบเสร็จ") + '</button>'
+    + '<input type="file" id="rcFile" accept="image/*,application/pdf" style="display:none" onchange="onReceiptFile(this)">'
+    + '<div style="font-size:12.5px;color:var(--ink-3);margin-top:9px">' + escapeHtml(sub) + '</div>'
+    + list + '</div>';
+}
+function summaryCard(){
+  const s = rcSummary; if(!s) return "";
+  const total = (RC_CAT === "bakery") ? s.bakeryTotal : s.barTotal;
+  const flags = String(s.flags || "").split(/\s*[|;\n]\s*/).filter(Boolean);
+  return '<div class="card">'
+    + '<div style="font-weight:800;font-size:15px;margin-bottom:6px">🌙 สรุปเย็น</div>'
+    + '<div style="font-size:26px;font-weight:800;letter-spacing:-.5px">' + fmtB(total) + '</div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);border-top:1px dashed var(--line);margin-top:9px;padding-top:9px"><span>ยอดสะสมเดือนนี้</span><b style="color:var(--ink)">' + fmtB(s.monthToDate) + '</b></div>'
+    + (flags.length ? '<div style="margin-top:9px;background:var(--amber-bg);color:var(--amber);border-radius:var(--radius-sm);padding:9px 11px;font-size:13px">' + flags.map(function(f){ return "• " + escapeHtml(f); }).join("<br>") + '</div>' : "")
+    + (s.note ? '<div style="margin-top:8px;font-size:13px;color:var(--ink-2);line-height:1.6">' + escapeHtml(String(s.note)) + '</div>' : "")
+    + '</div>';
 }
 
 function periodChips(){
