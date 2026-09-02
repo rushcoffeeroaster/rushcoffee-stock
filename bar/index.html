@@ -28,7 +28,7 @@
     --radius:16px; --radius-sm:11px;
     --accent:#FFFFFF; --accent-deep:#3A4048; --accent-soft:#F6F7F9;
     --accent-grad:linear-gradient(135deg,#FFFFFF 0%,#F2F4F6 100%);
-    --metal-grad:linear-gradient(120deg,#C3C8CF 0%,#FFFFFF 48%,#C3C8CF 100%);
+    --metal-grad:linear-gradient(120deg,#333940 0%,#79818B 48%,#333940 100%);
     --on-accent:#1E232A;
     --bg:#FAFAFB;
     --bg-grad:radial-gradient(135% 110% at 50% -10%, #FFFFFF 0%, #FAFAFB 55%, #EFF1F3 100%);
@@ -155,6 +155,9 @@
 /* ★ ธีมขาว: ใส่เส้นขอบให้ปุ่ม/ชิปที่ active ยังเห็นชัด */
 .chip.active,.branch-btn.active,.btn-primary,.btn-sm.solid,.logo{ border:1px solid var(--line-strong) !important; }
 .btn-primary,.chip.active,.branch-btn.active{ box-shadow:var(--shadow-sm); }
+/* ★ ธีมขาว: โลโก้ต้องเห็นชัดบนพื้นขาว */
+.logo{ background:var(--accent-deep) !important; color:#fff !important; border-color:var(--accent-deep) !important; }
+
 </style>
 </head>
 <body id="bodyEl">
