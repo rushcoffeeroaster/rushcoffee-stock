@@ -161,7 +161,7 @@
 /* ===== SANDOS · Scandinavian ===== */
 body{ background:#FFFFFF; }
 .appbar{ background:#1B36C4 !important; border-bottom:0 !important; position:sticky; overflow:visible !important; z-index:20; }
-.appbar::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:13px; background:#FFFFFF; clip-path:polygon(0 44%,22% 8%,52% 42%,78% 4%,100% 34%,100% 100%,0 100%); pointer-events:none; }
+.appbar::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:20px; background:#FFFFFF; clip-path:polygon(0 62%,18% 6%,40% 58%,62% 2%,82% 52%,100% 14%,100% 100%,0 100%); pointer-events:none; }
 .wordmark{ background:none !important; -webkit-background-clip:initial !important;
   -webkit-text-fill-color:#FFFFFF !important; color:#FFFFFF !important; letter-spacing:.18em; font-weight:500; }
 .brand-tag{ color:#B9C4F2 !important; letter-spacing:.12em; font-size:9.5px; }
@@ -733,7 +733,7 @@ function renderDaily(){
 /* ---------- ต้นทุน ---------- */
 function renderCost(){
   const menus=deptMenus();
-  if(menus.length===0) return '<div class="empty"><span class="big">📐</span>ยังไม่มีเมนูหมวด "'+escapeHtml(RECIPE_CAT)+'"</div>';
+  if(menus.length===0) return '<div class="empty"><span class="big">📐</span>ยังไม่มีเมนู — เพิ่มสูตรแรกได้เลย</div>';
 
   const stats=menus.map((m)=>({ m, s:menuStats(m) }));
   const priced=stats.filter((x)=>x.s.price>0);
