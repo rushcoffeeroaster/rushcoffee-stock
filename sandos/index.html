@@ -160,7 +160,7 @@
 
 /* ===== SANDOS · Scandinavian ===== */
 body{ background:#FFFFFF; }
-.appbar{ background:#1B36C4 !important; border-bottom:0 !important; }
+.appbar{ background:#1B36C4 !important; border-bottom:0 !important; position:sticky; overflow:visible !important; z-index:20; }
 .appbar::after{ content:""; position:absolute; left:0; right:0; bottom:-13px; height:14px; background:#FFFFFF;
   clip-path:polygon(0 46%,22% 10%,52% 44%,78% 6%,100% 36%,100% 100%,0 100%); }
 .wordmark{ background:none !important; -webkit-background-clip:initial !important;
@@ -169,7 +169,7 @@ body{ background:#FFFFFF; }
 .logo{ background:#FFFFFF !important; color:#1B36C4 !important; border-radius:0 !important;
   clip-path:polygon(50% 0,100% 28%,100% 72%,50% 100%,0 72%,0 28%); }
 .clock-now .t,.clock-now .d{ color:#FFFFFF !important; opacity:.92; }
-.icon-btn{ color:#FFFFFF !important; border-color:rgba(255,255,255,.35) !important; }
+.icon-btn{ color:#FFFFFF !important; background:transparent !important; border:1px solid rgba(255,255,255,.4) !important; border-radius:2px !important; }
 .branch-row{ display:none !important; }
 .card{ border:1px solid var(--line) !important; box-shadow:none !important; }
 .chip{ border-radius:2px !important; }
@@ -200,7 +200,7 @@ input,select,textarea{ border-radius:2px !important; }
 </div>
 
 <div class="wrap" id="app">
-  <h1 id="pageTitle">สต๊อกบาร์น้ำ</h1>
+  <h1 id="pageTitle">สต๊อกSANDOS</h1>
   <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
 
   <div class="branch-row">
@@ -234,16 +234,16 @@ input,select,textarea{ border-radius:2px !important; }
 
 <script>
 /* ============================================================================
-   Rush Coffee · แอปบาร์น้ำ — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
+   Rush Coffee · แอปSANDOS — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
    ============================================================================ */
 const API_STOCK = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
 const API_ACC = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
 const API_MENU = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
 
 const DEPT_LABEL = "SANDOS";
-const OWN_CATS   = ["drink","coffee"];
-const SHARED_CATS= ["dairy","other"];
-const RECIPE_CAT = "เครื่องดื่ม";
+const OWN_CATS   = [];
+const SHARED_CATS= [];
+const RECIPE_CAT = "SANDOS";
 
 const CHANNELS = [
   { id:"store",    label:"หน้าร้าน" },
@@ -317,8 +317,7 @@ async function loadAll(){ loadReceipts();
 function branchOk(v){ return state.branch==="all" || v===state.branch || !v; }
 function visibleCats(){ return OWN_CATS.concat(SHARED_CATS); }
 function deptItems(){
-  const cats=visibleCats();
-  return state.items.filter((it)=> cats.indexOf(it.category)>=0 && branchOk(it.branch));
+  return (state.items || []);
 }
 function itemById(id){ return state.items.find((it)=>it.id===id); }
 function lowItems(){ return deptItems().filter((it)=> it.min>0 && it.qty<it.min); }
@@ -352,7 +351,7 @@ function myExpense(){ return state.expense.filter((r)=> isMine(r) && branchOk(r.
 
 /* เมนู — สูตรทั้งหมดอยู่ใต้สาขา rush จึงไม่กรองสาขา (ไม่งั้นจอว่าง) */
 function deptMenus(){
-  const rows=state.recipes.filter((r)=> String(r.category||"").trim()===RECIPE_CAT);
+  const rows=state.recipes.filter(function(){ return true; });
   const by={};
   rows.forEach((r)=>{
     const k=r.menuName;
@@ -978,7 +977,7 @@ function openAppSwitcher(){
   openSheet('<h2 style="font-size:17px;margin:0 0 4px;">สลับแอป</h2><p class="sub" style="margin:0 0 13px;">แต่ละแอปติดตั้งแยกกันบนมือถือได้</p>'
     +'<a class="applink" href="../staff/"><div class="dot" style="background:linear-gradient(135deg,#8C95A1,#69727E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><b>พนักงาน</b><span>ตอกบัตร · สรุปยอด</span></div></a>'
     +'<a class="applink " href="../bakery/"><div class="dot" style="background:linear-gradient(135deg,#A87249,#7A4E2E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h16"/><path d="M5 13c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M4 13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2"/></svg></div><div><b>เบเกอรี่</b><span>สต๊อก · บันทึกรายวัน · ต้นทุน</span></div></a>'
-    +'<a class="applink cur" href="../bar/"><div class="dot" style="background:linear-gradient(135deg,#454C55,#22262B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12l-1.1 14.2a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 4Z"/><path d="M6.6 9h10.8"/></svg></div><div><b>บาร์น้ำ</b><span>สต๊อก · บันทึกรายวัน · ต้นทุน</span></div></a>'
+    +'<a class="applink cur" href="../bar/"><div class="dot" style="background:linear-gradient(135deg,#454C55,#22262B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12l-1.1 14.2a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 4Z"/><path d="M6.6 9h10.8"/></svg></div><div><b>SANDOS</b><span>สต๊อก · บันทึกรายวัน · ต้นทุน</span></div></a>'
     +'<button class="btn-primary" style="margin-top:4px;" onclick="closeModal(); window.rushInstall && window.rushInstall.trigger();">ติดตั้งแอปนี้ลงมือถือ</button>'
     +'<button class="btn-ghost" style="margin-top:9px;" onclick="closeModal()">ปิด</button>');
 }
