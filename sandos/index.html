@@ -180,6 +180,15 @@ input,select,textarea{ border-radius:2px !important; }
 
 .wordmark-img{height:19px;width:auto;display:block;margin:0 0 2px}
 .logo{display:none!important}
+
+/* ==== sandos polish ==== */
+.appbar-inner{padding:10px 16px 24px}
+.appbar::after{height:16px}
+.wordmark-img{height:21px}
+.btn-scan,.btn-primary,.btn-scan:hover{background:var(--accent)!important;background-image:none!important;box-shadow:none!important}
+.nav-item{position:relative}
+.nav-item.active{background:transparent!important;color:var(--accent)!important}
+.nav-item.active::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:5px;width:20px;height:2.5px;background:var(--accent)}
 </style>
 </head>
 <body id="bodyEl">
@@ -417,7 +426,7 @@ function renderStock(){
     +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;vertical-align:-4px;margin-right:7px;"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M3 12h18"/></svg>'
     +'สแกนบาร์โค้ดรับเข้า</button>';
 
-  if(items.length===0) return h+'<div class="empty"><span class="big">📦</span>ยังไม่มีวัตถุดิบหมวด'+escapeHtml(DEPT_LABEL)+'</div>'+addBtn();
+  if(items.length===0) return h+'<div class="empty"><span class="big">📦</span>ยังไม่มีวัตถุดิบในระบบ'+'</div>'+addBtn();
 
   const low=lowItems(), out=items.filter((it)=>it.qty<=0);
   h+='<div class="kpi-grid" style="margin-top:12px;">'
