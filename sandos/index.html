@@ -191,9 +191,7 @@ input,select,textarea{ border-radius:2px !important; }
         <div class="brand-tag">SATHORN</div>
       </div>
     </div>
-    <button class="icon-btn" onclick="openAppSwitcher()" title="สลับแอป" aria-label="สลับแอป">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
-    </button>
+    
     <div class="clock-now"><span class="t" id="clockT">--:--</span><span class="d" id="clockD"></span></div>
   </div>
 </div>
@@ -202,11 +200,7 @@ input,select,textarea{ border-radius:2px !important; }
   <h1 id="pageTitle">สต๊อก SANDOS</h1>
   <p class="sub" id="summaryText">กำลังโหลดข้อมูล...</p>
 
-  <div class="branch-row">
-    <div class="branch-btn" id="brRush" onclick="setBranch('rush')"><span class="sw silver"></span>Rush</div>
-    <div class="branch-btn" id="brRushhour" onclick="setBranch('rushhour')"><span class="sw gold"></span>Rush Hour</div>
-    <div class="branch-btn active" id="brAll" onclick="setBranch('all')"><span class="sw both"></span>รวม</div>
-  </div>
+  
 
   <div id="errorBox"></div>
   <div id="content"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
@@ -233,7 +227,7 @@ input,select,textarea{ border-radius:2px !important; }
 
 <script>
 /* ============================================================================
-   Rush Coffee · แอป SANDOS — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
+   SANDOS · แอป SANDOS — ใช้ Apps Script ชุดเดิมทั้งหมด ไม่แก้หลังบ้าน
    ============================================================================ */
 const API_STOCK = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
 const API_ACC = "https://script.google.com/macros/s/AKfycbwZnXL_v4C-AHyfnCtee8S1szA_XhKeeVAnbEnx5RuYa1LFBRBZSbQWteZKvi7qndNUcQ/exec";
@@ -256,7 +250,7 @@ const EXPENSE_CATEGORIES = [
 ];
 const STOCK_UNITS = ["g","kg","ml","l","ชิ้น","ฟอง","ถุง","ขวด","กล่อง"];
 const CAT_LABEL = { coffee:"กาแฟ", drink:"เครื่องดื่ม/ไซรัป", bakery:"เบเกอรี่", dairy:"นม/ครีม", other:"บรรจุภัณฑ์/อื่นๆ" };
-const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", all:"รวมสองสาขา" };
+const BRANCH_LABEL = { rush:"SANDOS", rushhour:"SANDOS", all:"รวมสองสาขา" };
 
 let state = {
   view:"stock", branch:"all", loaded:false, formOpen:false,
@@ -890,8 +884,8 @@ function openSheet(html){
 }
 function branchOptions(){
   const def = state.branch==="all" ? "rush" : state.branch;
-  return '<option value="rush" '+(def==="rush"?"selected":"")+'>Rush</option>'
-       + '<option value="rushhour" '+(def==="rushhour"?"selected":"")+'>Rush Hour</option>';
+  return '<option value="rush" '+(def==="rush"?"selected":"")+'>SANDOS</option>'
+       + '<option value="rushhour" '+(def==="rushhour"?"selected":"")+'>SANDOS</option>';
 }
 
 function openSaleForm(){
@@ -971,14 +965,7 @@ async function deleteRec(kind,id){
   }catch(e){ showToast("ลบไม่สำเร็จ: "+e.message); }
 }
 
-function openAppSwitcher(){
-  openSheet('<h2 style="font-size:17px;margin:0 0 4px;">สลับแอป</h2><p class="sub" style="margin:0 0 13px;">แต่ละแอปติดตั้งแยกกันบนมือถือได้</p>'
-    +'<a class="applink" href="../staff/"><div class="dot" style="background:linear-gradient(135deg,#8C95A1,#69727E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><b>พนักงาน</b><span>ตอกบัตร · สรุปยอด</span></div></a>'
-    +'<a class="applink " href="../bakery/"><div class="dot" style="background:linear-gradient(135deg,#A87249,#7A4E2E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h16"/><path d="M5 13c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M4 13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2"/></svg></div><div><b>เบเกอรี่</b><span>สต๊อก · บันทึกรายวัน · ต้นทุน</span></div></a>'
-    +'<a class="applink cur" href="../bar/"><div class="dot" style="background:linear-gradient(135deg,#454C55,#22262B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12l-1.1 14.2a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 4Z"/><path d="M6.6 9h10.8"/></svg></div><div><b>SANDOS</b><span>สต๊อก · บันทึกรายวัน · ต้นทุน</span></div></a>'
-    +'<button class="btn-primary" style="margin-top:4px;" onclick="closeModal(); window.rushInstall && window.rushInstall.trigger();">ติดตั้งแอปนี้ลงมือถือ</button>'
-    +'<button class="btn-ghost" style="margin-top:9px;" onclick="closeModal()">ปิด</button>');
-}
+function openAppSwitcher(){ /* SANDOS ทำงานแยก ไม่มีลิงก์ไปแอปอื่น */ }
 
 /* ---------------- init ---------------- */
 tickClock(); setInterval(tickClock,1000);
