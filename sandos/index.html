@@ -742,7 +742,8 @@ function renderDaily(){
 }
 
 /* ---------- ต้นทุน ---------- */
-function renderCost(){
+function renderCost(){ return rcpAddBtn() + renderCostInner(); }
+function renderCostInner(){
   const menus=deptMenus();
   if(menus.length===0) return '<div class="empty"><span class="big">📐</span>ยังไม่มีเมนู — เพิ่มสูตรแรกได้เลย</div>';
 
@@ -869,8 +870,8 @@ function receiptCard(){
       + '</div>';
   }).join("");
   return '<div class="card">'
-    + '<button class="btn-primary" onclick="pickReceipt()" style="width:100%;padding:18px;font-size:17px;font-weight:800">'
-    +   (rcBusy ? "กำลังส่ง…" : "📸 ถ่ายใบเสร็จ") + '</button>'
+    + '<button class="btn-primary" onclick="pickReceipt()" style="width:100%;padding:15px;font-size:15px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:9px">'
+    + (rcBusy ? 'กำลังส่ง…' : RC_ICON + 'ถ่ายใบเสร็จ') + '</button>'
     + '<input type="file" id="rcFile" accept="image/*,application/pdf" style="display:none" onchange="onReceiptFile(this)">'
     + '<div style="font-size:12.5px;color:var(--ink-3);margin-top:9px">' + escapeHtml(sub) + '</div>'
     + list + '</div>';
@@ -1018,6 +1019,150 @@ tickClock(); setInterval(tickClock,1000);
 bootFromCache();
 loadAll();
 setInterval(()=>{ if(!state.formOpen && !state.scanner) loadAll(); }, 20000);
+
+/* ==================== สูตร & ต้นทุนเมนู ==================== */
+const RC_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6-2.4-1.6V3.5z"/><path d="M9.5 9h5M9.5 13h5"/></svg>';
+const RCP_PLUS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+function rcpAddBtn(){
+  return '<button class="btn-ghost" onclick="rcpOpen()" style="width:100%;margin-bottom:12px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:650">'
+    + RCP_PLUS + 'เพิ่มเมนู</button>';
+}
+
+function rcpItemList(){
+  const names = [];
+  (state.items || []).forEach(function(it){
+    const n = String(it.name || "").trim();
+    if(n && names.indexOf(n) < 0) names.push(n);
+  });
+  return '<datalist id="rcpItems">' + names.map(function(n){
+    return '<option value="' + escapeHtml(n) + '">';
+  }).join('') + '</datalist>';
+}
+
+function rcpRow(g){
+  g = g || {};
+  const cell = 'style="font-size:16px;padding:9px 10px"';
+  return '<div class="rcp-row" style="border:1px solid var(--line);border-radius:10px;padding:9px;margin-bottom:8px">'
+    + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">'
+    +   '<input class="rcp-name" list="rcpItems" placeholder="ชื่อวัตถุดิบ" value="' + escapeHtml(g.ingredientName||"") + '" oninput="rcpFill(this)" style="flex:1;font-size:16px;padding:9px 10px">'
+    +   '<button type="button" class="btn-sm" title="ลบ" onclick="this.closest(\'.rcp-row\').remove();rcpCalc()" style="flex:none;padding:8px 11px">✕</button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">'
+    +   '<input class="rcp-qty"  type="number" inputmode="decimal" placeholder="ใช้" value="' + (g.ingredientQty||"") + '" oninput="rcpCalc()" ' + cell + '>'
+    +   '<input class="rcp-unit" placeholder="หน่วย" value="' + escapeHtml(g.ingredientUnit||"") + '" ' + cell + '>'
+    +   '<input class="rcp-buy"  type="number" inputmode="decimal" placeholder="ซื้อ ฿" value="' + (g.buyPrice||"") + '" oninput="rcpCalc()" ' + cell + '>'
+    +   '<input class="rcp-pack" type="number" inputmode="decimal" placeholder="ต่อ" value="' + (g.packSize||"") + '" oninput="rcpCalc()" ' + cell + '>'
+    + '</div></div>';
+}
+
+function rcpFill(inp){
+  const want = String(inp.value || "").trim();
+  const it = (state.items || []).find(function(x){ return String(x.name||"").trim() === want; });
+  const row = inp.closest('.rcp-row');
+  if(it && row){
+    const u = row.querySelector('.rcp-unit'), b = row.querySelector('.rcp-buy'), p = row.querySelector('.rcp-pack');
+    if(u && !u.value) u.value = it.unit || "";
+    if(b && !b.value && n2(it.cost) > 0) b.value = n2(it.cost);
+    if(p && !p.value) p.value = 1;
+  }
+  rcpCalc();
+}
+
+function rcpCalc(){
+  const servEl = document.getElementById('rcpServ');
+  const serv = Math.max(1, n2(servEl ? servEl.value : 1));
+  let total = 0;
+  document.querySelectorAll('.rcp-row').forEach(function(r){
+    const q = n2(r.querySelector('.rcp-qty').value);
+    const b = n2(r.querySelector('.rcp-buy').value);
+    const p = n2(r.querySelector('.rcp-pack').value);
+    if(p > 0) total += (b / p) * q;
+  });
+  const cost  = total / serv;
+  const priceEl = document.getElementById('rcpPrice');
+  const price = n2(priceEl ? priceEl.value : 0);
+  const gp = price > 0 ? ((price - cost) / price) * 100 : null;
+  const out = document.getElementById('rcpOut');
+  if(!out) return;
+  const gpCol = gp === null ? 'var(--ink-3)' : (gp >= 60 ? 'var(--green)' : (gp >= 40 ? 'var(--amber)' : 'var(--red)'));
+  out.innerHTML =
+      '<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:13px;color:var(--ink-2)">ต้นทุนต่อที่</span><b style="font-variant-numeric:tabular-nums">' + fmtB(cost) + '</b></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:13px;color:var(--ink-2)">กำไรต่อที่</span><b style="font-variant-numeric:tabular-nums">' + fmtB(Math.max(0, price - cost)) + '</b></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px dashed var(--line);margin-top:2px"><span style="font-size:13px;color:var(--ink-2)">GP</span><b style="font-size:17px;color:' + gpCol + '">' + (gp === null ? '—' : gp.toFixed(0) + '%') + '</b></div>';
+}
+
+function rcpAdd(){
+  const box = document.getElementById('rcpRows');
+  if(box){ box.insertAdjacentHTML('beforeend', rcpRow()); rcpCalc(); }
+}
+
+function rcpOpen(menuName){
+  const m = menuName ? deptMenus().find(function(x){ return x.menuName === menuName; }) : null;
+  const rows = m ? m.ingredients : [];
+  const fld = 'style="width:100%;font-size:16px;padding:11px 12px"';
+  openSheet(
+      '<h3 style="margin:0 0 12px;font-size:18px">' + (m ? 'แก้สูตร ' + escapeHtml(m.menuName) : 'เพิ่มเมนูใหม่') + '</h3>'
+    + rcpItemList()
+    + '<label class="lbl">ชื่อเมนู</label>'
+    + '<input id="rcpName" placeholder="เช่น Flat White" value="' + escapeHtml(m ? m.menuName : "") + '" ' + fld + '>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
+    +   '<div><label class="lbl">ราคาขาย ฿</label><input id="rcpPrice" type="number" inputmode="decimal" value="' + (m ? n2(m.sellingPrice) : "") + '" oninput="rcpCalc()" ' + fld + '></div>'
+    +   '<div><label class="lbl">สูตรนี้ได้กี่ที่</label><input id="rcpServ" type="number" inputmode="numeric" value="' + (m ? (n2(m.servings)||1) : 1) + '" oninput="rcpCalc()" ' + fld + '></div>'
+    + '</div>'
+    + '<div style="margin:16px 0 6px;font-weight:700;font-size:14px">วัตถุดิบ</div>'
+    + '<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px">ใช้เท่าไร · หน่วย · ราคาที่ซื้อมา · ซื้อมาได้กี่หน่วย</div>'
+    + '<div id="rcpRows">' + (rows.length ? rows.map(rcpRow).join('') : rcpRow()) + '</div>'
+    + '<button type="button" class="btn-ghost" onclick="rcpAdd()" style="width:100%;padding:11px;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:650">' + RCP_PLUS + 'เพิ่มวัตถุดิบ</button>'
+    + '<div id="rcpOut" style="margin-top:14px;padding:12px 14px;background:var(--surface-2);border-radius:10px"></div>'
+    + '<div style="display:flex;gap:8px;margin-top:16px">'
+    +   (m ? '<button type="button" class="btn-ghost" onclick="rcpDelete(\'' + escapeHtml(m.menuName).replace(/'/g,"\\'") + '\')" style="flex:none;padding:13px 16px;color:var(--red)">ลบ</button>' : '')
+    +   '<button type="button" class="btn-primary" onclick="rcpSubmit()" style="flex:1;padding:13px;font-weight:700">บันทึกสูตร</button>'
+    + '</div>'
+  );
+  rcpCalc();
+}
+
+async function rcpSubmit(){
+  const nameEl = document.getElementById('rcpName');
+  const name = String(nameEl ? nameEl.value : "").trim();
+  if(!name){ showToast("ใส่ชื่อเมนูก่อน"); return; }
+  const price = n2(document.getElementById('rcpPrice').value);
+  const serv  = Math.max(1, n2(document.getElementById('rcpServ').value));
+  const rows = [];
+  document.querySelectorAll('.rcp-row').forEach(function(r){
+    const nm = String(r.querySelector('.rcp-name').value || "").trim();
+    if(!nm) return;
+    rows.push({
+      menuName: name, category: (typeof DEPT_LABEL !== "undefined" ? DEPT_LABEL : ""),
+      servings: serv, sellingPrice: price,
+      ingredientName: nm,
+      ingredientQty:  n2(r.querySelector('.rcp-qty').value),
+      ingredientUnit: String(r.querySelector('.rcp-unit').value || ""),
+      buyPrice:       n2(r.querySelector('.rcp-buy').value),
+      packSize:       n2(r.querySelector('.rcp-pack').value),
+      branch: "rush"
+    });
+  });
+  if(!rows.length){ showToast("ใส่วัตถุดิบอย่างน้อย 1 อย่าง"); return; }
+  try{
+    const res = await apiCall(API_MENU, "saveRecipe", { menuName: name, rows: rows });
+    if(res && res.error) throw new Error(res.error);
+    closeModal();
+    showToast('บันทึกสูตร "' + name + '" แล้ว');
+    await loadAll();
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
+}
+
+async function rcpDelete(menuName){
+  if(!confirm('ลบสูตร "' + menuName + '" ?')) return;
+  try{
+    const res = await apiCall(API_MENU, "saveRecipe", { menuName: menuName, rows: [{ menuName: menuName, ingredientName: "" }] });
+    if(res && res.error) throw new Error(res.error);
+    closeModal(); showToast("ลบแล้ว"); await loadAll();
+  }catch(e){ showToast("ลบไม่สำเร็จ: " + e.message); }
+}
+
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <script src="pwa-install.js"></script>
