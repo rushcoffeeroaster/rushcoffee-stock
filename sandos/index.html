@@ -189,6 +189,9 @@ input,select,textarea{ border-radius:2px !important; }
 .nav-item{position:relative}
 .nav-item.active{background:transparent!important;color:var(--accent)!important}
 .nav-item.active::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:5px;width:20px;height:2.5px;background:var(--accent)}
+#navDaily{order:1}
+#navStock{order:2}
+#navCost{order:3}
 </style>
 </head>
 <body id="bodyEl">
@@ -221,11 +224,11 @@ input,select,textarea{ border-radius:2px !important; }
 
 <nav class="bottom-nav">
   <div class="nav-inner">
-    <button class="nav-item active" id="navStock" onclick="setView('stock')">
+    <button class="nav-item" id="navStock" onclick="setView('stock')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21 3 16.5v-9Z"/><path d="m3 7.5 9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
       สต๊อก
     </button>
-    <button class="nav-item" id="navDaily" onclick="setView('daily')">
+    <button class="nav-item active" id="navDaily" onclick="setView('daily')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-2 2-2-2-2 2-3-2V6a2 2 0 0 1 2-2Z"/><path d="M9 9h6M9 13h4"/></svg>
       บันทึกรายวัน
     </button>
@@ -264,7 +267,7 @@ const CAT_LABEL = { coffee:"กาแฟ", drink:"เครื่องดื่
 const BRANCH_LABEL = { rush:"SANDOS", rushhour:"SANDOS", all:"รวมสองสาขา" };
 
 let state = {
-  view:"stock", branch:"all", loaded:false, formOpen:false,
+  view:"daily", branch:"all", loaded:false, formOpen:false,
   items:[], income:[], expense:[], recipes:[],
   search:"", catFilter:"all", period:"day", rangeFrom:todayStr().slice(0,8)+"01", rangeTo:todayStr(), err:"",
   scanner:null, scanBusy:false,
@@ -1016,6 +1019,7 @@ function openAppSwitcher(){ /* SANDOS ทำงานแยก ไม่มี�
 
 /* ---------------- init ---------------- */
 tickClock(); setInterval(tickClock,1000);
+setView("daily");
 bootFromCache();
 loadAll();
 setInterval(()=>{ if(!state.formOpen && !state.scanner) loadAll(); }, 20000);
