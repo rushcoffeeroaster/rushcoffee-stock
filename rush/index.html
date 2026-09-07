@@ -520,6 +520,7 @@ function rangeFields(){
 
 function setPeriod(p){
   state.period = p;
+  saveNav();
   if(p==="custom" && !state.rangeFrom){
     const t=todayStr(); state.rangeFrom=t.slice(0,8)+"01"; state.rangeTo=t;
   }
@@ -527,6 +528,31 @@ function setPeriod(p){
 }
 
 /* ---------------- navigation ---------------- */
+
+function saveNav(){
+  try{ localStorage.setItem("rushNav", JSON.stringify({
+    section: state.section, tab: state.tab, subTab: state.subTab, period: state.period,
+    rangeFrom: state.rangeFrom, rangeTo: state.rangeTo
+  })); }catch(e){}
+}
+
+function restoreNav(){
+  let n = null;
+  try{ n = JSON.parse(localStorage.getItem("rushNav") || "null"); }catch(e){}
+  const sec = (n && ["summary","bar","bakery"].indexOf(n.section) >= 0) ? n.section : "summary";
+  setSection(sec);
+  if(n){
+    if(["day","week","month","custom"].indexOf(n.period) >= 0) state.period = n.period;
+    if(n.rangeFrom) state.rangeFrom = n.rangeFrom;
+    if(n.rangeTo)   state.rangeTo   = n.rangeTo;
+    if(sec === "summary"){
+      if(["sales","attend"].indexOf(n.subTab) >= 0) state.subTab = n.subTab;
+    }else if(["stock","daily","cost"].indexOf(n.tab) >= 0){
+      state.tab = n.tab;
+    }
+    render();
+  }
+}
 
 function setSection(s){
   state.section = s;
@@ -538,12 +564,13 @@ function setSection(s){
   document.getElementById("sectionTag").textContent =
     s==="summary" ? "สรุปรวม" : DEPT_LABEL[s];
   window.scrollTo(0,0);
+  saveNav();
   render();
   refresh(true);
 }
 
-function setTab(t){ state.tab = t; window.scrollTo(0,0); render(); }
-function setSubTab(t){ state.subTab = t; window.scrollTo(0,0); render(); }
+function setTab(t){ state.tab = t; saveNav(); window.scrollTo(0,0); render(); }
+function setSubTab(t){ state.subTab = t; saveNav(); window.scrollTo(0,0); render(); }
 function setCat(c){ state.cat = c; render(); }
 function onSearch(v){ state.q = String(v||"").trim().toLowerCase(); render(); }
 
@@ -1367,7 +1394,7 @@ async function rcpDelete(menuName){
 
 tickClock(); setInterval(tickClock, 1000);
 bootFromCache();
-setSection("summary");
+restoreNav();
 setInterval(function(){
   if(!state.formOpen) refresh(true);
 }, 180000);
