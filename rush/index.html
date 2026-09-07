@@ -284,7 +284,8 @@ const state = {
   rangeFrom: "", rangeTo: "",
   cat: "all", q: "",
   formOpen:false, loaded:false,
-  data: { bar:null, bakery:null },   // bootstrap ต่อแผนก
+  data: { bar:null, bakery:null },
+  fixed: null, fixEdit: null, fixMonth: "", fixDel: [],   // bootstrap ต่อแผนก
   roll: null                          // rollup สำหรับหมวดสรุป
 };
 
@@ -338,7 +339,7 @@ function cacheKey(){ return "rushBoot"; }
 function saveCache(){
   try{
     localStorage.setItem(cacheKey(), JSON.stringify({
-      d: todayStr(), data: state.data, roll: state.roll
+      d: todayStr(), data: state.data, roll: state.roll, fixed: state.fixed
     }));
   }catch(e){}
 }
@@ -347,7 +348,7 @@ function bootFromCache(){
   try{
     const c = JSON.parse(localStorage.getItem(cacheKey()) || "null");
     if(c && c.d === todayStr() && c.data){
-      state.data = c.data; state.roll = c.roll || null; state.loaded = true;
+      state.data = c.data; state.roll = c.roll || null; state.fixed = c.fixed || null; state.loaded = true;
       render();
       return true;
     }
@@ -381,6 +382,7 @@ async function loadDept(dept, force){
               amount:n2(r.amount), date:normDate(r.date) }); }),
     summary: b.summary || null
   };
+  state.fixed = b.fixed || state.fixed || [];
   return state.data[dept];
 }
 
@@ -468,7 +470,253 @@ function computeRoll(){
       cycles[i][dp] += n2(x.amount); cycles[i].total += n2(x.amount);
     });
   });
-  return { from:r.from, to:r.to, days:list, totals:totals, cycles:cycles };
+  const fxRows = fixedBooked(r.from, r.to);
+  let fxSum = 0; fxRows.forEach(function(x){ fxSum += n2(x.total); });
+  totals.fixed = fxSum;
+  totals.net   = totals.profit - fxSum;
+
+  return { from:r.from, to:r.to, days:list, totals:totals, cycles:cycles, fixed:fxRows };
+}
+
+/* ==================== รายจ่ายคงที่ ====================
+   แม่แบบ (kind="tpl") ตั้งครั้งเดียว ใช้วนทุกเดือน
+   เดือนไหนจ่ายไม่เท่าแม่แบบ เก็บเป็น kind="one" ทับเฉพาะเดือนนั้น
+   ยอดของแต่ละเดือนลงบัญชีที่ "วันสิ้นเดือน"
+   ====================================================== */
+
+const FIX_PRESET = ["ค่าเช่า","ค่าน้ำ","ค่าไฟ","ค่าจ้าง","ค่าการตลาด"];
+
+function fxTpl(){ return (state.fixed||[]).filter(function(r){ return String(r.kind||"tpl")==="tpl"; }); }
+function fxOne(ym){ return (state.fixed||[]).filter(function(r){ return String(r.kind)==="one" && String(r.month)===ym; }); }
+
+function monthEnd(ym){
+  const y = parseInt(ym.slice(0,4),10), m = parseInt(ym.slice(5,7),10);
+  const d = new Date(y, m, 0);
+  return ym + "-" + pad2(d.getDate());
+}
+function thMonth(ym){ return TH_MON[parseInt(ym.slice(5,7),10)-1] + " " + ym.slice(0,4); }
+
+function fixedForMonth(ym){
+  const tpl = fxTpl(), one = fxOne(ym), out = [];
+  tpl.forEach(function(t){
+    let ov = null;
+    one.forEach(function(o){ if(String(o.category)===String(t.category)) ov = o; });
+    out.push({ id: ov?String(ov.id):String(t.id), category:String(t.category),
+               amount: ov?n2(ov.amount):n2(t.amount), over: !!ov });
+  });
+  one.forEach(function(o){
+    let dup = false;
+    tpl.forEach(function(t){ if(String(t.category)===String(o.category)) dup = true; });
+    if(!dup) out.push({ id:String(o.id), category:String(o.category), amount:n2(o.amount), over:true });
+  });
+  return out;
+}
+
+function fixedBooked(from, to){
+  const out = [];
+  let y = parseInt(from.slice(0,4),10), m = parseInt(from.slice(5,7),10);
+  const ly = parseInt(to.slice(0,4),10), lm = parseInt(to.slice(5,7),10);
+  let guard = 0;
+  while((y < ly || (y === ly && m <= lm)) && guard++ < 400){
+    const ym = y + "-" + pad2(m);
+    const e = monthEnd(ym);
+    if(e >= from && e <= to){
+      const items = fixedForMonth(ym);
+      let sum = 0; items.forEach(function(x){ sum += n2(x.amount); });
+      if(sum) out.push({ ym:ym, date:e, items:items, total:sum });
+    }
+    m++; if(m > 12){ m = 1; y++; }
+  }
+  return out;
+}
+
+function fixedPending(){
+  const r = periodRange();
+  const ym = r.to.slice(0,7);
+  const e = monthEnd(ym);
+  if(e <= r.to) return null;
+  const items = fixedForMonth(ym);
+  let sum = 0; items.forEach(function(x){ sum += n2(x.amount); });
+  if(!sum) return null;
+  return { ym:ym, date:e, items:items, total:sum };
+}
+
+function fxLines(m){
+  return m.items.map(function(x){
+      if(!n2(x.amount)) return "";
+      return '<div class="row"><span class="k">' + escapeHtml(x.category) + '</span>'
+           + '<span class="v" style="color:var(--red)">' + fmtB(x.amount) + '</span></div>';
+    }).join("")
+    + '<div class="row"><span class="k"><b>รวม</b></span>'
+    + '<span class="v"><b style="color:var(--red)">' + fmtB(m.total) + '</b></span></div>';
+}
+
+function fixedCard(){
+  const roll = state.roll; if(!roll) return "";
+  const rows = roll.fixed || [];
+  const pend = fixedPending();
+  if(!rows.length && !pend) return "";
+  return '<div class="card">'
+    + '<div style="font-weight:800;font-size:14px;margin-bottom:8px">รายจ่ายคงที่</div>'
+    + rows.map(function(m){
+        return '<div class="mini" style="margin:0 0 4px">' + thMonth(m.ym) + ' · ลงบัญชี ' + thDate(m.date) + '</div>'
+             + fxLines(m);
+      }).join("")
+    + (pend
+       ? '<div class="mini" style="margin:' + (rows.length ? '12px' : '0') + ' 0 4px;color:var(--ink-3)">'
+         + thMonth(pend.ym) + ' · ยังไม่ลงบัญชี จะรวมให้วันที่ ' + thDate(pend.date) + '</div>'
+         + '<div style="opacity:.6">' + fxLines(pend) + '</div>'
+       : "")
+    + '</div>';
+}
+
+/* ---------------- แท็บ รายจ่ายคงที่ ---------------- */
+
+function fxEnsureEdit(){
+  if(state.fixEdit) return;
+  const rows = fxTpl();
+  state.fixEdit = rows.length
+    ? rows.map(function(r){ return { id:String(r.id), category:String(r.category), amount:n2(r.amount) }; })
+    : FIX_PRESET.map(function(c){ return { id:"", category:c, amount:0 }; });
+}
+
+function fxSet(i, key, v){
+  if(!state.fixEdit || !state.fixEdit[i]) return;
+  state.fixEdit[i][key] = (key === "amount") ? n2(v) : String(v);
+  let sum = 0; state.fixEdit.forEach(function(x){ sum += n2(x.amount); });
+  const el = document.getElementById("fxTotal");
+  if(el) el.textContent = fmtB(sum) + " ฿";
+}
+
+function fxAdd(){ fxEnsureEdit(); state.fixEdit.push({ id:"", category:"", amount:0 }); render(); }
+
+function fxDel(i){
+  fxEnsureEdit();
+  const row = state.fixEdit[i];
+  state.fixEdit.splice(i, 1);
+  if(row && row.id){ state.fixDel = state.fixDel || []; state.fixDel.push(row.id); }
+  render();
+}
+
+async function fxReload(){
+  const g = await apiCall("getFixed", {});
+  if(g.error) throw new Error(g.error);
+  state.fixed = g.rows || [];
+  state.roll = computeRoll();
+  saveCache();
+}
+
+async function fxSave(){
+  fxEnsureEdit();
+  const rows = [];
+  state.fixEdit.forEach(function(r){
+    if(!String(r.category||"").trim()) return;
+    rows.push({ id:r.id||"", month:"", category:String(r.category).trim(), amount:n2(r.amount), kind:"tpl" });
+  });
+  try{
+    showToast("กำลังบันทึก…");
+    if(state.fixDel && state.fixDel.length){ await apiCall("deleteFixed", { ids: state.fixDel }); state.fixDel = []; }
+    if(rows.length) await apiCall("saveFixed", { rows: rows });
+    await fxReload();
+    state.fixEdit = null;
+    render();
+    showToast("บันทึกรายจ่ายคงที่แล้ว");
+  }catch(e){ showToast("บันทึกไม่สำเร็จ: " + e.message); }
+}
+
+function fxMonth(){ return state.fixMonth || todayStr().slice(0,7); }
+function fxSetMonth(v){ state.fixMonth = String(v||"").slice(0,7); render(); }
+
+async function fxOverrideAt(i, val){
+  const items = fixedForMonth(fxMonth());
+  if(!items[i]) return;
+  const cat = String(items[i].category);
+  const ym = fxMonth();
+  let cur = null, tpl = null;
+  fxOne(ym).forEach(function(o){ if(String(o.category) === cat) cur = o; });
+  fxTpl().forEach(function(t){ if(String(t.category) === cat) tpl = t; });
+  try{
+    showToast("กำลังบันทึก…");
+    if(tpl && n2(val) === n2(tpl.amount)){
+      if(cur) await apiCall("deleteFixed", { id: String(cur.id) });
+    }else{
+      await apiCall("saveFixed", { rows:[{ id: cur?String(cur.id):"", month:ym,
+        category:cat, amount:n2(val), kind:"one" }] });
+    }
+    await fxReload();
+    render();
+    showToast("แก้ยอดเดือน " + thMonth(ym) + " แล้ว");
+  }catch(e){ showToast("ไม่สำเร็จ: " + e.message); }
+}
+
+async function fxClearOverride(id){
+  try{
+    showToast("กำลังบันทึก…");
+    await apiCall("deleteFixed", { id: String(id) });
+    await fxReload();
+    render();
+    showToast("กลับไปใช้ยอดแม่แบบแล้ว");
+  }catch(e){ showToast("ไม่สำเร็จ: " + e.message); }
+}
+
+function fxStyle(){
+  return '<style>'
+    + '.fx-row{display:grid;grid-template-columns:1fr 112px 36px;gap:8px;align-items:center;margin-bottom:8px}'
+    + '.fx-row input{margin:0}'
+    + '.fx-txt{font-size:14.5px;font-weight:600;color:var(--ink)}'
+    + '.fx-x{border:1px solid var(--line);background:#fff;border-radius:10px;height:40px;font-size:16px;color:var(--ink-3);cursor:pointer}'
+    + '.fx-x.ghost{border:0;background:transparent}'
+    + '.fx-tag{font-size:11px;font-weight:600;color:var(--accent-deep);background:var(--accent-soft);border-radius:6px;padding:1px 6px;margin-left:6px}'
+    + '</style>';
+}
+
+function renderFixed(){
+  const head = summaryTabs();
+  if(!state.fixed) return head + skeleton();
+  fxEnsureEdit();
+
+  let tplTotal = 0; state.fixEdit.forEach(function(x){ tplTotal += n2(x.amount); });
+
+  const tplCard =
+      '<div class="card">'
+    +   '<div style="font-weight:800;font-size:15px">แม่แบบรายเดือน</div>'
+    +   '<p class="mini" style="margin:2px 0 12px">ตั้งครั้งเดียว ระบบใช้ยอดนี้ทุกเดือน</p>'
+    +   state.fixEdit.map(function(r, i){
+          return '<div class="fx-row">'
+            + '<input value="' + escapeHtml(r.category) + '" placeholder="ชื่อรายการ" oninput="fxSet(' + i + ',&#39;category&#39;,this.value)">'
+            + '<input type="number" inputmode="decimal" value="' + (n2(r.amount) || "") + '" placeholder="0" oninput="fxSet(' + i + ',&#39;amount&#39;,this.value)">'
+            + '<button class="fx-x" onclick="fxDel(' + i + ')">×</button>'
+            + '</div>';
+        }).join("")
+    +   '<button class="btn" onclick="fxAdd()">+ เพิ่มรายการ</button>'
+    +   '<div class="row" style="margin-top:12px"><span class="k">รวมต่อเดือน</span>'
+    +     '<span class="v"><b id="fxTotal">' + fmtB(tplTotal) + ' ฿</b></span></div>'
+    +   '<button class="btn btn-accent" onclick="fxSave()" style="margin-top:10px">บันทึกแม่แบบ</button>'
+    + '</div>';
+
+  const ym = fxMonth();
+  const items = fixedForMonth(ym);
+  let mTotal = 0; items.forEach(function(x){ mTotal += n2(x.amount); });
+
+  const monthCard =
+      '<div class="card">'
+    +   '<div style="font-weight:800;font-size:15px">ยอดจริงรายเดือน</div>'
+    +   '<p class="mini" style="margin:2px 0 12px">เดือนไหนจ่ายไม่เท่าแม่แบบ แก้ตรงนี้ · เข้าสรุปวันที่ ' + thDate(monthEnd(ym)) + '</p>'
+    +   '<input type="month" value="' + ym + '" onchange="fxSetMonth(this.value)" style="margin-bottom:12px">'
+    +   (items.length
+        ? items.map(function(x, i){
+            return '<div class="fx-row">'
+              + '<span class="fx-txt">' + escapeHtml(x.category) + (x.over ? '<span class="fx-tag">แก้แล้ว</span>' : '') + '</span>'
+              + '<input type="number" inputmode="decimal" value="' + (n2(x.amount) || "") + '" onchange="fxOverrideAt(' + i + ',this.value)">'
+              + (x.over ? '<button class="fx-x" onclick="fxClearOverride(&#39;' + escapeHtml(x.id) + '&#39;)" title="กลับไปใช้แม่แบบ">↺</button>' : '<span class="fx-x ghost"></span>')
+              + '</div>';
+          }).join("")
+        : '<div class="empty"><span class="big">◻</span>ยังไม่ได้ตั้งแม่แบบ</div>')
+    +   '<div class="row" style="margin-top:12px"><span class="k">รวมเดือน ' + thMonth(ym) + '</span>'
+    +     '<span class="v"><b style="color:var(--red)">' + fmtB(mTotal) + ' ฿</b></span></div>'
+    + '</div>';
+
+  return head + fxStyle() + tplCard + monthCard;
 }
 
 function periodRange(){
@@ -546,7 +794,7 @@ function restoreNav(){
     if(n.rangeFrom) state.rangeFrom = n.rangeFrom;
     if(n.rangeTo)   state.rangeTo   = n.rangeTo;
     if(sec === "summary"){
-      if(["sales","attend"].indexOf(n.subTab) >= 0) state.subTab = n.subTab;
+      if(["sales","fixed","attend"].indexOf(n.subTab) >= 0) state.subTab = n.subTab;
     }else if(["stock","daily","cost"].indexOf(n.tab) >= 0){
       state.tab = n.tab;
     }
@@ -570,7 +818,7 @@ function setSection(s){
 }
 
 function setTab(t){ state.tab = t; saveNav(); window.scrollTo(0,0); render(); }
-function setSubTab(t){ state.subTab = t; saveNav(); window.scrollTo(0,0); render(); }
+function setSubTab(t){ state.subTab = t; saveNav(); window.scrollTo(0,0); render(); if(t==="fixed" && !state.fixed) refresh(true); }
 function setCat(c){ state.cat = c; render(); }
 function onSearch(v){ state.q = String(v||"").trim().toLowerCase(); render(); }
 
@@ -584,7 +832,7 @@ function render(){
   if(state.section === "summary"){
     title.textContent = "สรุปรวม";
     sub.textContent = state.loaded ? "ทุกยอดของบาร์น้ำและเบเกอรี่ รวมกันอัตโนมัติ" : "กำลังโหลดข้อมูล…";
-    box.innerHTML = state.subTab==="attend" ? renderAttend() : renderSummary();
+    box.innerHTML = state.subTab==="attend" ? renderAttend() : (state.subTab==="fixed" ? renderFixed() : renderSummary());
     return;
   }
 
@@ -621,7 +869,7 @@ function deptTabs(){
    ======================================================= */
 
 function summaryTabs(){
-  const opts=[["sales","สรุปยอด"],["attend","ตอกบัตร"]];
+  const opts=[["sales","สรุปยอด"],["fixed","รายจ่ายคงที่"],["attend","ตอกบัตร"]];
   return '<div class="chiprow no-print">'
     + opts.map(function(o){
         return '<button class="chip '+(state.subTab===o[0]?"active":"")
@@ -639,12 +887,16 @@ function renderSummary(){
   const days = roll.days || [];
   const profit = n2(t.profit);
 
+  const fx  = n2(t.fixed);
+  const net = n2(t.profit) - fx;
   const kpis =
       '<div class="kpi-grid">'
-    +   '<div class="kpi wide"><p class="kpi-label">กำไร · '+escapeHtml(periodLabel())+'</p>'
-    +     '<p class="kpi-val '+(profit>=0?"pos":"neg")+'">'+(profit>=0?"+":"−")+fmtB(Math.abs(profit))+' ฿</p></div>'
+    +   '<div class="kpi wide"><p class="kpi-label">กำไรสุทธิ · '+escapeHtml(periodLabel())+'</p>'
+    +     '<p class="kpi-val '+(net>=0?"pos":"neg")+'">'+(net>=0?"+":"−")+fmtB(Math.abs(net))+' ฿</p>'
+    +     (fx ? '<p class="mini" style="margin:4px 0 0">หักรายจ่ายคงที่ '+fmtB(fx)+' ฿ แล้ว</p>' : "")
+    +   '</div>'
     +   '<div class="kpi"><p class="kpi-label">ยอดขายรวม</p><p class="kpi-val">'+fmtB(t.sales)+'</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">ค่าใช้จ่ายรวม</p><p class="kpi-val" style="color:var(--red)">'+fmtB(t.expense)+'</p></div>'
+    +   '<div class="kpi"><p class="kpi-label">ค่าใช้จ่ายรวม</p><p class="kpi-val" style="color:var(--red)">'+fmtB(n2(t.expense)+fx)+'</p></div>'
     + '</div>';
 
   const split =
@@ -687,7 +939,7 @@ function renderSummary(){
     + '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>'
     + 'ดาวน์โหลด PDF</button>';
 
-  return head + printHeader() + kpis + split + deliveryCard() + table + pdfBtn;
+  return head + printHeader() + kpis + split + fixedCard() + deliveryCard() + table + pdfBtn;
 }
 
 
