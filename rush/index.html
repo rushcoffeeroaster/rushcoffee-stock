@@ -539,7 +539,7 @@ function setSection(s){
     s==="summary" ? "สรุปรวม" : DEPT_LABEL[s];
   window.scrollTo(0,0);
   render();
-  refresh(false);
+  refresh(true);
 }
 
 function setTab(t){ state.tab = t; window.scrollTo(0,0); render(); }
