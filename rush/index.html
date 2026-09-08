@@ -1214,8 +1214,14 @@ const RC_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 let rcBusy = false;
 
 function receiptCard(d){
-  const rows = (d.purchases||[]).filter(function(r){ return normDate(r.date)===todayStr(); });
-  const pending = rows.filter(function(r){ return String(r.status)!=="ok"; }).length;
+  const today = (d.purchases||[]).filter(function(r){ return normDate(r.date)===todayStr(); });
+  const done  = today.filter(function(r){ return String(r.status)==="ok"; }).length;
+  // ลงยอดแล้วหายจากหน้านี้เลย เหลือเฉพาะใบที่ยังรออ่านยอด
+  const rows  = today.filter(function(r){
+    const st = String(r.status||"pending");
+    return st !== "ok" && st !== "void";
+  });
+  const pending = rows.length;
   const lines = rows.map(function(r){
     const id = String(r.id||"").replace(/'/g,"\\'");
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)">'
@@ -1224,6 +1230,9 @@ function receiptCard(d){
       + '<div style="display:flex;align-items:center;gap:6px">'
       +   '<input inputmode="decimal" value="'+(n2(r.amount)||"")+'" placeholder="ยอด ฿" '
       +     'onchange="setReceiptAmount(\''+id+'\',this.value)" style="width:104px;text-align:right;padding:8px 10px">'
+      +   '<button title="ไม่นับใบนี้" onclick="voidReceipt(&#39;'+id+'&#39;)" '
+      +     'style="flex:none;width:38px;height:40px;border:1px solid var(--line);background:#fff;'
+      +     'border-radius:11px;font-size:17px;line-height:1;color:var(--ink-3);cursor:pointer">×</button>'
       + '</div></div>';
   }).join("");
 
@@ -1233,11 +1242,23 @@ function receiptCard(d){
     + '<input type="file" id="rcFile" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="onReceiptFile(this)">'
     + '<div class="mini" style="margin-top:8px">'
     +   (rows.length
-        ? ('วันนี้ส่งแล้ว '+rows.length+' ใบ'+(pending?(' · รออ่านยอด '+pending):' · อ่านครบแล้ว'))
-        : 'ถ่ายรูปใบเสร็จส่งมาได้เลย ไม่ต้องกรอกยอด')
+        ? ('รออ่านยอด '+rows.length+' ใบ')
+        : (done ? ('ใบเสร็จวันนี้ลงครบแล้ว '+done+' ใบ')
+                : 'ถ่ายรูปใบเสร็จส่งมาได้เลย ไม่ต้องกรอกยอด'))
     + '</div>'
     + lines
     + '</div>';
+}
+
+/** ใบซ้ำหรือใบที่ไม่ต้องนับ — เอาออกจากหน้าจอและทิ้งรูปด้วย */
+async function voidReceipt(id){
+  if(!confirm("เอาใบนี้ออก ไม่นับเป็นรายจ่าย (เช่น ถ่ายซ้ำ)")) return;
+  try{
+    const r = await apiCall("savePurchase", { id:id, status:"void", amount:0, source:"staff" });
+    if(r.error) throw new Error(r.error);
+    showToast("เอาใบนี้ออกแล้ว");
+    await refresh(true);
+  }catch(e){ showToast("ไม่สำเร็จ: "+e.message); }
 }
 
 function pickReceipt(){
