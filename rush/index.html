@@ -285,7 +285,8 @@ const state = {
   cat: "all", q: "",
   formOpen:false, loaded:false,
   data: { bar:null, bakery:null },
-  fixed: null, fixEdit: null, fixMonth: "", fixDel: [],   // bootstrap ต่อแผนก
+  fixed: null, fixEdit: null, fixMonth: "", fixDel: [],
+  dayClose: null, dcEdit: null,   // bootstrap ต่อแผนก
   roll: null                          // rollup สำหรับหมวดสรุป
 };
 
@@ -321,16 +322,33 @@ function tickClock(){
 
 async function apiCall(action, payload){
   const body = "action="+encodeURIComponent(action)+"&payload="+encodeURIComponent(JSON.stringify(payload||{}));
-  const res = await fetch(API_URL, {
-    method:"POST",
-    headers:{ "Content-Type":"text/plain;charset=utf-8" },
-    body: body
-  });
-  const text = await res.text();
-  if(!res.ok) throw new Error("เซิร์ฟเวอร์ตอบกลับ HTTP "+res.status);
-  try{ return JSON.parse(text); }
-  catch(e){ throw new Error("รูปแบบข้อมูลไม่ถูกต้อง: "+text.slice(0,120)); }
+  let lastErr = null;
+  // Apps Script ตอบ 404/5xx ชั่วคราวได้บ่อยหลังอัปเดต — ลองซ้ำเองแทนที่จะเด้ง error ใส่หน้าน้อง
+  for(let i=0; i<3; i++){
+    try{
+      const res = await fetch(API_URL, {
+        method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: body
+      });
+      const text = await res.text();
+      if(!res.ok){
+        lastErr = new Error("เซิร์ฟเวอร์ตอบกลับ HTTP "+res.status);
+        if(res.status === 404 || res.status >= 500){ await naptime(700*(i+1)); continue; }
+        throw lastErr;
+      }
+      try{ return JSON.parse(text); }
+      catch(e){ throw new Error("รูปแบบข้อมูลไม่ถูกต้อง: "+text.slice(0,120)); }
+    }catch(e){
+      lastErr = e;
+      if(i === 2) break;
+      await naptime(700*(i+1));
+    }
+  }
+  throw lastErr || new Error("เชื่อมต่อไม่ได้");
 }
+
+function naptime(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
 /* ---------------- data ---------------- */
 
@@ -339,7 +357,7 @@ function cacheKey(){ return "rushBoot"; }
 function saveCache(){
   try{
     localStorage.setItem(cacheKey(), JSON.stringify({
-      d: todayStr(), data: state.data, roll: state.roll, fixed: state.fixed
+      d: todayStr(), data: state.data, roll: state.roll, fixed: state.fixed, dayClose: state.dayClose
     }));
   }catch(e){}
 }
@@ -348,7 +366,7 @@ function bootFromCache(){
   try{
     const c = JSON.parse(localStorage.getItem(cacheKey()) || "null");
     if(c && c.d === todayStr() && c.data){
-      state.data = c.data; state.roll = c.roll || null; state.fixed = c.fixed || null; state.loaded = true;
+      state.data = c.data; state.roll = c.roll || null; state.fixed = c.fixed || null; state.dayClose = c.dayClose || null; state.loaded = true;
       render();
       return true;
     }
@@ -395,16 +413,39 @@ async function loadRollup(force){
   return out;
 }
 
+/** โหลดทั้งสองแผนกในคำขอเดียว — Apps Script คิดเวลาต่อคำขอ ~3-4 วิ ยิงน้อยครั้งที่สุดคือเร็วที่สุด */
+async function loadAll(force){
+  if(state.data.bar && state.data.bakery && !force) return;
+  const b = await apiCall("bootstrapAll", { date: todayStr() });
+  if(b.error) throw new Error(b.error);
+  ["bar","bakery"].forEach(function(dept){
+    const x = b[dept] || {};
+    state.data[dept] = {
+      items:  (x.items||[]).map(function(it){ return Object.assign({}, it, {
+                qty:n2(it.qty), min:n2(it.min), cost:n2(it.cost) }); }),
+      income: (x.income||[]).map(function(r){ return Object.assign({}, r, {
+                amount:n2(r.amount), date:normDate(r.date) }); }),
+      expense:(x.expense||[]).map(function(r){ return Object.assign({}, r, {
+                amount:n2(r.amount), date:normDate(r.date) }); }),
+      recipes:(x.recipes||[]).map(function(r){ return Object.assign({}, r, {
+                sellingPrice:n2(r.sellingPrice), servings:n2(r.servings),
+                ingredientQty:n2(r.ingredientQty), buyPrice:n2(r.buyPrice),
+                packSize:n2(r.packSize) }); }),
+      purchases:(x.purchases||[]).map(function(r){ return Object.assign({}, r, {
+                amount:n2(r.amount), date:normDate(r.date) }); }),
+      summary: x.summary || null
+    };
+  });
+  state.fixed    = b.fixed || [];
+  state.dayClose = b.dayClose || null;
+  state.dcEdit   = null;
+}
+
 async function refresh(force){
   showError("");
   try{
-    if(state.section === "summary"){
-      await loadDept("bar", !!force);
-      await loadDept("bakery", !!force);
-      state.roll = computeRoll();
-    }else{
-      await loadDept(state.section, !!force);
-    }
+    await loadAll(!!force);
+    state.roll = computeRoll();
     state.loaded = true;
     saveCache();
     render();
@@ -1179,7 +1220,7 @@ function renderDaily(d){
       + '</div>'
     : '<div class="empty"><span class="big">◔</span>ยังไม่มีรายการในช่วงนี้<br><span class="mini">กดปุ่มด้านบนเพื่อบันทึก</span></div>';
 
-  return periodChips() + receiptCard(d) + kpis + acts + mtd + list;
+  return periodChips() + dayCloseCard() + receiptCard(d) + kpis + acts + mtd + list;
 }
 
 function recRow(r){
@@ -1212,6 +1253,7 @@ async function delRec(kind, id){
 
 const RC_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6-2.4-1.6V3.5z"/><path d="M9.5 9h5M9.5 13h5"/></svg>';
 let rcBusy = false;
+let dcBusy = false;
 
 function receiptCard(d){
   const today = (d.purchases||[]).filter(function(r){ return normDate(r.date)===todayStr(); });
@@ -1259,6 +1301,96 @@ async function voidReceipt(id){
     showToast("เอาใบนี้ออกแล้ว");
     await refresh(true);
   }catch(e){ showToast("ไม่สำเร็จ: "+e.message); }
+}
+
+/* ================== ปิดยอดวันนี้ ==================
+   บิลสรุปหน้าร้าน = ยอดรวมหน้าร้านทั้งร้าน
+   ใส่ยอดเบเกอรี่ -> บาร์น้ำ = ส่วนต่าง ระบบลงยอดขายให้ทั้งสองแผนก
+   เดลิเวอรี่ลงแยกเหมือนเดิม ไม่เกี่ยวกับบิลสรุป
+   ================================================= */
+
+function dcBuf(){
+  if(!state.dcEdit){
+    const dc = state.dayClose || {};
+    state.dcEdit = { store: n2(dc.storeTotal), bakery: n2(dc.bakeryTotal) };
+  }
+  return state.dcEdit;
+}
+
+function dcSet(k, v){
+  const e = dcBuf();
+  e[k] = n2(v);
+  const bar = Math.max(0, e.store - e.bakery);
+  const el = document.getElementById("dcBar");
+  if(el) el.textContent = fmtB(bar) + " ฿";
+  const w = document.getElementById("dcWarn");
+  if(w) w.style.display = (e.store > 0 && e.bakery > e.store) ? "block" : "none";
+}
+
+function dayCloseCard(){
+  const e = dcBuf();
+  const bar = Math.max(0, e.store - e.bakery);
+  const dc = state.dayClose || {};
+  const saved = n2(dc.storeTotal) > 0;
+  const waiting = !saved && String(dc.status || "") === "pending" && String(dc.fileUrl || "");
+
+  return '<div class="card">'
+    + '<div style="font-weight:800;font-size:15px">ปิดยอดวันนี้</div>'
+    + '<p class="mini" style="margin:2px 0 12px">ใส่ยอดจากบิลสรุปหน้าร้าน แล้วใส่ยอดเบเกอรี่ · บาร์น้ำระบบคิดให้เอง</p>'
+    + (waiting ? '<p class="mini" style="color:var(--accent-deep);background:var(--accent-soft);border-radius:8px;padding:6px 10px;margin-bottom:10px">ส่งบิลสรุปแล้ว รอระบบอ่านยอดตอน 3 ทุ่ม</p>' : "")
+    + '<label class="lbl" style="margin-top:0">ยอดรวมหน้าร้าน (จากบิลสรุป)</label>'
+    + '<input id="dcStore" type="number" inputmode="decimal" value="' + (e.store || "") + '" placeholder="0" oninput="dcSet(&#39;store&#39;,this.value)">'
+    + '<label class="lbl">ยอดเบเกอรี่หน้าร้าน</label>'
+    + '<input id="dcBakery" type="number" inputmode="decimal" value="' + (e.bakery || "") + '" placeholder="0" oninput="dcSet(&#39;bakery&#39;,this.value)">'
+    + '<div class="row" style="margin-top:12px"><span class="k">บาร์น้ำ · คิดให้อัตโนมัติ</span>'
+    +   '<span class="v"><b id="dcBar">' + fmtB(bar) + ' ฿</b></span></div>'
+    + '<div id="dcWarn" class="mini" style="display:none;color:var(--red);margin-top:6px">ยอดเบเกอรี่มากกว่ายอดรวม ลองเช็คอีกที</div>'
+    + '<button class="btn btn-accent" style="margin-top:12px" onclick="dcSave()">' + (saved ? "แก้ยอดที่ปิดไว้" : "บันทึกปิดยอด") + '</button>'
+    + '<button class="btn" style="margin-top:8px" onclick="dcPickBill()">' + (dcBusy ? "กำลังส่ง…" : "ถ่ายบิลสรุป ให้ระบบอ่านยอดเอง") + '</button>'
+    + '<input type="file" id="dcFile" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="dcOnFile(this)">'
+    + '<p class="mini" style="margin-top:10px">เดลิเวอรี่ Grab / Shopee ลงแยกด้านล่างเหมือนเดิม ไม่รวมอยู่ในบิลสรุป</p>'
+    + '</div>';
+}
+
+async function dcSave(){
+  const e = dcBuf();
+  if(e.store <= 0){ showToast("ใส่ยอดรวมหน้าร้านก่อน"); return; }
+  if(e.bakery > e.store){ showToast("ยอดเบเกอรี่มากกว่ายอดรวม"); return; }
+  try{
+    showToast("กำลังบันทึก…");
+    const r = await apiCall("saveDayClose", {
+      date: todayStr(), storeTotal: e.store, bakeryTotal: e.bakery, source: "staff" });
+    if(r.error) throw new Error(r.error);
+    state.dcEdit = null;
+    showToast("ปิดยอดแล้ว · บาร์น้ำ " + fmtB(r.barTotal) + " ฿");
+    await refresh(true);
+  }catch(err){ showToast("บันทึกไม่สำเร็จ: " + err.message); }
+}
+
+function dcPickBill(){
+  const f = document.getElementById("dcFile");
+  if(f){ f.value = ""; f.click(); }
+}
+
+async function dcOnFile(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  dcBusy = true; render();
+  try{
+    const b64 = await new Promise(function(res, rej){
+      const rd = new FileReader();
+      rd.onload = function(){ res(String(rd.result)); };
+      rd.onerror = rej;
+      rd.readAsDataURL(f);
+    });
+    const type = /pdf/i.test(f.type) ? "pdf" : "jpg";
+    const r = await apiCall("uploadDayBill", {
+      date: todayStr(), fileType: type, fileData: b64, source: "staff" });
+    if(r.error) throw new Error(r.error);
+    showToast("ส่งบิลสรุปแล้ว เดี๋ยวระบบอ่านยอดให้");
+    await refresh(true);
+  }catch(e){ showToast("ส่งไม่สำเร็จ: " + e.message); }
+  finally{ dcBusy = false; render(); }
 }
 
 function pickReceipt(){
