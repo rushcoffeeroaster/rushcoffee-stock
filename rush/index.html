@@ -282,6 +282,9 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwpQ2EmK5kFVAjvN4gp2ZluMdKYq8ETnAa7p6_H1QRz9R_LFeEoJh03VfB-u0Lat-Mt/exec";
 const ATTEND_URL = "../staff/?embed=1";
+// อ่านข้อมูลตรงจากชีต เร็วกว่าผ่าน Apps Script ราว 10-25 เท่า
+// (ชีตตั้งเป็น "ทุกคนที่มีลิงก์ · ผู้มีสิทธิ์อ่าน" — อ่านได้อย่างเดียว เขียนยังต้องผ่าน Apps Script)
+const SS_ID = "1-G1rXu7zUer3YiA3KPJStJXqblrpdThbloxxxh-_P3g";
 
 const DEPT_LABEL = { bar:"บาร์น้ำ", bakery:"เบเกอรี่" };
 
@@ -428,8 +431,101 @@ async function loadRollup(force){
 }
 
 /** โหลดทั้งสองแผนกในคำขอเดียว — Apps Script คิดเวลาต่อคำขอ ~3-4 วิ ยิงน้อยครั้งที่สุดคือเร็วที่สุด */
-async function loadAll(force){
-  if(state.data.bar && state.data.bakery && !force) return;
+/* ---------------- อ่านชีตตรง ---------------- */
+
+let gvSeq = 0;
+
+/** แปลงตารางที่ gviz ส่งมาเป็น array ของ object ตามหัวคอลัมน์ */
+function gvRows(o){
+  const t = (o && o.table) || {};
+  const cols = (t.cols || []).map(function(c){ return String((c && (c.label || c.id)) || "").trim(); });
+  return (t.rows || []).map(function(r){
+    const obj = {};
+    (r.c || []).forEach(function(cell, i){
+      const key = cols[i];
+      if(!key) return;
+      let v = cell ? cell.v : "";
+      if(typeof v === "string" && v.indexOf("Date(") === 0){
+        const p = v.slice(5, -1).split(",").map(Number);
+        v = p[0] + "-" + pad2(p[1] + 1) + "-" + pad2(p[2]);
+      }
+      obj[key] = (v === null || v === undefined) ? "" : v;
+    });
+    return obj;
+  });
+}
+
+/** ดึงหนึ่งชีตผ่าน gviz (ใช้ script tag เพราะ endpoint นี้ไม่เปิด CORS) */
+function gvFetch(sheet){
+  return new Promise(function(resolve, reject){
+    const cb = "__gv" + (++gvSeq) + "_" + Date.now();
+    const sc = document.createElement("script");
+    let settled = false;
+    const finish = function(ok, val){
+      if(settled) return;
+      settled = true;
+      clearTimeout(tm);
+      try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+      if(sc.parentNode) sc.parentNode.removeChild(sc);
+      ok ? resolve(val) : reject(val);
+    };
+    const tm = setTimeout(function(){ finish(false, new Error("ชีต " + sheet + " ตอบช้าเกินไป")); }, 15000);
+    window[cb] = function(o){ finish(true, gvRows(o)); };
+    sc.onerror = function(){ finish(false, new Error("อ่านชีต " + sheet + " ไม่ได้")); };
+    sc.src = "https://docs.google.com/spreadsheets/d/" + SS_ID
+           + "/gviz/tq?tqx=out:json;responseHandler:" + cb
+           + "&sheet=" + encodeURIComponent(sheet) + "&headers=1&_=" + Date.now();
+    document.head.appendChild(sc);
+  });
+}
+
+function gvNum(r, k){ return n2(r[k]); }
+
+/** โหลดทุกอย่างตรงจากชีต — 8 ตารางพร้อมกัน ปกติจบใน ~2 วินาที */
+async function loadFast(){
+  const date = todayStr();
+  const res = await Promise.all([
+    gvFetch("Items"), gvFetch("Income"), gvFetch("Expense"), gvFetch("Recipes"),
+    gvFetch("Purchases"), gvFetch("DailySummary"), gvFetch("Fixed"), gvFetch("DayClose")
+  ]);
+  const items = res[0], income = res[1], expense = res[2], recipes = res[3],
+        purch = res[4], summ = res[5], fixed = res[6], dayc = res[7];
+
+  const mine = function(rows, dept){
+    return rows.filter(function(r){ return String(r.dept || "") === dept; });
+  };
+
+  ["bar","bakery"].forEach(function(dept){
+    const sm = summ.filter(function(r){
+      return normDate(r.date) === date && String(r.dept || "all") === dept;
+    });
+    state.data[dept] = {
+      items:  mine(items, dept).map(function(it){ return Object.assign({}, it, {
+                qty:n2(it.qty), min:n2(it.min), cost:n2(it.cost) }); }),
+      log: [],
+      income: mine(income, dept).map(function(r){ return Object.assign({}, r, {
+                amount:n2(r.amount), date:normDate(r.date) }); }),
+      expense: mine(expense, dept).map(function(r){ return Object.assign({}, r, {
+                amount:n2(r.amount), date:normDate(r.date) }); }),
+      recipes: mine(recipes, dept).map(function(r){ return Object.assign({}, r, {
+                sellingPrice:n2(r.sellingPrice), servings:n2(r.servings),
+                ingredientQty:n2(r.ingredientQty), buyPrice:n2(r.buyPrice),
+                packSize:n2(r.packSize) }); }),
+      purchases: mine(purch, dept).filter(function(r){ return normDate(r.date) === date; })
+                 .map(function(r){ return Object.assign({}, r, {
+                   amount:n2(r.amount), date:normDate(r.date) }); }),
+      summary: sm.length ? sm[0] : null
+    };
+  });
+
+  state.fixed = fixed;
+  const dc = dayc.filter(function(r){ return normDate(r.date) === date; });
+  state.dayClose = dc.length ? dc[0] : null;
+  state.dcEdit = null;
+}
+
+/** ทางสำรอง — ถ้าอ่านชีตตรงไม่ได้ (เช่น ปิดสิทธิ์แชร์) ใช้ Apps Script เหมือนเดิม */
+async function loadViaScript(){
   const b = await apiCall("bootstrapAll", { date: todayStr() });
   if(b.error) throw new Error(b.error);
   ["bar","bakery"].forEach(function(dept){
@@ -437,6 +533,7 @@ async function loadAll(force){
     state.data[dept] = {
       items:  (x.items||[]).map(function(it){ return Object.assign({}, it, {
                 qty:n2(it.qty), min:n2(it.min), cost:n2(it.cost) }); }),
+      log: [],
       income: (x.income||[]).map(function(r){ return Object.assign({}, r, {
                 amount:n2(r.amount), date:normDate(r.date) }); }),
       expense:(x.expense||[]).map(function(r){ return Object.assign({}, r, {
@@ -453,6 +550,15 @@ async function loadAll(force){
   state.fixed    = b.fixed || [];
   state.dayClose = b.dayClose || null;
   state.dcEdit   = null;
+}
+
+async function loadAll(force){
+  if(state.data.bar && state.data.bakery && !force) return;
+  try{
+    await loadFast();
+  }catch(e){
+    await loadViaScript();
+  }
 }
 
 async function refresh(force){
