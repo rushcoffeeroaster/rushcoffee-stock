@@ -245,6 +245,15 @@
 
 <div id="modalRoot"></div>
 <div id="toast"></div>
+<div id="syncPill">กำลังอัปเดต…</div>
+<style>
+  #syncPill{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;
+    background:var(--ink);color:#fff;font-size:12px;letter-spacing:.01em;
+    padding:5px 13px;border-radius:999px;opacity:0;pointer-events:none;
+    transition:opacity .25s;z-index:60}
+  body.syncing #syncPill{opacity:.82}
+  @media print{ #syncPill{display:none} }
+</style>
 
 <nav class="bottom-nav no-print">
   <div class="nav-inner">
@@ -365,8 +374,13 @@ function saveCache(){
 function bootFromCache(){
   try{
     const c = JSON.parse(localStorage.getItem(cacheKey()) || "null");
-    if(c && c.d === todayStr() && c.data){
-      state.data = c.data; state.roll = c.roll || null; state.fixed = c.fixed || null; state.dayClose = c.dayClose || null; state.loaded = true;
+    if(c && c.data && c.data.bar && c.data.bakery){
+      const sameDay = (c.d === todayStr());
+      state.data     = c.data;
+      state.roll     = c.roll || null;
+      state.fixed    = c.fixed || null;
+      state.dayClose = sameDay ? (c.dayClose || null) : null;   // ของเมื่อวานไม่เอามาปนวันนี้
+      state.loaded   = true;
       render();
       return true;
     }
@@ -443,6 +457,7 @@ async function loadAll(force){
 
 async function refresh(force){
   showError("");
+  document.body.classList.add("syncing");
   try{
     await loadAll(!!force);
     state.roll = computeRoll();
@@ -452,7 +467,33 @@ async function refresh(force){
   }catch(e){
     showError("เชื่อมต่อข้อมูลไม่สำเร็จ: " + e.message);
     render();
+  }finally{
+    document.body.classList.remove("syncing");
   }
+}
+
+/* ---- บันทึกแล้วขึ้นจอทันที ไม่ต้องรอเซิร์ฟเวอร์ ---- */
+
+function syncSoon(){ setTimeout(function(){ refresh(true); }, 60); }
+
+function localAdd(dept, kind, row){
+  const d = state.data[dept];
+  if(!d) return;
+  (kind === "income" ? d.income : d.expense).unshift(row);
+  state.roll = computeRoll();
+  saveCache();
+  render();
+}
+
+function localSet(dept, kind, row){
+  const d = state.data[dept];
+  if(!d) return;
+  const arr = (kind === "income" ? d.income : d.expense);
+  const at = arr.findIndex(function(x){ return String(x.id) === String(row.id); });
+  if(at >= 0) arr[at] = row; else arr.unshift(row);
+  state.roll = computeRoll();
+  saveCache();
+  render();
 }
 
 /* ---------------- period ---------------- */
@@ -1352,19 +1393,26 @@ function dayCloseCard(){
     + '</div>';
 }
 
-async function dcSave(){
+function dcSave(){
   const e = dcBuf();
   if(e.store <= 0){ showToast("ใส่ยอดรวมหน้าร้านก่อน"); return; }
   if(e.bakery > e.store){ showToast("ยอดเบเกอรี่มากกว่ายอดรวม"); return; }
-  try{
-    showToast("กำลังบันทึก…");
-    const r = await apiCall("saveDayClose", {
-      date: todayStr(), storeTotal: e.store, bakeryTotal: e.bakery, source: "staff" });
-    if(r.error) throw new Error(r.error);
-    state.dcEdit = null;
-    showToast("ปิดยอดแล้ว · บาร์น้ำ " + fmtB(r.barTotal) + " ฿");
-    await refresh(true);
-  }catch(err){ showToast("บันทึกไม่สำเร็จ: " + err.message); }
+  const date = todayStr();
+  const bar  = Math.round((e.store - e.bakery) * 100) / 100;
+
+  showToast("ปิดยอดแล้ว · บาร์น้ำ " + fmtB(bar) + " ฿");
+  state.dayClose = { date:date, storeTotal:e.store, bakeryTotal:e.bakery,
+                     barTotal:bar, status:"ok", fileUrl:"" };
+  state.dcEdit = null;
+  const note = "ปิดยอดหน้าร้าน " + date;
+  localSet("bakery", "income", { id:"D-"+date+"-bakery", date:date, channel:"store",
+                                 amount:e.bakery, note:note, dept:"bakery" });
+  localSet("bar", "income",    { id:"D-"+date+"-bar",    date:date, channel:"store",
+                                 amount:bar,      note:note, dept:"bar" });
+
+  apiCall("saveDayClose", { date:date, storeTotal:e.store, bakeryTotal:e.bakery, source:"staff" })
+    .then(function(r){ if(r && r.error) throw new Error(r.error); syncSoon(); })
+    .catch(function(err){ showToast("ส่งไม่สำเร็จ: " + err.message); syncSoon(); });
 }
 
 function dcPickBill(){
@@ -1615,19 +1663,22 @@ function openSaleForm(){
   );
 }
 
-async function submitSale(){
+function submitSale(){
   const amt = n2(document.getElementById("slAmt").value);
-  if(amt<=0){ showToast("ใส่ยอดเงินก่อน"); return; }
-  try{
-    const r = await apiCall("addIncome", {
-      dept: state.section, amount: amt,
-      channel: document.getElementById("slChannel").value,
-      date: document.getElementById("slDate").value || todayStr(),
-      note: document.getElementById("slNote").value });
-    if(r.error) throw new Error(r.error);
-    closeModal(); showToast("บันทึกยอดขาย "+fmtB(amt)+" ฿");
-    await refresh(true);
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+  if(amt <= 0){ showToast("ใส่ยอดเงินก่อน"); return; }
+  const dept    = state.section;
+  const channel = document.getElementById("slChannel").value;
+  const date    = document.getElementById("slDate").value || todayStr();
+  const note    = document.getElementById("slNote").value;
+
+  closeModal();
+  showToast("บันทึกยอดขาย " + fmtB(amt) + " ฿");
+  localAdd(dept, "income", { id:"tmp-"+Date.now(), date:date, channel:channel,
+                             amount:amt, note:note, dept:dept });
+
+  apiCall("addIncome", { dept:dept, amount:amt, channel:channel, date:date, note:note })
+    .then(function(r){ if(r && r.error) throw new Error(r.error); syncSoon(); })
+    .catch(function(e){ showToast("ส่งไม่สำเร็จ: " + e.message); syncSoon(); });
 }
 
 function openBuyForm(){
@@ -1645,19 +1696,22 @@ function openBuyForm(){
   );
 }
 
-async function submitBuy(){
+function submitBuy(){
   const amt = n2(document.getElementById("byAmt").value);
-  if(amt<=0){ showToast("ใส่ยอดเงินก่อน"); return; }
-  try{
-    const r = await apiCall("addExpense", {
-      dept: state.section, amount: amt,
-      category: document.getElementById("byCat").value,
-      date: document.getElementById("byDate").value || todayStr(),
-      note: document.getElementById("byNote").value });
-    if(r.error) throw new Error(r.error);
-    closeModal(); showToast("บันทึกค่าใช้จ่าย "+fmtB(amt)+" ฿");
-    await refresh(true);
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
+  if(amt <= 0){ showToast("ใส่ยอดเงินก่อน"); return; }
+  const dept     = state.section;
+  const category = document.getElementById("byCat").value;
+  const date     = document.getElementById("byDate").value || todayStr();
+  const note     = document.getElementById("byNote").value;
+
+  closeModal();
+  showToast("บันทึกค่าใช้จ่าย " + fmtB(amt) + " ฿");
+  localAdd(dept, "expense", { id:"tmp-"+Date.now(), date:date, category:category,
+                              amount:amt, note:note, dept:dept });
+
+  apiCall("addExpense", { dept:dept, amount:amt, category:category, date:date, note:note })
+    .then(function(r){ if(r && r.error) throw new Error(r.error); syncSoon(); })
+    .catch(function(e){ showToast("ส่งไม่สำเร็จ: " + e.message); syncSoon(); });
 }
 
 /* ---------------- สูตร / ต้นทุน ---------------- */
