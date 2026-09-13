@@ -247,6 +247,31 @@
 <div id="toast"></div>
 <div id="syncPill">กำลังอัปเดต…</div>
 <style>
+  .shoot{width:100%;border:0;border-radius:20px;background:var(--ink);color:#fff;
+    padding:26px 18px 22px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer}
+  .shoot:active{opacity:.9}
+  .shoot-t{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .shoot-s{font-size:12.5px;opacity:.62}
+  .bill-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+  .bill-chip{aspect-ratio:1/1;border:1px solid var(--line);border-radius:14px;background:#fff;
+    display:flex;align-items:flex-end;justify-content:center;padding-bottom:9px;text-decoration:none}
+  .bill-chip .dot{width:7px;height:7px;border-radius:50%;background:#C9C3B6}
+  .bill-chip.done{background:var(--accent-soft);border-color:#EFE2BC}
+  .bill-chip.done .dot{background:#3E7C4A}
+  .bill-meta{display:flex;justify-content:space-between;margin-top:9px;
+    font-size:12.5px;color:var(--ink-3)}
+  .today-hero{text-align:center;padding-top:22px}
+  .t-lab{font-size:13px;color:var(--ink-3);margin:0}
+  .t-big{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:2px 0 16px}
+  .t-list{text-align:left;border-top:1px solid var(--line)}
+  .t-row{display:flex;justify-content:space-between;align-items:baseline;
+    padding:11px 2px;border-bottom:1px solid #F0ECE1;font-size:15px}
+  .t-row b{font-variant-numeric:tabular-nums;font-size:16px}
+  .t-row b.pos{color:#3E7C4A}
+  .t-row b.neg{color:var(--red)}
+  .t-est{margin-top:12px;font-size:12.5px;color:var(--ink-3);text-align:left;
+    background:var(--accent-soft);border-radius:10px;padding:8px 11px;cursor:pointer}
+  .t-est u{color:var(--accent-deep)}
   #syncPill{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;
     background:var(--ink);color:#fff;font-size:12px;letter-spacing:.01em;
     padding:5px 13px;border-radius:999px;opacity:0;pointer-events:none;
@@ -298,7 +323,7 @@ const state = {
   formOpen:false, loaded:false,
   data: { bar:null, bakery:null },
   fixed: null, fixEdit: null, fixMonth: "", fixDel: [],
-  dayClose: null, dcEdit: null,   // bootstrap ต่อแผนก
+  dayClose: null, dcEdit: null, photos: [],   // bootstrap ต่อแผนก
   roll: null                          // rollup สำหรับหมวดสรุป
 };
 
@@ -369,7 +394,7 @@ function cacheKey(){ return "rushBoot"; }
 function saveCache(){
   try{
     localStorage.setItem(cacheKey(), JSON.stringify({
-      d: todayStr(), data: state.data, roll: state.roll, fixed: state.fixed, dayClose: state.dayClose
+      d: todayStr(), data: state.data, roll: state.roll, fixed: state.fixed, dayClose: state.dayClose, photos: state.photos
     }));
   }catch(e){}
 }
@@ -383,6 +408,7 @@ function bootFromCache(){
       state.roll     = c.roll || null;
       state.fixed    = c.fixed || null;
       state.dayClose = sameDay ? (c.dayClose || null) : null;   // ของเมื่อวานไม่เอามาปนวันนี้
+      state.photos   = sameDay ? (c.photos || []) : [];
       state.loaded   = true;
       render();
       return true;
@@ -519,6 +545,8 @@ async function loadFast(){
   });
 
   state.fixed = fixed;
+  state.photos = purch.filter(function(r){ return normDate(r.date) === date; })
+                     .map(function(r){ return Object.assign({}, r, { amount:n2(r.amount) }); });
   const dc = dayc.filter(function(r){ return normDate(r.date) === date; });
   state.dayClose = dc.length ? dc[0] : null;
   state.dcEdit = null;
@@ -550,6 +578,10 @@ async function loadViaScript(){
   state.fixed    = b.fixed || [];
   state.dayClose = b.dayClose || null;
   state.dcEdit   = null;
+  try{
+    const gp = await apiCall("getPurchases", { date: todayStr() });
+    state.photos = (gp.rows || []).map(function(r){ return Object.assign({}, r, { amount:n2(r.amount) }); });
+  }catch(e){ state.photos = []; }
 }
 
 async function loadAll(force){
@@ -1367,7 +1399,7 @@ function renderDaily(d){
       + '</div>'
     : '<div class="empty"><span class="big">◔</span>ยังไม่มีรายการในช่วงนี้<br><span class="mini">กดปุ่มด้านบนเพื่อบันทึก</span></div>';
 
-  return periodChips() + dayCloseCard() + receiptCard(d) + kpis + acts + mtd + list;
+  return todayCard() + receiptCard(d) + dayCloseCard() + periodChips() + kpis + acts + mtd + list;
 }
 
 function recRow(r){
@@ -1403,40 +1435,111 @@ let rcBusy = false;
 let dcBusy = false;
 
 function receiptCard(d){
-  const today = (d.purchases||[]).filter(function(r){ return normDate(r.date)===todayStr(); });
-  const done  = today.filter(function(r){ return String(r.status)==="ok"; }).length;
-  // ลงยอดแล้วหายจากหน้านี้เลย เหลือเฉพาะใบที่ยังรออ่านยอด
-  const rows  = today.filter(function(r){
-    const st = String(r.status||"pending");
-    return st !== "ok" && st !== "void";
-  });
-  const pending = rows.length;
-  const lines = rows.map(function(r){
-    const id = String(r.id||"").replace(/'/g,"\\'");
-    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)">'
-      + '<div style="min-width:0"><div style="font-weight:700">'+escapeHtml(r.vendor||"รออ่านยอด")+'</div>'
-      +   '<a class="mini" href="'+escapeHtml(r.fileUrl||"#")+'" target="_blank" rel="noopener">ดูรูป</a></div>'
-      + '<div style="display:flex;align-items:center;gap:6px">'
-      +   '<input inputmode="decimal" value="'+(n2(r.amount)||"")+'" placeholder="ยอด ฿" '
-      +     'onchange="setReceiptAmount(\''+id+'\',this.value)" style="width:104px;text-align:right;padding:8px 10px">'
-      +   '<button title="ไม่นับใบนี้" onclick="voidReceipt(&#39;'+id+'&#39;)" '
-      +     'style="flex:none;width:38px;height:40px;border:1px solid var(--line);background:#fff;'
-      +     'border-radius:11px;font-size:17px;line-height:1;color:var(--ink-3);cursor:pointer">×</button>'
-      + '</div></div>';
-  }).join("");
+  const rows = (state.photos || []);
+  const read = rows.filter(function(r){ return String(r.kind || "") !== "" || n2(r.amount) > 0; }).length;
+
+  const strip = rows.length
+    ? '<div class="bill-strip">'
+      + rows.map(function(r){
+          const done = (String(r.kind || "") !== "" || n2(r.amount) > 0);
+          const url  = String(r.fileUrl || "");
+          const tip  = done ? (r.vendor || billKindText(r.kind) || "อ่านแล้ว") : "รออ่าน";
+          return '<a class="bill-chip' + (done ? " done" : "") + '" '
+               + (url ? 'href="' + escapeHtml(url) + '" target="_blank" rel="noopener"' : "")
+               + ' title="' + escapeHtml(tip) + '"><span class="dot"></span></a>';
+        }).join("")
+      + '</div>'
+      + '<div class="bill-meta"><span>วันนี้ ' + rows.length + ' รูป</span>'
+      + '<span>' + (read ? ("อ่านแล้ว " + read) : "รอผมอ่านตอน 4 ทุ่ม") + '</span></div>'
+    : '<p class="mini" style="text-align:center;margin-top:12px">ยังไม่มีรูปวันนี้</p>';
 
   return '<div class="card">'
-    + '<button class="btn btn-primary" onclick="pickReceipt()">'
-    +   (rcBusy ? "กำลังส่ง…" : RC_ICON+"ถ่ายใบเสร็จ") + '</button>'
-    + '<input type="file" id="rcFile" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="onReceiptFile(this)">'
-    + '<div class="mini" style="margin-top:8px">'
-    +   (rows.length
-        ? ('รออ่านยอด '+rows.length+' ใบ')
-        : (done ? ('ใบเสร็จวันนี้ลงครบแล้ว '+done+' ใบ')
-                : 'ถ่ายรูปใบเสร็จส่งมาได้เลย ไม่ต้องกรอกยอด'))
-    + '</div>'
-    + lines
+    + '<button class="shoot" onclick="pickReceipt()">'
+    +   '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+    +   '<path d="M3 8.5h3.2l1.4-2h7.8l1.4 2H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z"/>'
+    +   '<circle cx="12" cy="13.5" r="3.4"/></svg>'
+    +   '<span class="shoot-t">' + (rcBusy ? "กำลังส่ง…" : "ถ่ายบิล") + '</span>'
+    +   '<span class="shoot-s">ใบเสร็จ · ของสด · บิลปิดยอด</span>'
+    + '</button>'
+    + '<input type="file" id="rcFile" accept="image/*,application/pdf" capture="environment" multiple style="display:none" onchange="onReceiptFile(this)">'
+    + '<p class="mini" style="text-align:center;margin-top:10px">ถ่ายรวมมาได้เลย เดี๋ยวแยกให้ตอน 4 ทุ่ม</p>'
+    + strip
     + '</div>';
+}
+
+function billKindText(k){
+  return k === "receipt"  ? "ใบเสร็จ"
+       : k === "fresh"    ? "ของสด"
+       : k === "dayclose" ? "บิลปิดยอด"
+       : k === "notabill" ? "ไม่ใช่บิล" : "";
+}
+
+/* ---- การ์ดสรุปวันนี้ ตัวใหญ่ อ่านตอนดึก ---- */
+
+function todayCard(){
+  const day = todayStr();
+  let barS = 0, bakS = 0, spend = 0;
+  const est = [];
+  ["bar","bakery"].forEach(function(dp){
+    const x = state.data[dp];
+    if(!x) return;
+    (x.income || []).forEach(function(r){
+      if(normDate(r.date) !== day) return;
+      if(dp === "bar") barS += n2(r.amount); else bakS += n2(r.amount);
+    });
+    (x.expense || []).forEach(function(r){
+      if(normDate(r.date) !== day) return;
+      spend += n2(r.amount);
+      if(String(r.note || "").indexOf("ประเมิน") === 0) est.push(r);
+    });
+  });
+  const sales  = barS + bakS;
+  const profit = sales - spend;
+
+  const line = function(label, val, cls){
+    return '<div class="t-row"><span>' + label + '</span>'
+         + '<b' + (cls ? ' class="' + cls + '"' : "") + '>' + val + '</b></div>';
+  };
+
+  const estBlock = est.map(function(r){
+    const pid = String(r.id || "").indexOf("P-") === 0 ? String(r.id).slice(2) : "";
+    const txt = String(r.note || "").replace(/^ประเมิน · /, "");
+    return '<div class="t-est"' + (pid ? ' onclick="openEstFix(&#39;' + pid + '&#39;,' + n2(r.amount) + ')"' : "") + '>'
+         + escapeHtml(txt) + ' · คิดที่ราคามาตรฐาน ' + fmtB(r.amount)
+         + (pid ? ' · <u>แตะแก้</u>' : "") + '</div>';
+  }).join("");
+
+  return '<div class="card today-hero">'
+    + '<p class="t-lab">ยอดขายวันนี้</p>'
+    + '<p class="t-big">' + fmtB(sales) + '</p>'
+    + '<div class="t-list">'
+    +   line("บาร์น้ำ",  fmtB(barS))
+    +   line("เบเกอรี่", fmtB(bakS))
+    +   line("ซื้อของ",  (spend ? "−" + fmtB(spend) : "0"), "neg")
+    +   line("กำไร", (profit >= 0 ? "+" : "−") + fmtB(Math.abs(profit)), profit >= 0 ? "pos" : "neg")
+    + '</div>'
+    + estBlock
+    + '</div>';
+}
+
+function openEstFix(pid, cur){
+  openSheet(
+      '<h3 style="margin-bottom:4px">แก้ยอดจริง</h3>'
+    + '<p class="mini" style="margin-bottom:12px">ยอดนี้คิดจากราคามาตรฐาน ถ้ารู้ราคาจริงแล้วใส่ทับได้เลย</p>'
+    + '<label class="lbl" style="margin-top:0">ยอดจริง ฿</label>'
+    + '<input id="efAmt" type="number" inputmode="decimal" value="' + (n2(cur) || "") + '" autofocus>'
+    + '<button class="btn btn-accent" style="margin-top:16px" onclick="submitEstFix(&#39;' + pid + '&#39;)">บันทึก</button>'
+  );
+}
+
+function submitEstFix(pid){
+  const amt = n2(document.getElementById("efAmt").value);
+  if(amt <= 0){ showToast("ใส่ยอดก่อน"); return; }
+  closeModal();
+  showToast("แก้เป็น " + fmtB(amt) + " ฿ แล้ว");
+  apiCall("savePurchase", { id: pid, amount: amt, flag: "", source: "owner" })
+    .then(function(r){ if(r && r.error) throw new Error(r.error); syncSoon(); })
+    .catch(function(e){ showToast("ไม่สำเร็จ: " + e.message); syncSoon(); });
 }
 
 /** ใบซ้ำหรือใบที่ไม่ต้องนับ — เอาออกจากหน้าจอและทิ้งรูปด้วย */
@@ -1553,21 +1656,31 @@ function pickReceipt(){
 }
 
 async function onReceiptFile(input){
-  const f = input.files && input.files[0];
-  if(!f) return;
+  const files = input.files ? Array.prototype.slice.call(input.files) : [];
+  if(!files.length) return;
   rcBusy = true; render();
+  let ok = 0;
   try{
-    const b64 = await new Promise(function(res,rej){
-      const rd=new FileReader(); rd.onload=function(){ res(String(rd.result)); }; rd.onerror=rej; rd.readAsDataURL(f);
-    });
-    const type = /pdf/i.test(f.type) ? "pdf" : "jpg";
-    const r = await apiCall("uploadReceipt", {
-      dept: state.section, date: todayStr(), fileType: type, fileData: b64, source:"staff" });
-    if(r.error) throw new Error(r.error);
-    showToast("ส่งใบเสร็จแล้ว");
+    for(let i = 0; i < files.length; i++){
+      const f = files[i];
+      const b64 = await new Promise(function(res, rej){
+        const rd = new FileReader();
+        rd.onload = function(){ res(String(rd.result)); };
+        rd.onerror = rej;
+        rd.readAsDataURL(f);
+      });
+      const type = /pdf/i.test(f.type) ? "pdf" : "jpg";
+      const r = await apiCall("uploadBill", { date: todayStr(), fileType: type, fileData: b64, source: "staff" });
+      if(r && r.error) throw new Error(r.error);
+      ok++;
+    }
+    showToast(ok > 1 ? ("ส่งแล้ว " + ok + " รูป") : "ส่งบิลแล้ว");
     await refresh(true);
-  }catch(e){ showToast("ส่งไม่สำเร็จ: "+e.message); }
-  finally{ rcBusy=false; render(); }
+  }catch(e){
+    showToast(ok ? ("ส่งได้ " + ok + " รูป แล้วสะดุด: " + e.message) : ("ส่งไม่สำเร็จ: " + e.message));
+    refresh(true);
+  }
+  finally{ rcBusy = false; render(); }
 }
 
 async function setReceiptAmount(id, val){
