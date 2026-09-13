@@ -326,7 +326,7 @@ const state = {
   formOpen:false, loaded:false,
   data: { bar:null, bakery:null },
   fixed: null, fixEdit: null, fixMonth: "", fixDel: [],
-  dayClose: null, dcEdit: null, photos: [],   // bootstrap ต่อแผนก
+  dayClose: null, dcEdit: null, photos: [], justShot: [],   // bootstrap ต่อแผนก
   roll: null                          // rollup สำหรับหมวดสรุป
 };
 
@@ -1406,7 +1406,7 @@ function renderDaily(d){
   const headCards = night
     ? (todayCard() + receiptCard(d))
     : (receiptCard(d) + todayCard());
-  return headCards + dayCloseCard() + periodChips() + kpis + acts + mtd + list;
+  return headCards + periodChips() + kpis + acts + mtd + list;
 }
 
 function recRow(r){
@@ -1470,8 +1470,11 @@ function receiptCard(d){
     +   '<span class="shoot-t">' + (rcBusy ? "กำลังส่ง…" : "ถ่ายบิล") + '</span>'
     +   '<span class="shoot-s">ใบเสร็จ · ของสด · บิลปิดยอด</span>'
     + '</button>'
-    + '<input type="file" id="rcFile" accept="image/*,application/pdf" capture="environment" multiple style="display:none" onchange="onReceiptFile(this)">'
-    + '<p class="mini" style="text-align:center;margin-top:10px">ถ่ายรวมมาได้เลย เดี๋ยวแยกให้ตอน 4 ทุ่ม</p>'
+    + '<input type="file" id="rcFile" accept="image/*,application/pdf" multiple style="display:none" onchange="onReceiptFile(this)">'
+    + (canSaveToPhone()
+       ? '<button class="btn" style="margin-top:10px" onclick="saveShotToPhone()">เซฟรูปลงเครื่องด้วย</button>'
+       : '')
+    + '<p class="mini" style="text-align:center;margin-top:10px">ถ่ายรวมมาได้เลย เดี๋ยวแยกให้ตอน 4 ทุ่ม<br>ถ่ายด้วยกล้องมือถือก่อนแล้วเลือกจากคลังรูป รูปจะอยู่ในเครื่องด้วย</p>'
     + strip
     + '</div>';
 }
@@ -1688,6 +1691,7 @@ async function onReceiptFile(input){
       if(r && r.error) throw new Error(r.error);
       ok++;
     }
+    state.justShot = files.filter(function(f){ return /^image\//.test(f.type); });
     showToast(ok > 1 ? ("ส่งแล้ว " + ok + " รูป") : "ส่งบิลแล้ว");
     await refresh(true);
   }catch(e){
@@ -1695,6 +1699,24 @@ async function onReceiptFile(input){
     refresh(true);
   }
   finally{ rcBusy = false; render(); }
+}
+
+/** เว็บแอปเขียนลงคลังรูปเองไม่ได้ ต้องผ่านแผงแชร์ของเครื่อง — กดแล้วเลือก บันทึกรูปภาพ */
+function canSaveToPhone(){
+  const fs = state.justShot || [];
+  if(!fs.length) return false;
+  try{ return !!(navigator.canShare && navigator.canShare({ files: fs })); }
+  catch(e){ return false; }
+}
+
+async function saveShotToPhone(){
+  const fs = state.justShot || [];
+  if(!fs.length) return;
+  try{
+    await navigator.share({ files: fs, title: "บิล Rush" });
+    state.justShot = [];
+    render();
+  }catch(e){ /* ผู้ใช้กดยกเลิก ไม่ต้องทำอะไร */ }
 }
 
 async function setReceiptAmount(id, val){
