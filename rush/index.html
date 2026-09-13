@@ -255,7 +255,10 @@
   .bill-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
   .bill-chip{aspect-ratio:1/1;border:1px solid var(--line);border-radius:14px;background:#fff;
     display:flex;align-items:flex-end;justify-content:center;padding-bottom:9px;text-decoration:none}
-  .bill-chip .dot{width:7px;height:7px;border-radius:50%;background:#C9C3B6}
+  .bill-chip{position:relative;overflow:hidden}
+  .bill-chip img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .bill-chip .dot{position:relative;width:7px;height:7px;border-radius:50%;background:#C9C3B6;
+    box-shadow:0 0 0 3px rgba(255,255,255,.9)}
   .bill-chip.done{background:var(--accent-soft);border-color:#EFE2BC}
   .bill-chip.done .dot{background:#3E7C4A}
   .bill-meta{display:flex;justify-content:space-between;margin-top:9px;
@@ -1399,7 +1402,11 @@ function renderDaily(d){
       + '</div>'
     : '<div class="empty"><span class="big">◔</span>ยังไม่มีรายการในช่วงนี้<br><span class="mini">กดปุ่มด้านบนเพื่อบันทึก</span></div>';
 
-  return todayCard() + receiptCard(d) + dayCloseCard() + periodChips() + kpis + acts + mtd + list;
+  const night = (new Date()).getHours() >= 21;
+  const headCards = night
+    ? (todayCard() + receiptCard(d))
+    : (receiptCard(d) + todayCard());
+  return headCards + dayCloseCard() + periodChips() + kpis + acts + mtd + list;
 }
 
 function recRow(r){
@@ -1446,7 +1453,9 @@ function receiptCard(d){
           const tip  = done ? (r.vendor || billKindText(r.kind) || "อ่านแล้ว") : "รออ่าน";
           return '<a class="bill-chip' + (done ? " done" : "") + '" '
                + (url ? 'href="' + escapeHtml(url) + '" target="_blank" rel="noopener"' : "")
-               + ' title="' + escapeHtml(tip) + '"><span class="dot"></span></a>';
+               + ' title="' + escapeHtml(tip) + '">'
+               + (url ? '<img loading="lazy" src="https://drive.google.com/thumbnail?sz=w220&id=' + escapeHtml(billFileId(url)) + '" alt="">' : '')
+               + '<span class="dot"></span></a>';
         }).join("")
       + '</div>'
       + '<div class="bill-meta"><span>วันนี้ ' + rows.length + ' รูป</span>'
@@ -1465,6 +1474,11 @@ function receiptCard(d){
     + '<p class="mini" style="text-align:center;margin-top:10px">ถ่ายรวมมาได้เลย เดี๋ยวแยกให้ตอน 4 ทุ่ม</p>'
     + strip
     + '</div>';
+}
+
+function billFileId(url){
+  const m = String(url || "").match(/[-\w]{25,}/);
+  return m ? m[0] : "";
 }
 
 function billKindText(k){
@@ -1587,7 +1601,7 @@ function dayCloseCard(){
   return '<div class="card">'
     + '<div style="font-weight:800;font-size:15px">ปิดยอดวันนี้</div>'
     + '<p class="mini" style="margin:2px 0 12px">ใส่ยอดจากบิลสรุปหน้าร้าน แล้วใส่ยอดเบเกอรี่ · บาร์น้ำระบบคิดให้เอง</p>'
-    + (waiting ? '<p class="mini" style="color:var(--accent-deep);background:var(--accent-soft);border-radius:8px;padding:6px 10px;margin-bottom:10px">ส่งบิลสรุปแล้ว รอระบบอ่านยอดตอน 3 ทุ่ม</p>' : "")
+    + (waiting ? '<p class="mini" style="color:var(--accent-deep);background:var(--accent-soft);border-radius:8px;padding:6px 10px;margin-bottom:10px">ส่งบิลสรุปแล้ว รอระบบอ่านยอดตอน 4 ทุ่ม</p>' : "")
     + '<label class="lbl" style="margin-top:0">ยอดรวมหน้าร้าน (จากบิลสรุป)</label>'
     + '<input id="dcStore" type="number" inputmode="decimal" value="' + (e.store || "") + '" placeholder="0" oninput="dcSet(&#39;store&#39;,this.value)">'
     + '<label class="lbl">ยอดเบเกอรี่หน้าร้าน</label>'
