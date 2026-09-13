@@ -1442,25 +1442,28 @@ let rcBusy = false;
 let dcBusy = false;
 
 function receiptCard(d){
-  const rows = (state.photos || []);
-  const read = rows.filter(function(r){ return String(r.kind || "") !== "" || n2(r.amount) > 0; }).length;
+  const all  = (state.photos || []);
+  const isDone = function(r){ return String(r.kind || "") !== "" || n2(r.amount) > 0; };
+  const done = all.filter(isDone).length;
+  // อ่านเสร็จแล้วเอาออกจากหน้าจอเลย เหลือแค่ใบที่ยังรอ
+  const rows = all.filter(function(r){ return !isDone(r); });
 
   const strip = rows.length
     ? '<div class="bill-strip">'
       + rows.map(function(r){
-          const done = (String(r.kind || "") !== "" || n2(r.amount) > 0);
-          const url  = String(r.fileUrl || "");
-          const tip  = done ? (r.vendor || billKindText(r.kind) || "อ่านแล้ว") : "รออ่าน";
-          return '<a class="bill-chip' + (done ? " done" : "") + '" '
+          const url = String(r.fileUrl || "");
+          return '<a class="bill-chip" '
                + (url ? 'href="' + escapeHtml(url) + '" target="_blank" rel="noopener"' : "")
-               + ' title="' + escapeHtml(tip) + '">'
-               + (url ? '<img loading="lazy" src="https://drive.google.com/thumbnail?sz=w220&id=' + escapeHtml(billFileId(url)) + '" alt="">' : '')
+               + ' title="รออ่าน">'
+               + (url ? '<img loading="lazy" src="https://drive.google.com/thumbnail?sz=w220&id=' + escapeHtml(billFileId(url)) + '" alt="">' : "")
                + '<span class="dot"></span></a>';
         }).join("")
       + '</div>'
-      + '<div class="bill-meta"><span>วันนี้ ' + rows.length + ' รูป</span>'
-      + '<span>' + (read ? ("อ่านแล้ว " + read) : "รอผมอ่านตอน 4 ทุ่ม") + '</span></div>'
-    : '<p class="mini" style="text-align:center;margin-top:12px">ยังไม่มีรูปวันนี้</p>';
+      + '<div class="bill-meta"><span>รอผมอ่าน ' + rows.length + ' รูป</span>'
+      + '<span>' + (done ? ("ลงแล้ว " + done + " ใบ") : "อ่านให้ตอน 4 ทุ่ม") + '</span></div>'
+    : (done
+       ? '<p class="mini" style="text-align:center;margin-top:12px">บิลวันนี้ลงครบแล้ว ' + done + ' ใบ</p>'
+       : '<p class="mini" style="text-align:center;margin-top:12px">ยังไม่มีรูปวันนี้</p>');
 
   return '<div class="card">'
     + '<button class="shoot" onclick="pickReceipt()">'
