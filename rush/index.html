@@ -263,6 +263,9 @@
   .bill-chip.done .dot{background:#3E7C4A}
   .bill-meta{display:flex;justify-content:space-between;margin-top:9px;
     font-size:12.5px;color:var(--ink-3)}
+  .dept-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.02em;
+    color:var(--accent-deep);background:var(--accent-soft);border-radius:6px;
+    padding:1px 6px;margin-right:6px;vertical-align:1px}
   .today-hero{text-align:center;padding-top:22px}
   .t-lab{font-size:13px;color:var(--ink-3);margin:0}
   .t-big{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:2px 0 16px}
@@ -285,17 +288,17 @@
 
 <nav class="bottom-nav no-print">
   <div class="nav-inner">
-    <button class="nav-item active" id="navSummary" onclick="setSection('summary')">
+    <button class="nav-item active" id="navHome" onclick="setSection('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h3.2l1.4-2h7.8l1.4 2H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.5" r="3.4"/></svg>
+      หน้าแรก
+    </button>
+    <button class="nav-item" id="navSummary" onclick="setSection('summary')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
-      สรุปรวม
+      สรุป
     </button>
-    <button class="nav-item" id="navBar" onclick="setSection('bar')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l-1.2 5.2a5 5 0 0 1-4.8 3.8h0a5 5 0 0 1-4.8-3.8L6 3Z"/><path d="M12 12v7M8.5 21h7"/></svg>
-      บาร์น้ำ
-    </button>
-    <button class="nav-item" id="navBakery" onclick="setSection('bakery')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14c0-4 3.6-7 8-7s8 3 8 7"/><path d="M3 14h18v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3Z"/><path d="M8.5 10.5 10 7M12 10.2 12 7M15.5 10.5 14 7"/></svg>
-      เบเกอรี่
+    <button class="nav-item" id="navAttend" onclick="setSection('attend')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>
+      ตอกบัตร
     </button>
   </div>
 </nav>
@@ -317,7 +320,7 @@ const SS_ID = "1-G1rXu7zUer3YiA3KPJStJXqblrpdThbloxxxh-_P3g";
 const DEPT_LABEL = { bar:"บาร์น้ำ", bakery:"เบเกอรี่" };
 
 const state = {
-  section: "summary",          // summary | bar | bakery
+  section: "home",             // home | summary | attend
   tab: "daily",                // stock | daily | cost   (ในหมวดแผนก)
   subTab: "sales",             // sales | attend         (ในหมวดสรุป)
   period: "month",             // day | week | month | custom
@@ -427,28 +430,7 @@ function showError(msg){
     : "";
 }
 
-async function loadDept(dept, force){
-  if(state.data[dept] && !force) return state.data[dept];
-  const b = await apiCall("bootstrap", { dept: dept, date: todayStr() });
-  if(b.error) throw new Error(b.error);
-  state.data[dept] = {
-    items:  (b.items||[]).map(function(it){ return Object.assign({}, it, {
-              qty:n2(it.qty), min:n2(it.min), cost:n2(it.cost) }); }),
-    income: (b.income||[]).map(function(r){ return Object.assign({}, r, {
-              amount:n2(r.amount), date:normDate(r.date) }); }),
-    expense:(b.expense||[]).map(function(r){ return Object.assign({}, r, {
-              amount:n2(r.amount), date:normDate(r.date) }); }),
-    recipes:(b.recipes||[]).map(function(r){ return Object.assign({}, r, {
-              sellingPrice:n2(r.sellingPrice), servings:n2(r.servings),
-              ingredientQty:n2(r.ingredientQty), buyPrice:n2(r.buyPrice),
-              packSize:n2(r.packSize) }); }),
-    purchases:(b.purchases||[]).map(function(r){ return Object.assign({}, r, {
-              amount:n2(r.amount), date:normDate(r.date) }); }),
-    summary: b.summary || null
-  };
-  state.fixed = b.fixed || state.fixed || [];
-  return state.data[dept];
-}
+
 
 async function loadRollup(force){
   if(state.roll && !force) return state.roll;
@@ -1010,40 +992,36 @@ function saveNav(){
 function restoreNav(){
   let n = null;
   try{ n = JSON.parse(localStorage.getItem("rushNav") || "null"); }catch(e){}
-  const sec = (n && ["summary","bar","bakery"].indexOf(n.section) >= 0) ? n.section : "summary";
+  const sec = (n && ["home","summary","attend"].indexOf(n.section) >= 0) ? n.section : "home";
   setSection(sec);
   if(n){
     if(["day","week","month","custom"].indexOf(n.period) >= 0) state.period = n.period;
     if(n.rangeFrom) state.rangeFrom = n.rangeFrom;
     if(n.rangeTo)   state.rangeTo   = n.rangeTo;
-    if(sec === "summary"){
-      if(["sales","fixed","attend"].indexOf(n.subTab) >= 0) state.subTab = n.subTab;
-    }else if(["stock","daily","cost"].indexOf(n.tab) >= 0){
-      state.tab = n.tab;
-    }
+    if(sec === "summary" && ["sales","fixed"].indexOf(n.subTab) >= 0) state.subTab = n.subTab;
     render();
   }
 }
 
 function setSection(s){
   state.section = s;
-  state.tab = (s==="summary") ? "daily" : "daily";
-  state.subTab = "sales";
-  [["summary","navSummary"],["bar","navBar"],["bakery","navBakery"]].forEach(function(p){
-    const el=document.getElementById(p[1]); if(el) el.classList.toggle("active", s===p[0]);
+  if(s !== "summary") state.subTab = "sales";
+  [["home","navHome"],["summary","navSummary"],["attend","navAttend"]].forEach(function(p){
+    const el = document.getElementById(p[1]);
+    if(el) el.classList.toggle("active", s === p[0]);
   });
-  document.getElementById("sectionTag").textContent =
-    s==="summary" ? "สรุปรวม" : DEPT_LABEL[s];
+  const tag = { home:"หน้าแรก", summary:"สรุป", attend:"ตอกบัตร" }[s] || "";
+  document.getElementById("sectionTag").textContent = tag;
   window.scrollTo(0,0);
   saveNav();
   render();
   refresh(true);
 }
 
-function setTab(t){ state.tab = t; saveNav(); window.scrollTo(0,0); render(); }
+
 function setSubTab(t){ state.subTab = t; saveNav(); window.scrollTo(0,0); render(); if(t==="fixed" && !state.fixed) refresh(true); }
-function setCat(c){ state.cat = c; render(); }
-function onSearch(v){ state.q = String(v||"").trim().toLowerCase(); render(); }
+
+
 
 /* ---------------- render dispatch ---------------- */
 
@@ -1052,47 +1030,40 @@ function render(){
   const sub   = document.getElementById("pageSub");
   const box   = document.getElementById("content");
 
-  if(state.section === "summary"){
-    title.textContent = "สรุปรวม";
-    sub.textContent = state.loaded ? "ทุกยอดของบาร์น้ำและเบเกอรี่ รวมกันอัตโนมัติ" : "กำลังโหลดข้อมูล…";
-    box.innerHTML = state.subTab==="attend" ? renderAttend() : (state.subTab==="fixed" ? renderFixed() : renderSummary());
+  if(state.section === "attend"){
+    title.textContent = "ตอกบัตร";
+    sub.textContent   = "เข้า-ออกงาน";
+    box.innerHTML     = renderAttend();
     return;
   }
 
-  const d = state.data[state.section];
-  title.textContent = DEPT_LABEL[state.section];
-  if(!d){ sub.textContent="กำลังโหลดข้อมูล…"; box.innerHTML = skeleton(); return; }
-
-  if(state.tab === "stock"){
-    sub.textContent = stockSubtitle(d);
-    box.innerHTML = deptTabs() + renderStock(d);
-  }else if(state.tab === "cost"){
-    sub.textContent = "ต้นทุนและกำไรขั้นต้นของเมนู";
-    box.innerHTML = deptTabs() + renderCost(d);
-  }else{
-    sub.textContent = "ยอดขายและค่าใช้จ่าย";
-    box.innerHTML = deptTabs() + renderDaily(d);
+  if(state.section === "summary"){
+    title.textContent = "สรุป";
+    sub.textContent   = state.loaded ? "ยอดย้อนหลัง แยกบาร์น้ำกับเบเกอรี่" : "กำลังโหลดข้อมูล…";
+    box.innerHTML     = (state.subTab === "fixed") ? renderFixed() : renderSummary();
+    return;
   }
+
+  title.textContent = "วันนี้";
+  if(!state.data.bar || !state.data.bakery){
+    sub.textContent = "กำลังโหลดข้อมูล…";
+    box.innerHTML   = skeleton();
+    return;
+  }
+  sub.textContent = "ถ่ายบิลแล้วจบ ที่เหลือผมจัดให้";
+  box.innerHTML   = renderHome();
 }
 
 function skeleton(){ return '<div class="skel"></div><div class="skel"></div><div class="skel"></div>'; }
 
-function deptTabs(){
-  const opts=[["daily","บันทึกรายวัน"],["stock","สต๊อก"],["cost","ต้นทุน"]];
-  return '<div class="chiprow no-print">'
-    + opts.map(function(o){
-        return '<button class="chip '+(state.tab===o[0]?"active":"")
-             + '" onclick="setTab(\''+o[0]+'\')">'+o[1]+'</button>';
-      }).join("")
-    + '</div>';
-}
+
 
 /* =======================================================
    หมวด 1 — สรุปรวม
    ======================================================= */
 
 function summaryTabs(){
-  const opts=[["sales","สรุปยอด"],["fixed","รายจ่ายคงที่"],["attend","ตอกบัตร"]];
+  const opts=[["sales","สรุปยอด"],["fixed","รายจ่ายคงที่"]];
   return '<div class="chiprow no-print">'
     + opts.map(function(o){
         return '<button class="chip '+(state.subTab===o[0]?"active":"")
@@ -1244,8 +1215,7 @@ function downloadPDF(){
 /* ---------------- ตอกบัตร (ยกของเดิมมาทั้งดุ้น) ---------------- */
 
 function renderAttend(){
-  return summaryTabs()
-    + '<div class="card" style="padding:0;overflow:hidden">'
+  return '<div class="card" style="padding:0;overflow:hidden">'
     +   '<iframe src="'+ATTEND_URL+'" title="ตอกบัตร" '
     +     'style="width:100%;height:calc(100vh - 250px);min-height:520px;border:0;display:block" '
     +     'allow="camera; geolocation" allowfullscreen></iframe>'
@@ -1257,173 +1227,76 @@ function renderAttend(){
    หมวด 2-3 — สต๊อก
    ======================================================= */
 
-function deptItems(d){ return d.items || []; }
 
-function lowItems(d){
-  return deptItems(d).filter(function(it){ return n2(it.qty) <= n2(it.min); });
-}
 
-function stockValue(d){
-  return deptItems(d).reduce(function(a,it){ return a + n2(it.qty)*n2(it.cost); }, 0);
-}
 
-function stockSubtitle(d){
-  const low = lowItems(d).length;
-  return low ? (low + " รายการใกล้หมด — ควรสั่งเพิ่ม") : "สต๊อกอยู่ในระดับปกติ";
-}
 
-function visibleCats(d){
-  const set = {};
-  deptItems(d).forEach(function(it){ const c=String(it.category||"").trim(); if(c) set[c]=1; });
-  return Object.keys(set).sort();
-}
 
-function renderStock(d){
-  const items = deptItems(d);
-  const out   = items.filter(function(it){ return n2(it.qty) <= 0; }).length;
-  const low   = lowItems(d).length;
 
-  const kpis =
-      '<div class="kpi-grid">'
-    +   '<div class="kpi"><p class="kpi-label">วัตถุดิบทั้งหมด</p><p class="kpi-val">'+items.length+'</p></div>'
-    +   '<div class="kpi warn"><p class="kpi-label">ใกล้หมด</p><p class="kpi-val">'+low+'</p></div>'
-    +   '<div class="kpi bad"><p class="kpi-label">หมดสต๊อก</p><p class="kpi-val">'+out+'</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">มูลค่าคงเหลือ</p><p class="kpi-val">'+fmtB(stockValue(d))+'</p></div>'
-    + '</div>';
 
-  const cats = visibleCats(d);
-  const chips = '<div class="chiprow">'
-    + '<button class="chip '+(state.cat==="all"?"active":"")+'" onclick="setCat(\'all\')">ทั้งหมด</button>'
-    + cats.map(function(c){
-        return '<button class="chip '+(state.cat===c?"active":"")+'" onclick="setCat(\''+escapeHtml(c).replace(/'/g,"\\'")+'\')">'+escapeHtml(c)+'</button>';
-      }).join("")
-    + '</div>';
 
-  const search = '<div style="margin-bottom:10px"><input placeholder="ค้นหาวัตถุดิบ…" value="'+escapeHtml(state.q)+'" oninput="onSearch(this.value)"></div>';
 
-  let list = items.filter(function(it){
-    if(state.cat!=="all" && String(it.category||"")!==state.cat) return false;
-    if(state.q && String(it.name||"").toLowerCase().indexOf(state.q)<0) return false;
-    return true;
-  });
-  list.sort(function(a,b){
-    const ra = n2(a.min)>0 ? n2(a.qty)/n2(a.min) : 9;
-    const rb = n2(b.min)>0 ? n2(b.qty)/n2(b.min) : 9;
-    return ra-rb;
-  });
 
-  const rows = list.length
-    ? list.map(itemRow).join("")
-    : '<div class="empty"><span class="big">◻</span>ยังไม่มีวัตถุดิบ</div>';
 
-  const addBtn = '<button class="btn" onclick="openItemForm()" style="margin:4px 0 14px">+ เพิ่มวัตถุดิบใหม่</button>';
 
-  return kpis + addBtn + search + chips + rows;
-}
 
-function itemRow(it){
-  const qty=n2(it.qty), min=n2(it.min);
-  const cls = qty<=0 ? "out" : (qty<=min ? "low" : "");
-  const tag = qty<=0 ? '<span style="color:var(--red);font-size:12px"> · หมด</span>'
-            : (qty<=min ? '<span style="color:var(--amber);font-size:12px"> · ใกล้หมด</span>' : "");
-  const pct = min>0 ? Math.max(4, Math.min(100, qty/ (min*2) *100)) : 100;
-  const id = escapeHtml(String(it.id));
-  return '<div class="it-row '+cls+'">'
-    + '<div class="it-top"><div class="it-name">'+escapeHtml(it.name)+tag+'</div>'
-    +   '<div class="it-qty '+(qty<=0?"neg":"")+'">'+fmtN(qty)+' '+escapeHtml(it.unit||"")+'</div></div>'
-    + '<div class="gauge"><span style="width:'+pct+'%"></span></div>'
-    + '<div class="mini">ขั้นต่ำ '+fmtN(min)+' '+escapeHtml(it.unit||"")
-    +   (n2(it.cost)>0 ? ' · ทุน '+fmtN(it.cost)+'฿/'+escapeHtml(it.unit||"") : ' · ยังไม่ระบุทุน')+'</div>'
-    + '<div class="acts">'
-    +   '<button class="btn-sm" onclick="openMove(\''+id+'\',\'out\')">ใช้ออก</button>'
-    +   '<button class="btn-sm solid" onclick="openMove(\''+id+'\',\'in\')">รับเข้า</button>'
-    +   '<button class="btn-sm" onclick="openItemForm(\''+id+'\')">แก้</button>'
-    + '</div></div>';
-}
 
-function itemById(id){
-  const d = state.data[state.section] || {items:[]};
-  return (d.items||[]).find(function(x){ return String(x.id)===String(id); });
-}
+
 
 /* =======================================================
    หมวด 2-3 — บันทึกรายวัน
    ======================================================= */
 
-function renderDaily(d){
-  const inc = (d.income ||[]).filter(function(r){ return inPeriod(r.date); });
-  const exp = (d.expense||[]).filter(function(r){ return inPeriod(r.date); });
-  const sales   = inc.reduce(function(a,r){ return a+n2(r.amount); },0);
-  const expense = exp.reduce(function(a,r){ return a+n2(r.amount); },0);
-  const profit  = sales - expense;
+/* ---------------- หน้าแรก ---------------- */
 
-  const store = inc.filter(function(r){ return String(r.channel||"store")==="store"; })
-                   .reduce(function(a,r){ return a+n2(r.amount); },0);
-  const deli  = sales - store;
+function renderHome(){
+  const day = todayStr();
+  const rows = [];
+  ["bar","bakery"].forEach(function(dp){
+    const x = state.data[dp];
+    if(!x) return;
+    (x.income  || []).forEach(function(r){
+      if(normDate(r.date) === day) rows.push(Object.assign({}, r, { kind:"in",  dept:dp }));
+    });
+    (x.expense || []).forEach(function(r){
+      if(normDate(r.date) === day) rows.push(Object.assign({}, r, { kind:"out", dept:dp }));
+    });
+  });
+  rows.sort(function(a,b){ return String(b.created||"").localeCompare(String(a.created||"")); });
 
-  const mStart = todayStr().slice(0,8)+"01";
-  const mSales = (d.income ||[]).reduce(function(a,r){ return (normDate(r.date)>=mStart)?a+n2(r.amount):a; },0);
-  const mExp   = (d.expense||[]).reduce(function(a,r){ return (normDate(r.date)>=mStart)?a+n2(r.amount):a; },0);
-
-  const kpis =
-      '<div class="kpi-grid">'
-    +   '<div class="kpi"><p class="kpi-label">ยอดขาย · '+escapeHtml(periodLabel())+'</p><p class="kpi-val">'+fmtB(sales)+'</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">ค่าใช้จ่าย</p><p class="kpi-val" style="color:var(--red)">'+fmtB(expense)+'</p></div>'
-    +   '<div class="kpi wide"><p class="kpi-label">คงเหลือ</p>'
-    +     '<p class="kpi-val '+(profit>=0?"pos":"neg")+'">'+(profit>=0?"+":"−")+fmtB(Math.abs(profit))+' ฿</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">หน้าร้าน · '+(sales?Math.round(store/sales*100):0)+'%</p><p class="kpi-val" style="font-size:19px">'+fmtB(store)+'</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">Delivery · '+(sales?Math.round(deli/sales*100):0)+'%</p><p class="kpi-val" style="font-size:19px">'+fmtB(deli)+'</p></div>'
-    + '</div>';
-
-  const acts =
-      '<div style="display:flex;gap:8px;margin-bottom:12px">'
-    +   '<button class="btn btn-primary" onclick="openSaleForm()">+ ยอดขาย</button>'
-    +   '<button class="btn btn-primary" onclick="openBuyForm()">+ ซื้อของ</button>'
-    + '</div>';
-
-  const mtd =
-      '<div class="card">'
-    +   '<div style="font-weight:800;font-size:14px;margin-bottom:2px">สะสมเดือนนี้</div>'
-    +   '<div class="mini" style="margin-bottom:4px">ตั้งแต่ 1 '+TH_MON[parseInt(todayStr().slice(5,7),10)-1]+'</div>'
-    +   '<div class="row"><span class="k">ยอดขาย</span><span class="v">'+fmtB(mSales)+'</span></div>'
-    +   '<div class="row"><span class="k">ค่าใช้จ่าย</span><span class="v" style="color:var(--red)">−'+fmtB(mExp)+'</span></div>'
-    +   '<div class="row"><span class="k">กำไร</span><span class="v '+((mSales-mExp)>=0?"pos":"neg")+'" style="font-size:17px">'
-    +     ((mSales-mExp)>=0?"+":"−")+fmtB(Math.abs(mSales-mExp))+'</span></div>'
-    + '</div>';
-
-  const recs = inc.map(function(r){ return Object.assign({},r,{kind:"in"}); })
-    .concat(exp.map(function(r){ return Object.assign({},r,{kind:"out"}); }))
-    .sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
-
-  const list = recs.length
-    ? '<div class="card">'
-      + '<div style="font-weight:800;font-size:14px;margin-bottom:6px">รายการที่บันทึก <span class="mini">'+escapeHtml(periodLabel())+'</span></div>'
-      + recs.map(recRow).join("")
+  const list = rows.length
+    ? '<div class="card"><div style="font-weight:800;font-size:14px;margin-bottom:2px">รายการวันนี้</div>'
+      + rows.map(homeRow).join("")
       + '</div>'
-    : '<div class="empty"><span class="big">◔</span>ยังไม่มีรายการในช่วงนี้<br><span class="mini">กดปุ่มด้านบนเพื่อบันทึก</span></div>';
+    : "";
 
-  const night = (new Date()).getHours() >= 21;
-  const headCards = night
-    ? (todayCard() + receiptCard(d))
-    : (receiptCard(d) + todayCard());
-  return headCards + periodChips() + kpis + acts + mtd + list;
+  const acts = '<div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<button class="btn" onclick="openSaleForm()">+ ยอดขาย</button>'
+    + '<button class="btn" onclick="openBuyForm()">+ ค่าใช้จ่าย</button>'
+    + '</div>';
+
+  return receiptCard() + todayCard() + list + acts;
 }
 
-function recRow(r){
-  const isIn = r.kind === "in";
-  const label = isIn ? (String(r.channel||"store")==="store" ? "หน้าร้าน" : "Delivery")
+function homeRow(r){
+  const isIn  = r.kind === "in";
+  const label = isIn ? (String(r.channel||"store") === "store" ? "หน้าร้าน" : "Delivery")
                      : (String(r.category||"") || "ค่าใช้จ่าย");
-  const note = String(r.note||"").trim();
-  const id = String(r.id||"").replace(/'/g,"\\'");
+  const note  = String(r.note||"").trim();
+  const id    = String(r.id||"").replace(/'/g, "\\'");
   return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px dashed var(--line)">'
-    + '<div style="min-width:0"><div style="font-weight:700">'+escapeHtml(label)+'</div>'
-    +   '<div class="mini">'+escapeHtml(r.date)+(note?' · '+escapeHtml(note):"")+'</div></div>'
+    + '<div style="min-width:0">'
+    +   '<div style="font-weight:700"><span class="dept-tag">' + DEPT_LABEL[r.dept] + '</span>' + escapeHtml(label) + '</div>'
+    +   (note ? '<div class="mini">' + escapeHtml(note) + '</div>' : "")
+    + '</div>'
     + '<div style="display:flex;align-items:center;gap:7px;flex:none">'
-    +   '<span style="font-weight:800;font-variant-numeric:tabular-nums;color:'+(isIn?"var(--green)":"var(--red)")+'">'
-    +     (isIn?"+":"−")+fmtB(r.amount)+' ฿</span>'
-    +   '<button class="btn-sm danger" title="ลบ" onclick="delRec(\''+(isIn?"income":"expense")+'\',\''+id+'\')">✕</button>'
+    +   '<span style="font-weight:800;font-variant-numeric:tabular-nums;color:' + (isIn ? "var(--green)" : "var(--red)") + '">'
+    +     (isIn ? "+" : "−") + fmtB(r.amount) + ' ฿</span>'
+    +   '<button class="btn-sm danger" title="ลบ" onclick="delRec(&#39;' + (isIn ? "income" : "expense") + '&#39;,&#39;' + id + '&#39;)">✕</button>'
     + '</div></div>';
 }
+
+
 
 async function delRec(kind, id){
   if(!confirm("ลบรายการนี้?")) return;
@@ -1735,76 +1608,13 @@ async function setReceiptAmount(id, val){
    หมวด 2-3 — ต้นทุนเมนู
    ======================================================= */
 
-function deptMenus(d){
-  const by = {};
-  (d.recipes||[]).forEach(function(r){
-    const k = r.menuName;
-    if(!by[k]) by[k] = { menuName:k, sellingPrice:n2(r.sellingPrice), servings:n2(r.servings)||1, ingredients:[] };
-    by[k].ingredients.push(r);
-    if(n2(r.sellingPrice)>0) by[k].sellingPrice = n2(r.sellingPrice);
-  });
-  return Object.values(by).sort(function(a,b){
-    return String(a.menuName).localeCompare(String(b.menuName),"th"); });
-}
 
-function menuCost(m){
-  let c=0;
-  m.ingredients.forEach(function(g){
-    const unit = n2(g.packSize)>0 ? n2(g.buyPrice)/n2(g.packSize) : 0;
-    c += unit * n2(g.ingredientQty);
-  });
-  return c / (n2(m.servings)>0 ? n2(m.servings) : 1);
-}
 
-function gpColor(gp){
-  if(gp>=60) return "var(--green)";
-  if(gp>=40) return "var(--amber)";
-  return "var(--red)";
-}
 
-function renderCost(d){
-  const menus = deptMenus(d);
-  const addBtn = '<button class="btn" onclick="rcpOpen()" style="margin-bottom:12px">+ เพิ่มเมนู</button>';
-  if(!menus.length){
-    return addBtn + '<div class="empty"><span class="big">◇</span>ยังไม่มีเมนู — เพิ่มสูตรแรกได้เลย</div>';
-  }
 
-  const stats = menus.map(function(m){
-    const cost = menuCost(m), price = n2(m.sellingPrice);
-    const gp = price>0 ? (price-cost)/price*100 : 0;
-    return { m:m, cost:cost, price:price, gp:gp, profit:price-cost };
-  }).sort(function(a,b){ return b.gp-a.gp; });
 
-  const avg = stats.filter(function(s){ return s.price>0; });
-  const avgGp = avg.length ? avg.reduce(function(a,s){ return a+s.gp; },0)/avg.length : 0;
-  const lowGp = stats.filter(function(s){ return s.price>0 && s.gp<30; }).length;
 
-  const kpis =
-      '<div class="kpi-grid">'
-    +   '<div class="kpi"><p class="kpi-label">จำนวนเมนู</p><p class="kpi-val">'+menus.length+'</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">GP เฉลี่ย</p><p class="kpi-val" style="color:'+gpColor(avgGp)+'">'+Math.round(avgGp)+'%</p></div>'
-    +   '<div class="kpi '+(lowGp?"bad":"")+'"><p class="kpi-label">เมนูกำไรต่ำ (&lt;30%)</p><p class="kpi-val">'+lowGp+'</p></div>'
-    +   '<div class="kpi"><p class="kpi-label">ตั้งราคาแล้ว</p><p class="kpi-val">'+avg.length+'<span class="mini">/'+menus.length+'</span></p></div>'
-    + '</div>';
 
-  const rows = stats.map(function(s){
-    const name = escapeHtml(s.m.menuName).replace(/'/g,"\\'");
-    const ing = s.m.ingredients.map(function(g){
-      return escapeHtml(g.ingredientName)+' '+fmtN(g.ingredientQty)+escapeHtml(g.ingredientUnit||""); }).join(" · ");
-    return '<div class="it-row" onclick="rcpOpen(\''+name+'\')" style="cursor:pointer">'
-      + '<div class="it-top"><div class="it-name">'+escapeHtml(s.m.menuName)+'</div>'
-      +   '<div class="mini">ขาย '+fmtB(s.price)+' ฿</div></div>'
-      + '<div class="mini" style="margin:4px 0 8px">'+ing+'</div>'
-      + '<div style="display:flex;align-items:center;gap:9px">'
-      +   '<div class="gauge" style="flex:1;margin:0"><span style="width:'+Math.max(0,Math.min(100,s.gp))+'%;background:'+gpColor(s.gp)+'"></span></div>'
-      +   '<b style="color:'+gpColor(s.gp)+';white-space:nowrap">GP '+(s.price>0?Math.round(s.gp)+"%":"—")+'</b>'
-      + '</div>'
-      + '<div class="mini" style="margin-top:6px">ต้นทุน <b>'+fmtN(s.cost)+'</b> ฿ · กำไร <b>'+fmtN(s.profit)+'</b> ฿</div>'
-      + '</div>';
-  }).join("");
-
-  return addBtn + kpis + '<div style="font-weight:800;font-size:14px;margin-bottom:8px">เมนูทั้งหมด <span class="mini">เรียงตาม GP</span></div>' + rows;
-}
 
 /* =======================================================
    ฟอร์มทั้งหมด
@@ -1823,92 +1633,25 @@ function closeModal(){
 
 /* ---------------- วัตถุดิบ ---------------- */
 
-function openItemForm(id){
-  const it = id ? itemById(id) : null;
-  openSheet(
-      '<h3 style="margin-bottom:10px">'+(it?"แก้ไข "+escapeHtml(it.name):"เพิ่มวัตถุดิบใหม่")+'</h3>'
-    + '<label class="lbl">ชื่อวัตถุดิบ</label>'
-    + '<input id="itName" value="'+escapeHtml(it?it.name:"")+'" placeholder="เช่น เมล็ดกาแฟ">'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    +   '<div><label class="lbl">หน่วย</label><input id="itUnit" value="'+escapeHtml(it?it.unit:"")+'" placeholder="g / ml / ชิ้น"></div>'
-    +   '<div><label class="lbl">หมวด</label><input id="itCat" value="'+escapeHtml(it?it.category:"")+'" placeholder="เช่น นม"></div>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-    +   '<div><label class="lbl">คงเหลือ</label><input id="itQty" inputmode="decimal" value="'+(it?n2(it.qty):"")+'"></div>'
-    +   '<div><label class="lbl">ขั้นต่ำ</label><input id="itMin" inputmode="decimal" value="'+(it?n2(it.min):"")+'"></div>'
-    +   '<div><label class="lbl">ทุน/หน่วย</label><input id="itCost" inputmode="decimal" value="'+(it?n2(it.cost):"")+'"></div>'
-    + '</div>'
-    + '<div style="display:flex;gap:8px;margin-top:16px">'
-    +   (it?'<button class="btn" style="flex:none;width:auto;padding:13px 16px;color:var(--red)" onclick="submitDeleteItem(\''+escapeHtml(String(it.id))+'\')">ลบ</button>':"")
-    +   '<button class="btn btn-primary" onclick="submitItem(\''+(it?escapeHtml(String(it.id)):"")+'\')">บันทึก</button>'
-    + '</div>'
-  );
-}
 
-async function submitItem(id){
-  const name = String(document.getElementById("itName").value||"").trim();
-  if(!name){ showToast("ใส่ชื่อวัตถุดิบก่อน"); return; }
-  try{
-    const r = await apiCall("saveItem", {
-      id: id||"", dept: state.section, name: name,
-      unit: document.getElementById("itUnit").value,
-      category: document.getElementById("itCat").value,
-      qty: n2(document.getElementById("itQty").value),
-      min: n2(document.getElementById("itMin").value),
-      cost: n2(document.getElementById("itCost").value)
-    });
-    if(r.error) throw new Error(r.error);
-    closeModal(); showToast('บันทึก "'+name+'" แล้ว');
-    await refresh(true);
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
-}
 
-async function submitDeleteItem(id){
-  if(!confirm("ลบวัตถุดิบนี้?")) return;
-  try{
-    const r = await apiCall("deleteItem", { id:id });
-    if(r.error) throw new Error(r.error);
-    closeModal(); showToast("ลบแล้ว");
-    await refresh(true);
-  }catch(e){ showToast("ลบไม่สำเร็จ: "+e.message); }
-}
+
+
+
 
 /* ---------------- รับเข้า / ใช้ออก ---------------- */
 
-function openMove(id, type){
-  const it = itemById(id);
-  if(!it) return;
-  openSheet(
-      '<h3 style="margin-bottom:2px">'+(type==="in"?"รับเข้า":"ใช้ออก")+'</h3>'
-    + '<p class="mini" style="margin:0 0 10px">'+escapeHtml(it.name)+' · คงเหลือ '+fmtN(it.qty)+' '+escapeHtml(it.unit||"")+'</p>'
-    + '<label class="lbl">จำนวน ('+escapeHtml(it.unit||"หน่วย")+')</label>'
-    + '<input id="mvAmt" inputmode="decimal" placeholder="0" autofocus>'
-    + '<label class="lbl">หมายเหตุ</label>'
-    + '<input id="mvNote" placeholder="ไม่บังคับ">'
-    + '<button class="btn btn-primary" style="margin-top:16px" onclick="submitMove(\''+escapeHtml(String(id))+'\',\''+type+'\')">ยืนยัน</button>'
-  );
-}
 
-async function submitMove(id, type){
-  const amt = n2(document.getElementById("mvAmt").value);
-  if(amt<=0){ showToast("ใส่จำนวนก่อน"); return; }
-  const it = itemById(id);
-  try{
-    const r = await apiCall("moveStock", {
-      itemId:id, dept:state.section, type:type, amount:amt,
-      itemName: it?it.name:"", note: document.getElementById("mvNote").value, date: todayStr() });
-    if(r.error) throw new Error(r.error);
-    closeModal();
-    showToast((type==="in"?"รับเข้า ":"ใช้ออก ")+(it?it.name:"")+" "+fmtN(amt)+" "+(it?(it.unit||""):""));
-    await refresh(true);
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
-}
+
+
 
 /* ---------------- ยอดขาย / ซื้อของ ---------------- */
 
 function openSaleForm(){
   openSheet(
       '<h3 style="margin-bottom:10px">บันทึกยอดขาย</h3>'
+    + '<label class="lbl">แผนก</label>'
+    + '<select id="slDept"><option value="bar">บาร์น้ำ</option><option value="bakery">เบเกอรี่</option></select>'
     + '<label class="lbl">ช่องทาง</label>'
     + '<select id="slChannel"><option value="store">หน้าร้าน</option><option value="delivery">Delivery</option></select>'
     + '<label class="lbl">ยอดเงิน ฿</label>'
@@ -1924,7 +1667,7 @@ function openSaleForm(){
 function submitSale(){
   const amt = n2(document.getElementById("slAmt").value);
   if(amt <= 0){ showToast("ใส่ยอดเงินก่อน"); return; }
-  const dept    = state.section;
+  const dept    = document.getElementById("slDept").value;
   const channel = document.getElementById("slChannel").value;
   const date    = document.getElementById("slDate").value || todayStr();
   const note    = document.getElementById("slNote").value;
@@ -1942,6 +1685,8 @@ function submitSale(){
 function openBuyForm(){
   openSheet(
       '<h3 style="margin-bottom:10px">บันทึกค่าใช้จ่าย</h3>'
+    + '<label class="lbl">แผนก</label>'
+    + '<select id="byDept"><option value="bar">บาร์น้ำ</option><option value="bakery">เบเกอรี่</option></select>'
     + '<label class="lbl">หมวด</label>'
     + '<input id="byCat" placeholder="เช่น ซื้อของ / ค่าส่ง" value="ซื้อของ">'
     + '<label class="lbl">ยอดเงิน ฿</label>'
@@ -1957,7 +1702,7 @@ function openBuyForm(){
 function submitBuy(){
   const amt = n2(document.getElementById("byAmt").value);
   if(amt <= 0){ showToast("ใส่ยอดเงินก่อน"); return; }
-  const dept     = state.section;
+  const dept     = document.getElementById("byDept").value;
   const category = document.getElementById("byCat").value;
   const date     = document.getElementById("byDate").value || todayStr();
   const note     = document.getElementById("byNote").value;
@@ -1976,136 +1721,21 @@ function submitBuy(){
 
 const RCP_PLUS = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
-function rcpItemList(){
-  const d = state.data[state.section] || {items:[]};
-  const names = [];
-  (d.items||[]).forEach(function(it){
-    const n = String(it.name||"").trim();
-    if(n && names.indexOf(n)<0) names.push(n);
-  });
-  return '<datalist id="rcpItems">'
-    + names.map(function(n){ return '<option value="'+escapeHtml(n)+'">'; }).join("")
-    + '</datalist>';
-}
 
-function rcpRow(g){
-  g = g || {};
-  const cell = 'style="font-size:16px;padding:9px 10px"';
-  return '<div class="rcp-row" style="border:1px solid var(--line);border-radius:10px;padding:9px;margin-bottom:8px">'
-    + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">'
-    +   '<input class="rcp-name" list="rcpItems" placeholder="ชื่อวัตถุดิบ" value="'+escapeHtml(g.ingredientName||"")+'" oninput="rcpFill(this)" style="flex:1;font-size:16px;padding:9px 10px">'
-    +   '<button type="button" class="btn-sm" onclick="this.closest(\'.rcp-row\').remove();rcpCalc()" style="flex:none;padding:8px 11px">✕</button>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">'
-    +   '<input class="rcp-qty"  inputmode="decimal" placeholder="ใช้" value="'+(g.ingredientQty||"")+'" oninput="rcpCalc()" '+cell+'>'
-    +   '<input class="rcp-unit" placeholder="หน่วย" value="'+escapeHtml(g.ingredientUnit||"")+'" '+cell+'>'
-    +   '<input class="rcp-buy"  inputmode="decimal" placeholder="ซื้อ ฿" value="'+(g.buyPrice||"")+'" oninput="rcpCalc()" '+cell+'>'
-    +   '<input class="rcp-pack" inputmode="decimal" placeholder="ต่อ" value="'+(g.packSize||"")+'" oninput="rcpCalc()" '+cell+'>'
-    + '</div></div>';
-}
 
-function rcpFill(inp){
-  const want = String(inp.value||"").trim();
-  const d = state.data[state.section] || {items:[]};
-  const it = (d.items||[]).find(function(x){ return String(x.name||"").trim()===want; });
-  const row = inp.closest(".rcp-row");
-  if(it && row){
-    const u=row.querySelector(".rcp-unit"), b=row.querySelector(".rcp-buy"), p=row.querySelector(".rcp-pack");
-    if(u && !u.value) u.value = it.unit||"";
-    if(b && !b.value && n2(it.cost)>0) b.value = n2(it.cost);
-    if(p && !p.value) p.value = 1;
-  }
-  rcpCalc();
-}
 
-function rcpCalc(){
-  const sv = document.getElementById("rcpServ");
-  const serv = Math.max(1, n2(sv?sv.value:1));
-  let total=0;
-  document.querySelectorAll(".rcp-row").forEach(function(r){
-    const q=n2(r.querySelector(".rcp-qty").value);
-    const b=n2(r.querySelector(".rcp-buy").value);
-    const p=n2(r.querySelector(".rcp-pack").value);
-    if(p>0) total += (b/p)*q;
-  });
-  const cost = total/serv;
-  const pv = document.getElementById("rcpPrice");
-  const price = n2(pv?pv.value:0);
-  const gp = price>0 ? ((price-cost)/price)*100 : null;
-  const out = document.getElementById("rcpOut");
-  if(!out) return;
-  out.innerHTML =
-      '<div class="row"><span class="k">ต้นทุนต่อที่</span><span class="v">'+fmtN(cost)+'</span></div>'
-    + '<div class="row"><span class="k">กำไรต่อที่</span><span class="v">'+fmtN(Math.max(0,price-cost))+'</span></div>'
-    + '<div class="row"><span class="k">GP</span><span class="v" style="font-size:17px;color:'
-    +   (gp===null?"var(--ink-3)":gpColor(gp))+'">'+(gp===null?"—":Math.round(gp)+"%")+'</span></div>';
-}
 
-function rcpAdd(){
-  const box=document.getElementById("rcpRows");
-  if(box){ box.insertAdjacentHTML("beforeend", rcpRow()); rcpCalc(); }
-}
 
-function rcpOpen(menuName){
-  const d = state.data[state.section] || {recipes:[]};
-  const m = menuName ? deptMenus(d).find(function(x){ return x.menuName===menuName; }) : null;
-  const rows = m ? m.ingredients : [];
-  openSheet(
-      '<h3 style="margin-bottom:10px">'+(m?"แก้สูตร "+escapeHtml(m.menuName):"เพิ่มเมนูใหม่")+'</h3>'
-    + rcpItemList()
-    + '<label class="lbl" style="margin-top:0">ชื่อเมนู</label>'
-    + '<input id="rcpName" placeholder="เช่น Flat White" value="'+escapeHtml(m?m.menuName:"")+'">'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    +   '<div><label class="lbl">ราคาขาย ฿</label><input id="rcpPrice" inputmode="decimal" value="'+(m?n2(m.sellingPrice):"")+'" oninput="rcpCalc()"></div>'
-    +   '<div><label class="lbl">สูตรนี้ได้กี่ที่</label><input id="rcpServ" inputmode="numeric" value="'+(m?(n2(m.servings)||1):1)+'" oninput="rcpCalc()"></div>'
-    + '</div>'
-    + '<div style="margin:16px 0 4px;font-weight:700;font-size:14px">วัตถุดิบ</div>'
-    + '<div class="mini" style="margin-bottom:8px">ใช้เท่าไร · หน่วย · ราคาที่ซื้อมา · ซื้อมาได้กี่หน่วย</div>'
-    + '<div id="rcpRows">'+(rows.length ? rows.map(rcpRow).join("") : rcpRow())+'</div>'
-    + '<button type="button" class="btn" onclick="rcpAdd()" style="padding:11px">'+RCP_PLUS+'เพิ่มวัตถุดิบ</button>'
-    + '<div id="rcpOut" class="card" style="margin-top:14px;background:var(--surface-2)"></div>'
-    + '<div style="display:flex;gap:8px;margin-top:8px">'
-    +   (m?'<button class="btn" style="flex:none;width:auto;padding:13px 16px;color:var(--red)" onclick="rcpDelete(\''+escapeHtml(m.menuName).replace(/'/g,"\\'")+'\')">ลบ</button>':"")
-    +   '<button class="btn btn-primary" onclick="rcpSubmit()">บันทึกสูตร</button>'
-    + '</div>'
-  );
-  rcpCalc();
-}
 
-async function rcpSubmit(){
-  const name = String(document.getElementById("rcpName").value||"").trim();
-  if(!name){ showToast("ใส่ชื่อเมนูก่อน"); return; }
-  const price = n2(document.getElementById("rcpPrice").value);
-  const serv  = Math.max(1, n2(document.getElementById("rcpServ").value));
-  const rows=[];
-  document.querySelectorAll(".rcp-row").forEach(function(r){
-    const nm=String(r.querySelector(".rcp-name").value||"").trim();
-    if(!nm) return;
-    rows.push({ menuName:name, dept:state.section, servings:serv, sellingPrice:price,
-      ingredientName:nm,
-      ingredientQty:n2(r.querySelector(".rcp-qty").value),
-      ingredientUnit:String(r.querySelector(".rcp-unit").value||""),
-      buyPrice:n2(r.querySelector(".rcp-buy").value),
-      packSize:n2(r.querySelector(".rcp-pack").value) });
-  });
-  if(!rows.length){ showToast("ใส่วัตถุดิบอย่างน้อย 1 อย่าง"); return; }
-  try{
-    const res = await apiCall("saveRecipe", { menuName:name, dept:state.section, rows:rows });
-    if(res.error) throw new Error(res.error);
-    closeModal(); showToast('บันทึกสูตร "'+name+'" แล้ว');
-    await refresh(true);
-  }catch(e){ showToast("บันทึกไม่สำเร็จ: "+e.message); }
-}
 
-async function rcpDelete(menuName){
-  if(!confirm('ลบสูตร "'+menuName+'" ?')) return;
-  try{
-    const res = await apiCall("deleteRecipe", { menuName:menuName, dept:state.section });
-    if(res.error) throw new Error(res.error);
-    closeModal(); showToast("ลบแล้ว");
-    await refresh(true);
-  }catch(e){ showToast("ลบไม่สำเร็จ: "+e.message); }
-}
+
+
+
+
+
+
+
+
 
 /* ---------------- init ---------------- */
 
