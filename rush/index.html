@@ -315,10 +315,11 @@
    ========================================================= */
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwpQ2EmK5kFVAjvN4gp2ZluMdKYq8ETnAa7p6_H1QRz9R_LFeEoJh03VfB-u0Lat-Mt/exec";
-const ATTEND_URL = "../staff/?embed=1";
+const ATTEND_URL = "../staff/?embed=1&branch=rush";
 // อ่านข้อมูลตรงจากชีต เร็วกว่าผ่าน Apps Script ราว 10-25 เท่า
 // (ชีตตั้งเป็น "ทุกคนที่มีลิงก์ · ผู้มีสิทธิ์อ่าน" — อ่านได้อย่างเดียว เขียนยังต้องผ่าน Apps Script)
 const SS_ID = "1-G1rXu7zUer3YiA3KPJStJXqblrpdThbloxxxh-_P3g";
+const SHOP   = "rush";
 
 const DEPT_LABEL = { bar:"บาร์น้ำ", bakery:"เบเกอรี่" };
 
@@ -367,7 +368,7 @@ function tickClock(){
 }
 
 async function apiCall(action, payload){
-  const body = "action="+encodeURIComponent(action)+"&payload="+encodeURIComponent(JSON.stringify(payload||{}));
+  const body = "action="+encodeURIComponent(action)+"&payload="+encodeURIComponent(JSON.stringify(Object.assign({shop:SHOP}, payload||{})));
   let lastErr = null;
   // Apps Script ตอบ 404/5xx ชั่วคราวได้บ่อยหลังอัปเดต — ลองซ้ำเองแทนที่จะเด้ง error ใส่หน้าน้อง
   for(let i=0; i<3; i++){
