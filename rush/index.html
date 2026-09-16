@@ -273,6 +273,9 @@
   .t-row{display:flex;justify-content:space-between;align-items:baseline;
     padding:11px 2px;border-bottom:1px solid #F0ECE1;font-size:15px}
   .t-row b{font-variant-numeric:tabular-nums;font-size:16px}
+  .t-row.t-sub{padding:9px 2px;font-size:14px;color:var(--ink-2)}
+  .t-row.t-sub b{font-size:14.5px;font-weight:700}
+  .t-list .t-row:last-child{border-bottom:0;padding-top:13px;font-weight:700}
   .t-row b.pos{color:#3E7C4A}
   .t-row b.neg{color:var(--red)}
   .t-est{margin-top:12px;font-size:12.5px;color:var(--ink-3);text-align:left;
@@ -1313,6 +1316,7 @@ async function delRec(kind, id){
 const RC_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6-2.4-1.6V3.5z"/><path d="M9.5 9h5M9.5 13h5"/></svg>';
 let rcBusy = false;
 let dcBusy = false;
+let rcDone = 0, rcTotal = 0;
 
 function receiptCard(d){
   const all  = (state.photos || []);
@@ -1343,7 +1347,7 @@ function receiptCard(d){
     +   '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
     +   '<path d="M3 8.5h3.2l1.4-2h7.8l1.4 2H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z"/>'
     +   '<circle cx="12" cy="13.5" r="3.4"/></svg>'
-    +   '<span class="shoot-t">' + (rcBusy ? "กำลังส่ง…" : "ถ่ายบิล") + '</span>'
+    +   '<span class="shoot-t">' + (rcBusy ? ("กำลังส่ง " + rcDone + "/" + rcTotal) : "ถ่ายบิล") + '</span>'
     +   '<span class="shoot-s">ใบเสร็จ · ของสด · บิลปิดยอด</span>'
     + '</button>'
     + '<input type="file" id="rcFile" accept="image/*,application/pdf" multiple style="display:none" onchange="onReceiptFile(this)">'
@@ -1371,28 +1375,29 @@ function billKindText(k){
 
 function todayCard(){
   const day = todayStr();
-  let barS = 0, bakS = 0, spend = 0;
+  const S = { bar:0, bakery:0 }, X = { bar:0, bakery:0 };
   const est = [];
   ["bar","bakery"].forEach(function(dp){
     const x = state.data[dp];
     if(!x) return;
     (x.income || []).forEach(function(r){
-      if(normDate(r.date) !== day) return;
-      if(dp === "bar") barS += n2(r.amount); else bakS += n2(r.amount);
+      if(normDate(r.date) === day) S[dp] += n2(r.amount);
     });
     (x.expense || []).forEach(function(r){
       if(normDate(r.date) !== day) return;
-      spend += n2(r.amount);
+      X[dp] += n2(r.amount);
       if(String(r.note || "").indexOf("ประเมิน") === 0) est.push(r);
     });
   });
-  const sales  = barS + bakS;
+  const sales  = S.bar + S.bakery;
+  const spend  = X.bar + X.bakery;
   const profit = sales - spend;
 
-  const line = function(label, val, cls){
-    return '<div class="t-row"><span>' + label + '</span>'
+  const line = function(label, val, cls, sub){
+    return '<div class="t-row' + (sub ? " t-sub" : "") + '"><span>' + label + '</span>'
          + '<b' + (cls ? ' class="' + cls + '"' : "") + '>' + val + '</b></div>';
   };
+  const money = function(v){ return v ? fmtB(v) : "0"; };
 
   const estBlock = est.map(function(r){
     const pid = String(r.id || "").indexOf("P-") === 0 ? String(r.id).slice(2) : "";
@@ -1406,10 +1411,11 @@ function todayCard(){
     + '<p class="t-lab">ยอดขายวันนี้</p>'
     + '<p class="t-big">' + fmtB(sales) + '</p>'
     + '<div class="t-list">'
-    +   line("บาร์น้ำ",  fmtB(barS))
-    +   line("เบเกอรี่", fmtB(bakS))
-    +   line("ซื้อของ",  (spend ? "−" + fmtB(spend) : "0"), "neg")
-    +   line("กำไร", (profit >= 0 ? "+" : "−") + fmtB(Math.abs(profit)), profit >= 0 ? "pos" : "neg")
+    +   line("ขาย · บาร์น้ำ",     money(S.bar),    "", true)
+    +   line("ขาย · เบเกอรี่",    money(S.bakery), "", true)
+    +   line("ซื้อของ · บาร์น้ำ",  (X.bar    ? "−" + fmtB(X.bar)    : "0"), "neg", true)
+    +   line("ซื้อของ · เบเกอรี่", (X.bakery ? "−" + fmtB(X.bakery) : "0"), "neg", true)
+    +   line("กำไรวันนี้", (profit >= 0 ? "+" : "−") + fmtB(Math.abs(profit)), profit >= 0 ? "pos" : "neg")
     + '</div>'
     + estBlock
     + '</div>';
@@ -1548,33 +1554,67 @@ function pickReceipt(){
   if(f){ f.value=""; f.click(); }
 }
 
+/** ย่อรูปก่อนส่ง — รูปจากมือถือใบนึง 10-14MB ส่งตรงๆ ใช้เวลา 40 วิ
+ *  ย่อเหลือด้านยาว 1600px แล้วเหลือหลักแสนไบต์ อ่านบิลได้ชัดเท่าเดิม */
+function shrinkImage(file, maxEdge, quality){
+  return new Promise(function(resolve, reject){
+    const readRaw = function(){
+      const rd = new FileReader();
+      rd.onload = function(){ resolve(String(rd.result)); };
+      rd.onerror = function(){ reject(new Error("อ่านไฟล์ไม่ได้")); };
+      rd.readAsDataURL(file);
+    };
+    if(!/^image\//.test(file.type)) return readRaw();   // pdf ส่งตามเดิม
+    const url = URL.createObjectURL(file);
+    const im  = new Image();
+    im.onload = function(){
+      try{
+        const scale = Math.min(1, maxEdge / Math.max(im.width, im.height));
+        const w = Math.max(1, Math.round(im.width  * scale));
+        const h = Math.max(1, Math.round(im.height * scale));
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, w, h);
+        g.drawImage(im, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", quality));
+      }catch(e){ URL.revokeObjectURL(url); readRaw(); }
+    };
+    im.onerror = function(){ URL.revokeObjectURL(url); readRaw(); };
+    im.src = url;
+  });
+}
+
 async function onReceiptFile(input){
   const files = input.files ? Array.prototype.slice.call(input.files) : [];
   if(!files.length) return;
-  rcBusy = true; render();
-  let ok = 0;
+  rcBusy = true; rcDone = 0; rcTotal = files.length; render();
   try{
-    for(let i = 0; i < files.length; i++){
-      const f = files[i];
-      const b64 = await new Promise(function(res, rej){
-        const rd = new FileReader();
-        rd.onload = function(){ res(String(rd.result)); };
-        rd.onerror = rej;
-        rd.readAsDataURL(f);
+    // ส่งพร้อมกันทุกใบ เพราะย่อแล้วเล็ก ไม่ต้องรอทีละใบ
+    const jobs = files.map(function(f){
+      return shrinkImage(f, 1600, 0.72).then(function(b64){
+        const type = /pdf/i.test(f.type) ? "pdf" : "jpg";
+        return apiCall("uploadBill", { date: todayStr(), fileType: type, fileData: b64, source: "staff" });
+      }).then(function(r){
+        if(r && r.error) throw new Error(r.error);
+        rcDone++; render();
+        return r;
       });
-      const type = /pdf/i.test(f.type) ? "pdf" : "jpg";
-      const r = await apiCall("uploadBill", { date: todayStr(), fileType: type, fileData: b64, source: "staff" });
-      if(r && r.error) throw new Error(r.error);
-      ok++;
-    }
+    });
+    const out = await Promise.allSettled(jobs);
+    const ok  = out.filter(function(x){ return x.status === "fulfilled"; }).length;
+    const bad = out.length - ok;
     state.justShot = files.filter(function(f){ return /^image\//.test(f.type); });
-    showToast(ok > 1 ? ("ส่งแล้ว " + ok + " รูป") : "ส่งบิลแล้ว");
+    if(ok && !bad)      showToast(ok > 1 ? ("ส่งแล้ว " + ok + " รูป") : "ส่งบิลแล้ว");
+    else if(ok && bad)  showToast("ส่งได้ " + ok + " รูป · ไม่ผ่าน " + bad + " ลองใหม่อีกที");
+    else                showToast("ส่งไม่สำเร็จ ลองใหม่อีกที");
     await refresh(true);
   }catch(e){
-    showToast(ok ? ("ส่งได้ " + ok + " รูป แล้วสะดุด: " + e.message) : ("ส่งไม่สำเร็จ: " + e.message));
+    showToast("ส่งไม่สำเร็จ: " + e.message);
     refresh(true);
   }
-  finally{ rcBusy = false; render(); }
+  finally{ rcBusy = false; rcDone = 0; rcTotal = 0; render(); }
 }
 
 /** เว็บแอปเขียนลงคลังรูปเองไม่ได้ ต้องผ่านแผงแชร์ของเครื่อง — กดแล้วเลือก บันทึกรูปภาพ */
