@@ -237,7 +237,9 @@ p#summaryText.sub{margin:0 0 12px;font-size:13px}
   /* ฝังอยู่ในแอปร้าน — หัวของแอปร้านแสดงแทนแล้ว ไม่ต้องมีหัวซ้อน */
   body.embed .appbar{ display:none !important; }
   body.embed #rushInstallBar{ display:none !important; }
-  body.embed .wrap{ padding-top:4px; }
+  body.embed .branch-row{ display:none !important; }
+  body.embed .bottom-nav{ display:none !important; }
+  body.embed .wrap{ padding-top:4px; padding-bottom:10px; }
 </style>
 </head>
 <body class="theme-rush" id="bodyEl">
@@ -308,11 +310,13 @@ const BRANCH_LIST  = ["rush","rushhour","sandos"];
 
 // เปิดจากแอปร้านไหน ก็ล็อกสาขานั้น — ../staff/?embed=1&branch=rushhour
 const EMBEDDED = /[?&]embed=1/.test(location.search);
-if (EMBEDDED) document.getElementById("bodyEl").classList.add("embed");
 
 const LOCK_BRANCH = (function(){
   try{ const b = new URLSearchParams(location.search).get("branch"); return (b && BRANCH_LABEL[b]) ? b : ""; }catch(e){ return ""; }
 })();
+
+// ตั้งธีมกับโหมดฝังทันที จะได้ไม่วูบสาขาอื่นก่อนโหลดเสร็จ
+document.getElementById("bodyEl").className = "theme-" + (LOCK_BRANCH || "rush") + (EMBEDDED ? " embed" : "");
 
 // พนักงานที่ลาออกแล้ว — ซ่อนจากช่องเลือกชื่อ แต่ประวัติเก่ายังอยู่ครบในชีต
 // (วิธีถาวรคือแก้คอลัมน์ active ในชีต Employees เป็น no แล้วเอา id ออกจากลิสต์นี้ได้)
@@ -766,8 +770,9 @@ function openAppSwitcher(){
         <h2 style="font-size:17px; margin:0 0 3px;">สลับแอป</h2>
         <p class="sub" style="margin:0 0 13px;">แต่ละแอปติดตั้งแยกกันบนมือถือได้</p>
         <a class="applink cur" href="../staff/"><div class="dot" style="background:linear-gradient(135deg,#8C95A1,#69727E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><b>พนักงาน</b><span>ตอกบัตร · สรุปยอด</span></div></a>
-        <a class="applink" href="../bakery/"><div class="dot" style="background:linear-gradient(135deg,#A87249,#7A4E2E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h16"/><path d="M5 13c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M4 13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2"/></svg></div><div><b>เบเกอรี่</b><span>สต๊อก · เบิก · ยอดขาย · ต้นทุน</span></div></a>
-        <a class="applink" href="../bar/"><div class="dot" style="background:linear-gradient(135deg,#454C55,#22262B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12l-1.1 14.2a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 4Z"/><path d="M6.6 9h10.8"/></svg></div><div><b>บาร์น้ำ</b><span>สต๊อก · เบิก · ยอดขาย · ต้นทุน</span></div></a>
+        <a class="applink" href="../rush/"><div class="dot" style="background:linear-gradient(135deg,#3A342A,#15120C)"></div><div><b>Rush</b><span>ถ่ายบิล · สรุปยอด</span></div></a>
+        <a class="applink" href="../rushhour/"><div class="dot" style="background:linear-gradient(135deg,#FFE600,#E0A800)"></div><div><b>Rush Hour</b><span>ถ่ายบิล · สรุปยอด</span></div></a>
+        <a class="applink" href="../sandos/"><div class="dot" style="background:linear-gradient(135deg,#2B3ED0,#030F95)"></div><div><b>SANDOS</b><span>ถ่ายบิล · สรุปยอด</span></div></a>
         <button class="btn-primary" style="margin-top:4px;" onclick="closeModal(); window.rushInstall && window.rushInstall.trigger();">ติดตั้งแอปนี้ลงมือถือ</button>
         <button class="btn-ghost" style="margin-top:9px;" onclick="closeModal()">ปิด</button>
       </div>
