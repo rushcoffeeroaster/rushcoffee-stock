@@ -234,6 +234,10 @@ p#summaryText.sub{margin:0 0 12px;font-size:13px}
 .tabs{background:#fff;border:1px solid var(--line);box-shadow:none}
 .tab{color:var(--ink-2);font-weight:650}
 .tab.active{background:var(--ink)!important;background-image:none!important;color:#fff!important;box-shadow:none!important}
+  /* ฝังอยู่ในแอปร้าน — หัวของแอปร้านแสดงแทนแล้ว ไม่ต้องมีหัวซ้อน */
+  body.embed .appbar{ display:none !important; }
+  body.embed #rushInstallBar{ display:none !important; }
+  body.embed .wrap{ padding-top:4px; }
 </style>
 </head>
 <body class="theme-rush" id="bodyEl">
@@ -303,6 +307,9 @@ const SHOP_LABEL   = { rush:"RUSH COFFEE", rushhour:"RUSH COFFEE", sandos:"SANDO
 const BRANCH_LIST  = ["rush","rushhour","sandos"];
 
 // เปิดจากแอปร้านไหน ก็ล็อกสาขานั้น — ../staff/?embed=1&branch=rushhour
+const EMBEDDED = /[?&]embed=1/.test(location.search);
+if (EMBEDDED) document.getElementById("bodyEl").classList.add("embed");
+
 const LOCK_BRANCH = (function(){
   try{ const b = new URLSearchParams(location.search).get("branch"); return (b && BRANCH_LABEL[b]) ? b : ""; }catch(e){ return ""; }
 })();
@@ -392,7 +399,7 @@ function setView(v){
 function showToast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
 
 function applyTheme(){
-  document.getElementById("bodyEl").className = "theme-" + (BRANCH_LABEL[state.branch] ? state.branch : "rush");
+  document.getElementById("bodyEl").className = "theme-" + (BRANCH_LABEL[state.branch] ? state.branch : "rush") + (EMBEDDED ? " embed" : "");
   BRANCH_LIST.forEach(function(b){
     const el = document.getElementById("branch" + b.charAt(0).toUpperCase() + b.slice(1));
     if (el) el.classList.toggle("active", state.branch === b);
