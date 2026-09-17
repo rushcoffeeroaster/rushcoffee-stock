@@ -1,5 +1,5 @@
 /* Rush Hour · service worker (offline shell) */
-const CACHE = "rushhour-v2";
+const CACHE = "rushhour-v3";
 const ASSETS = [
   "./", "./index.html", "./manifest.json", "./pwa-install.js",
   "./icon-180.png", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./wordmark.png"
