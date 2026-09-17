@@ -41,14 +41,14 @@
       "animation:rushInsUp .3s cubic-bezier(.2,.8,.2,1)",
     ].join(";"));
     bar.innerHTML =
-      '<div style="width:38px;height:38px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;color:#fff;background:var(--ink,#1B1810)">' +
+      '<div style="width:38px;height:38px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;color:#fff;background:var(--ink,#111111)">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M12 3v12"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>' +
       '</div>' +
       '<div style="flex:1;min-width:0">' +
         '<p style="margin:0;font-size:13.5px;font-weight:800;color:var(--ink,#1E232A)">ติดตั้งเป็นแอปบนมือถือ</p>' +
         '<p style="margin:2px 0 0;font-size:11.5px;color:var(--ink-3,#9A9FA8)">เปิดใช้ง่ายขึ้น เต็มจอ ไม่ต้องหาลิงก์</p>' +
       '</div>' +
-      '<button id="rushInstallGo" style="flex-shrink:0;border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;padding:10px 14px;border-radius:11px;color:var(--on-accent,#fff);background:var(--accent,#FDBE21)">ติดตั้ง</button>' +
+      '<button id="rushInstallGo" style="flex-shrink:0;border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;padding:10px 14px;border-radius:11px;color:var(--on-accent,#fff);background:var(--accent,#FFE600)">ติดตั้ง</button>' +
       '<button id="rushInstallX" aria-label="ปิด" style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--ink-3,#9A9FA8);font-size:19px;line-height:1;padding:4px 2px">&times;</button>';
 
     if (!el("rushInsAnim")) {
@@ -89,7 +89,7 @@
         '<p style="margin:0 0 12px;font-size:12.5px;color:var(--ink-2,#5D646E)">ทำตาม ' + (ios ? "3" : "2") + ' ขั้นตอนนี้</p>' +
         '<ol style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.95;color:var(--ink,#1E232A)">' + steps + '</ol>' +
         warn +
-        '<button id="rushHelpClose" style="width:100%;margin-top:16px;border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:14.5px;padding:13px;border-radius:12px;color:var(--on-accent,#fff);background:var(--accent,#FDBE21)">เข้าใจแล้ว</button>' +
+        '<button id="rushHelpClose" style="width:100%;margin-top:16px;border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:14.5px;padding:13px;border-radius:12px;color:var(--on-accent,#fff);background:var(--accent,#FFE600)">เข้าใจแล้ว</button>' +
       '</div>';
     wrap.addEventListener("click", function (e) { if (e.target === wrap) wrap.remove(); });
     document.body.appendChild(wrap);
