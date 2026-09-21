@@ -414,11 +414,13 @@ function applyTheme(){
 }
 
 // ★ แสดงพนักงานทุกคนทุกสาขา — ตอกบัตรข้ามสาขาได้ (geofence เช็คตามสาขาที่กำลังเลือกอยู่จริง ไม่ใช่สาขาต้นสังกัด)
-// แต่ละสาขาเห็นเฉพาะคนของสาขาตัวเอง
+// แต่ละสาขาเห็นเฉพาะคนของสาขานั้น — ใครทำ  2 สาขา ใส่ในชีตเป็น rush,rushhour
 function empsForBranch(){
   const list = state.config.employees.filter(function(e){
-    const b = String(e.branch || "");
-    return !b || b === state.branch;
+    const b = String(e.branch || "").trim().toLowerCase();
+    if (!b) return true;                       // ไม่ใส่สาขา = เข้าได้ทุกสาขา
+    // ใส่หลายสาขาต่อคนได้ เช่น "rush,rushhour" — คั่นด้วย , หรือเว้นวรรค
+    return b.split(/[,\/|\s]+/).indexOf(state.branch) >= 0;
   });
   list.sort(function(a,b){
     return String(a.name).localeCompare(String(b.name), "th");
