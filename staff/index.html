@@ -308,6 +308,11 @@ const BRANCH_LABEL = { rush:"Rush", rushhour:"Rush Hour", sandos:"SANDOS" };
 const SHOP_LABEL   = { rush:"RUSH COFFEE", rushhour:"RUSH COFFEE", sandos:"SANDOS" };
 const BRANCH_LIST  = ["rush","rushhour","sandos"];
 
+// พิกัดสาขาสำรอง — ใช้เมื่อหลังบ้านยังไม่ได้ตั้งพิกัดของสาขานั้น
+const BRANCH_FALLBACK = {
+  sandos: { lat: 13.7160894, lng: 100.5275578 }   // เลขที่ 1 สาทร 11 แยก 5 (ตรงข้าม GL card shop)
+};
+
 // เปิดจากแอปร้านไหน ก็ล็อกสาขานั้น — ../staff/?embed=1&branch=rushhour
 const EMBEDDED = /[?&]embed=1/.test(location.search);
 
@@ -372,6 +377,11 @@ async function loadConfig(){
       branches: data.branches || {},
       radiusM: Number(data.radiusM) || 150,
     };
+    // สาขาไหนหลังบ้านยังไม่มีพิกัด ให้ใช้ค่าสำรองด้านบน
+    Object.keys(BRANCH_FALLBACK).forEach(function(b){
+      const cur = state.config.branches[b];
+      if (!cur || cur.lat == null) state.config.branches[b] = BRANCH_FALLBACK[b];
+    });
     state.configError = "";
   }catch(e){ state.configError = e.message; }
   state.configLoaded = true;
